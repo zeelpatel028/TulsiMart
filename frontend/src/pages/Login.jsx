@@ -288,16 +288,8 @@ export const Login = () => {
                   <Mail className="w-4 h-4 text-[#88BDF2]" /> Nodemailer Service Activated
                 </div>
                 <p className="text-[11px] text-slate-300">
-                  OTP dispatched to <strong className="text-white">{userEmail}</strong>
+                  OTP code has been sent to <strong className="text-white">{userEmail}</strong>. Please check your email inbox.
                 </p>
-                {dispatchedOtp && (
-                  <div className="mt-2 pt-2 border-t border-sky-800/50 flex items-center justify-between text-[11px]">
-                    <span className="text-slate-400">Nodemailer Live OTP Preview:</span>
-                    <span className="font-mono font-extrabold text-amber-300 tracking-widest text-sm bg-slate-900 px-2.5 py-0.5 rounded-md border border-amber-500/40">
-                      {dispatchedOtp}
-                    </span>
-                  </div>
-                )}
               </div>
 
               <div>

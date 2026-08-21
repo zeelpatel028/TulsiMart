@@ -91,8 +91,24 @@ def send_otp_view(request):
     otp_code = str(random.randint(100000, 999999))
     OTP_CACHE[user.username.lower()] = otp_code
 
-    user_email = user.email or f"{user.username}@tulsimart.com"
+    settings = StoreSetting.get_settings()
+    user_email = (settings.otp_email and settings.otp_email.strip()) or user.email or settings.email or f"{user.username}@tulsimart.com"
     
+    # Execute Nodemailer Node.js Transport Service
+    import subprocess, os
+    from django.conf import settings as django_settings
+    
+    script_path = os.path.join(django_settings.BASE_DIR, 'send_email.js')
+    try:
+        subprocess.run(
+            ['node', script_path, user_email, otp_code, user.first_name or user.username],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+    except Exception:
+        pass
+
     try:
         from django.core.mail import send_mail
         send_mail(
@@ -108,7 +124,6 @@ def send_otp_view(request):
     return Response({
         'success': True,
         'message': f'OTP code dispatched via Nodemailer Service to {user_email}',
-        'otp_code': otp_code,
         'email': user_email,
         'username': user.username
     })
