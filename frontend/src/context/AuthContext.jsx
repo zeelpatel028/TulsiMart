@@ -16,6 +16,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const startTime = Date.now();
     const initAuth = async () => {
       const savedToken = localStorage.getItem('tm_access_token');
       if (savedToken) {
@@ -36,7 +37,13 @@ export const AuthProvider = ({ children }) => {
       } else {
         setUser(null);
       }
-      setLoading(false);
+      
+      // Ensure splash loader stays for 5 seconds (5000ms) on site open / refresh
+      const elapsedTime = Date.now() - startTime;
+      const remainingTime = Math.max(0, 5000 - elapsedTime);
+      setTimeout(() => {
+        setLoading(false);
+      }, remainingTime);
     };
 
     initAuth();

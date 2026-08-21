@@ -23,17 +23,16 @@ import SettingsPage from './pages/Settings/SettingsPage';
 import BillingPage from './pages/Billing/BillingPage';
 import GullaManagement from './pages/Gulla/GullaManagement';
 
+import CartLoader from './components/common/CartLoader';
+
 // Protected Route Component with RBAC checks
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { isAuthenticated, user, loading } = useAuth();
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#F4F7FB]">
-        <div className="text-center space-y-3">
-          <div className="w-12 h-12 rounded-2xl bg-[#384959]/10 border-2 border-[#88BDF2] border-t-transparent animate-spin mx-auto" />
-          <p className="text-sm font-bold text-[#384959]">Authenticating...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-screen bg-[#F4F7FB] dark:bg-slate-950">
+        <CartLoader text="Logging into Tulsi Mart..." size="lg" />
       </div>
     );
   }
