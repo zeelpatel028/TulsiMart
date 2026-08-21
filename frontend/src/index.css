@@ -1,0 +1,236 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-tm-navy: #384959;
+  --color-tm-slate: #6A89A7;
+  --color-tm-sky: #88BDF2;
+  --color-tm-light: #BDDDFC;
+  --color-tm-bg: #F4F7FB;
+  --color-tm-surface: #FFFFFF;
+  --color-tm-card: #FFFFFF;
+  --color-tm-border: #E2E8F0;
+  --color-tm-navy-dark: #273440;
+  --color-tm-sky-hover: #71adf0;
+  --color-tm-accent: #88BDF2;
+  
+  --color-slate-750: #243247;
+  --color-slate-850: #131d2e;
+  
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+:root {
+  --tm-navy: #384959;
+  --tm-slate: #6A89A7;
+  --tm-sky: #88BDF2;
+  --tm-light: #BDDDFC;
+  --tm-bg: #F4F7FB;
+}
+
+.dark {
+  --tm-bg: #0F172A;
+  color-scheme: dark;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--tm-bg);
+  color: #1E293B;
+  overflow-x: hidden;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.dark body {
+  background-color: #0F172A;
+  color: #F8FAFC;
+}
+
+/* Universal Dark Mode Input, Textarea, and Select Styles */
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+.dark textarea,
+.dark select {
+  background-color: #1E293B !important;
+  border-color: #334155 !important;
+  color: #F8FAFC !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748B !important;
+}
+
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+  border-color: #88BDF2 !important;
+  background-color: #1E293B !important;
+  outline: none !important;
+}
+
+/* Universal Table Dark Mode Rules */
+.dark table {
+  color: #F8FAFC;
+}
+
+.dark thead tr {
+  background-color: #1E293B !important;
+  border-color: #334155 !important;
+}
+
+.dark th {
+  color: #94A3B8 !important;
+  background-color: transparent !important;
+  border-color: #334155 !important;
+}
+
+.dark tbody tr {
+  border-color: #1E293B !important;
+}
+
+.dark tbody tr:hover {
+  background-color: rgba(30, 41, 59, 0.6) !important;
+}
+
+.dark td {
+  border-color: #1E293B !important;
+}
+
+/* Dark mode text defaults */
+.dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+  color: #F1F5F9;
+}
+
+.dark label {
+  color: #CBD5E1;
+}
+
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+
+/* Custom modern scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F1F5F9;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #1E293B;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748B;
+}
+
+/* Hide scrollbar for mobile swipeable tabs while maintaining functionality */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Smooth touch momentum scrolling on mobile */
+.touch-pan {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Print styles for Invoices */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
+  
+  .invoice-printable {
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}
+
+/* Animated background utilities for Login */
+@keyframes floatParticle {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg) scale(1);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translateY(-25px) rotate(180deg) scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.85;
+  }
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-float-slow {
+  animation: floatParticle 8s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: floatParticle 11s ease-in-out infinite 2s;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 6s ease-in-out infinite;
+}
+
+.animated-mesh-bg {
+  background: linear-gradient(-45deg, #0f172a, #1e293b, #1e3a8a, #0f2b48, #111827);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
+}
