@@ -1,0 +1,90 @@
+import React from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
+
+// Layout
+import DashboardLayout from './components/layout/DashboardLayout';
+
+// Pages
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import ProductList from './pages/Products/ProductList';
+import InventoryList from './pages/Inventory/InventoryList';
+import OrderList from './pages/Orders/OrderList';
+import CustomerList from './pages/Customers/CustomerList';
+import SalesRevenue from './pages/SalesRevenue/SalesRevenue';
+import OffersList from './pages/Offers/OffersList';
+import SupplierList from './pages/Suppliers/SupplierList';
+import PaymentList from './pages/Payments/PaymentList';
+import ExpenseList from './pages/Expenses/ExpenseList';
+import StaffList from './pages/Staff/StaffList';
+import ReportsPage from './pages/Reports/ReportsPage';
+import SettingsPage from './pages/Settings/SettingsPage';
+import BillingPage from './pages/Billing/BillingPage';
+import GullaManagement from './pages/Gulla/GullaManagement';
+
+// Protected Route Component with RBAC checks
+const ProtectedRoute = ({ children, allowedRoles }) => {
+  const { isAuthenticated, user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#F4F7FB]">
+        <div className="text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-[#384959]/10 border-2 border-[#88BDF2] border-t-transparent animate-spin mx-auto" />
+          <p className="text-sm font-bold text-[#384959]">Authenticating...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles && user && user.role !== 'ADMIN' && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+};
+
+export function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+
+      {/* Protected Dashboard Routes */}
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Dashboard />} />
+        <Route path="billing" element={<BillingPage />} />
+        <Route path="gulla" element={<GullaManagement />} />
+        <Route path="pos" element={<Navigate to="/billing" replace />} />
+        <Route path="products" element={<ProductList />} />
+        <Route path="inventory" element={<InventoryList />} />
+        <Route path="orders" element={<OrderList />} />
+        <Route path="customers" element={<CustomerList />} />
+        <Route path="sales-revenue" element={<SalesRevenue />} />
+        <Route path="offers" element={<OffersList />} />
+        <Route path="suppliers" element={<SupplierList />} />
+        <Route path="payments" element={<PaymentList />} />
+        <Route path="expenses" element={<ExpenseList />} />
+        <Route path="staff" element={<StaffList />} />
+        <Route path="reports" element={<ReportsPage />} />
+        <Route path="settings" element={<SettingsPage />} />
+      </Route>
+
+      {/* Fallback */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
+export default App;
