@@ -44,12 +44,55 @@ const DENOMS = [500, 200, 100, 50, 20, 10, 5, 1];
 
 export const SettingsPage = () => {
   const { showToast } = useNotification();
-  const { storeSettings, updateStoreSettings } = useAuth();
+  const { user, storeSettings, updateStoreSettings } = useAuth();
   const { theme, setTheme } = useTheme();
 
-  const [activeSection, setActiveSection] = useState('shop'); // 'shop' | 'theme' | 'invoice' | 'delivery' | 'backup' | 'banking'
+  const [activeSection, setActiveSection] = useState('shop'); // 'shop' | 'security' | 'theme' | 'invoice' | 'delivery' | 'backup' | 'banking'
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Admin / Store Owner Credentials state
+  const [credForm, setCredForm] = useState({
+    username: user?.username || 'tulshi',
+    current_password: '',
+    new_password: '',
+    confirm_password: '',
+  });
+  const [showCredPass, setShowCredPass] = useState(false);
+  const [savingCred, setSavingCred] = useState(false);
+
+  const handleSaveCredentials = async (e) => {
+    if (e) e.preventDefault();
+    if (credForm.new_password && credForm.new_password !== credForm.confirm_password) {
+      showToast('New password and confirm password do not match', 'error');
+      return;
+    }
+
+    try {
+      setSavingCred(true);
+      const res = await authApi.updateCredentials({
+        current_username: user?.username || 'tulshi',
+        new_username: credForm.username,
+        current_password: credForm.current_password,
+        new_password: credForm.new_password,
+      });
+
+      showToast(res.data?.message || 'Store Owner credentials updated successfully!', 'success');
+      setCredForm((prev) => ({
+        ...prev,
+        username: res.data?.username || prev.username,
+        current_password: '',
+        new_password: '',
+        confirm_password: '',
+      }));
+    } catch (err) {
+      console.error(err);
+      const msg = err.response?.data?.detail || 'Failed to update credentials';
+      showToast(msg, 'error');
+    } finally {
+      setSavingCred(false);
+    }
+  };
 
   // Store settings form state
   const [formData, setFormData] = useState({
@@ -265,6 +308,7 @@ export const SettingsPage = () => {
         <div className="lg:col-span-3 bg-white dark:bg-slate-900 p-2 sm:p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex lg:flex-col gap-1 text-xs font-bold overflow-x-auto no-scrollbar touch-pan">
           {[
             { id: 'shop', label: 'Shop Profile', icon: Store },
+            { id: 'security', label: 'Admin Credentials', icon: ShieldCheck },
             { id: 'banking', label: 'Bank & UPI System', icon: Landmark },
             { id: 'theme', label: 'Theme & Dark Mode', icon: Sparkles },
             { id: 'invoice', label: 'Invoice & Tax', icon: Receipt },
@@ -291,6 +335,112 @@ export const SettingsPage = () => {
 
         {/* Content Form (9 cols) */}
         <div className="lg:col-span-9 bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+          
+          {/* ADMIN CREDENTIALS & SECURITY TAB */}
+          {activeSection === 'security' && (
+            <div className="space-y-6 font-sans">
+              <div className="pb-4 border-b border-slate-100 dark:border-slate-800">
+                <h2 className="text-base font-bold text-[#384959] dark:text-slate-100 flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-sky-600 dark:text-[#88BDF2]" /> Store Owner & Admin Login Credentials
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Manage master store admin username and security password. This account is separate from regular staff logins.
+                </p>
+              </div>
+
+              <form onSubmit={handleSaveCredentials} className="space-y-5 max-w-xl">
+                {/* Store Owner Username */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
+                    Master Admin Username
+                  </label>
+                  <div className="relative flex items-center">
+                    <input
+                      type="text"
+                      required
+                      value={credForm.username}
+                      onChange={(e) => setCredForm({ ...credForm, username: e.target.value })}
+                      placeholder="e.g. tulshi"
+                      className="w-full px-4 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-[#88BDF2] rounded-xl outline-none font-bold text-[#384959] dark:text-slate-100"
+                    />
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Used for logging into Tulsi Mart Store Admin Portal & POS Counter.
+                  </p>
+                </div>
+
+                {/* Current Password */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
+                    Current Password (Verification)
+                  </label>
+                  <input
+                    type={showCredPass ? "text" : "password"}
+                    value={credForm.current_password}
+                    onChange={(e) => setCredForm({ ...credForm, current_password: e.target.value })}
+                    placeholder="Enter current password (e.g. tulshi@123)"
+                    className="w-full px-4 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-[#88BDF2] rounded-xl outline-none text-[#384959] dark:text-slate-100 font-medium"
+                  />
+                </div>
+
+                {/* New Password & Confirm Password */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
+                      New Password
+                    </label>
+                    <input
+                      type={showCredPass ? "text" : "password"}
+                      value={credForm.new_password}
+                      onChange={(e) => setCredForm({ ...credForm, new_password: e.target.value })}
+                      placeholder="Enter new password"
+                      className="w-full px-4 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-[#88BDF2] rounded-xl outline-none text-[#384959] dark:text-slate-100 font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
+                      Confirm New Password
+                    </label>
+                    <input
+                      type={showCredPass ? "text" : "password"}
+                      value={credForm.confirm_password}
+                      onChange={(e) => setCredForm({ ...credForm, confirm_password: e.target.value })}
+                      placeholder="Confirm new password"
+                      className="w-full px-4 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-[#88BDF2] rounded-xl outline-none text-[#384959] dark:text-slate-100 font-medium"
+                    />
+                  </div>
+                </div>
+
+                {/* Toggle Show Password */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="showCredPass"
+                    checked={showCredPass}
+                    onChange={(e) => setShowCredPass(e.target.checked)}
+                    className="w-4 h-4 rounded text-[#88BDF2] focus:ring-0 cursor-pointer"
+                  />
+                  <label htmlFor="showCredPass" className="text-xs text-slate-600 dark:text-slate-400 font-medium cursor-pointer">
+                    Show password plain text
+                  </label>
+                </div>
+
+                {/* Submit button */}
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="md"
+                    icon={Save}
+                    loading={savingCred}
+                    className="font-bold shadow-md bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white"
+                  >
+                    Save & Update Credentials
+                  </Button>
+                </div>
+              </form>
+            </div>
+          )}
           
           {/* BANKING & UPI SYSTEM TAB */}
           {activeSection === 'banking' && (

@@ -60,7 +60,6 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
     {
       title: 'Accounts & Reports',
       items: [
-        { label: 'Payments Ledger', path: '/payments', icon: CreditCard },
         { label: 'Store Expenses', path: '/expenses', icon: Receipt },
         { label: 'Sales & Revenue', path: '/sales-revenue', icon: TrendingUp },
         { label: 'Financial Reports', path: '/reports', icon: FileText },

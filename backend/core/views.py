@@ -153,6 +153,56 @@ def verify_otp_view(request):
     })
 
 
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def update_credentials_view(request):
+    current_username = request.data.get('current_username') or 'tulshi'
+    new_username = request.data.get('new_username')
+    current_password = request.data.get('current_password')
+    new_password = request.data.get('new_password')
+
+    if not new_username and not new_password:
+        return Response({'detail': 'Please provide a new username or password.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Find owner/admin user
+    user = None
+    try:
+        user = User.objects.get(Q(username__iexact=current_username) | Q(username__iexact='tulshi'))
+    except User.DoesNotExist:
+        user = User.objects.filter(role='ADMIN').first() or User.objects.filter(is_superuser=True).first()
+
+    if not user:
+        return Response({'detail': 'Store Owner admin account not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if current_password:
+        if not user.check_password(current_password):
+            return Response({'detail': 'Current password verification failed. Please check current password.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if new_username and new_username.strip():
+        clean_user = new_username.strip()
+        if User.objects.filter(username__iexact=clean_user).exclude(pk=user.pk).exists():
+            return Response({'detail': f'Username "{clean_user}" is already taken by another account.'}, status=status.HTTP_400_BAD_REQUEST)
+        user.username = clean_user
+
+    if new_password and new_password.strip():
+        user.set_password(new_password.strip())
+
+    user.save()
+
+    ActivityLog.objects.create(
+        user=user,
+        action='CREDENTIALS_UPDATED',
+        module='AUTH',
+        details=f'Store Owner updated login credentials for {user.username}'
+    )
+
+    return Response({
+        'success': True,
+        'message': 'Store Owner credentials updated successfully!',
+        'username': user.username
+    })
+
+
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def me_view(request):
@@ -172,7 +222,7 @@ class StaffViewSet(viewsets.ModelViewSet):
         return UserSerializer
 
     def get_queryset(self):
-        qs = super().get_queryset()
+        qs = super().get_queryset().exclude(Q(role='ADMIN') | Q(is_superuser=True) | Q(username__iexact='tulshi'))
         role = self.request.query_params.get('role')
         search = self.request.query_params.get('search')
         status_param = self.request.query_params.get('status')
@@ -199,6 +249,16 @@ class StaffViewSet(viewsets.ModelViewSet):
         staff.is_staff_active = not staff.is_staff_active
         staff.save()
         return Response({'status': 'success', 'is_staff_active': staff.is_staff_active})
+
+    @action(detail=True, methods=['post'])
+    def update_attendance(self, request, pk=None):
+        staff = self.get_object()
+        attendance_data = request.data.get('attendance_data')
+        if attendance_data is not None:
+            staff.attendance_data = attendance_data
+            staff.save()
+            return Response({'status': 'success', 'attendance_data': staff.attendance_data})
+        return Response({'detail': 'attendance_data is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class StoreSettingViewSet(viewsets.ViewSet):

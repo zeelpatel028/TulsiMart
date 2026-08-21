@@ -15,7 +15,6 @@ import CustomerList from './pages/Customers/CustomerList';
 import SalesRevenue from './pages/SalesRevenue/SalesRevenue';
 import OffersList from './pages/Offers/OffersList';
 import SupplierList from './pages/Suppliers/SupplierList';
-import PaymentList from './pages/Payments/PaymentList';
 import ExpenseList from './pages/Expenses/ExpenseList';
 import StaffList from './pages/Staff/StaffList';
 import ReportsPage from './pages/Reports/ReportsPage';
@@ -73,7 +72,6 @@ export function App() {
         <Route path="sales-revenue" element={<SalesRevenue />} />
         <Route path="offers" element={<OffersList />} />
         <Route path="suppliers" element={<SupplierList />} />
-        <Route path="payments" element={<PaymentList />} />
         <Route path="expenses" element={<ExpenseList />} />
         <Route path="staff" element={<StaffList />} />
         <Route path="reports" element={<ReportsPage />} />

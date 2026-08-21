@@ -25,13 +25,17 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      // Clear invalid credentials
+    const isAuthEndpoint = error.config?.url?.includes('/core/auth/send-otp/') || 
+                          error.config?.url?.includes('/core/auth/login/') ||
+                          error.config?.url?.includes('/core/auth/verify-otp/');
+
+    if (error.response && error.response.status === 401 && !isAuthEndpoint) {
+      // Clear invalid credentials for expired tokens on protected routes
       localStorage.removeItem('tm_access_token');
       localStorage.removeItem('tm_refresh_token');
       localStorage.removeItem('tm_user');
       
-      // If not on login page, redirect cleanly
+      // If not on login page, redirect cleanly to login
       if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
         window.location.href = '/login';
       }

@@ -37,57 +37,101 @@ export const Pagination = ({
   pageSize = 10,
   onPageChange,
 }) => {
-  if (totalPages <= 1) return null;
+  const safeTotalPages = Math.max(1, Number(totalPages) || 1);
+  const safeCurrentPage = Math.max(1, Math.min(safeTotalPages, Number(currentPage) || 1));
+  
+  if (safeTotalPages <= 1 && (totalItems === 0 || totalItems <= pageSize)) {
+    return null;
+  }
+
+  const effectiveTotalItems = Number(totalItems) || (safeTotalPages * pageSize);
+  const from = effectiveTotalItems === 0 ? 0 : (safeCurrentPage - 1) * pageSize + 1;
+  const to = Math.min(safeCurrentPage * pageSize, effectiveTotalItems);
+
+  // Calculate sliding page window (up to 5 page numbers)
+  let startPage = Math.max(1, safeCurrentPage - 2);
+  let endPage = Math.min(safeTotalPages, startPage + 4);
+  
+  if (endPage - startPage < 4) {
+    startPage = Math.max(1, endPage - 4);
+  }
+
+  const pageNumbers = [];
+  for (let i = startPage; i <= endPage; i++) {
+    if (i >= 1 && i <= safeTotalPages) {
+      pageNumbers.push(i);
+    }
+  }
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 py-4 px-2 text-xs text-slate-500 dark:text-slate-400">
-      <div className="text-center sm:text-left text-[11px] sm:text-xs">
-        Showing <span className="font-semibold text-slate-700 dark:text-slate-200">{(currentPage - 1) * pageSize + 1}</span> to{' '}
-        <span className="font-semibold text-slate-700 dark:text-slate-200">{Math.min(currentPage * pageSize, totalItems)}</span> of{' '}
-        <span className="font-semibold text-slate-700 dark:text-slate-200">{totalItems}</span> entries
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 py-4 px-2 text-xs text-slate-500 dark:text-slate-400 select-none">
+      <div className="text-center sm:text-left text-[11px] sm:text-xs font-medium">
+        Showing <span className="font-bold text-slate-700 dark:text-slate-200">{from}</span> to{' '}
+        <span className="font-bold text-slate-700 dark:text-slate-200">{to}</span> of{' '}
+        <span className="font-bold text-slate-700 dark:text-slate-200">{effectiveTotalItems}</span> entries
       </div>
+
       <div className="flex items-center gap-1.5">
+        {/* Previous Button */}
         <button
-          disabled={currentPage === 1}
-          onClick={() => onPageChange(currentPage - 1)}
-          className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-slate-700 dark:text-slate-200 text-xs transition-colors cursor-pointer"
+          disabled={safeCurrentPage <= 1}
+          onClick={() => onPageChange && onPageChange(safeCurrentPage - 1)}
+          className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed font-bold text-slate-700 dark:text-slate-200 text-xs transition-all shadow-xs cursor-pointer active:scale-95"
         >
           Previous
         </button>
 
         {/* Mobile Compact Page Number */}
-        <span className="inline-block sm:hidden px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-700 dark:text-slate-200 font-bold text-xs">
-          {currentPage} / {totalPages}
+        <span className="inline-block sm:hidden px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-700 dark:text-slate-200 font-extrabold text-xs border border-slate-200 dark:border-slate-700">
+          {safeCurrentPage} / {safeTotalPages}
         </span>
 
         {/* Desktop Page Numbers */}
-        <div className="hidden sm:flex items-center gap-1">
-          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-            let pageNum = i + 1;
-            if (totalPages > 5 && currentPage > 3) {
-              pageNum = currentPage - 3 + i;
-              if (pageNum > totalPages) pageNum = totalPages - (4 - i);
-            }
-            return (
+        <div className="hidden sm:flex items-center gap-1.5">
+          {startPage > 1 && (
+            <>
               <button
-                key={pageNum}
-                onClick={() => onPageChange(pageNum)}
-                className={`w-8 h-8 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                  currentPage === pageNum
-                    ? 'bg-[#384959] dark:bg-[#88BDF2] text-white dark:text-[#384959]'
-                    : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
-                }`}
+                onClick={() => onPageChange && onPageChange(1)}
+                className="w-8 h-8 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all cursor-pointer"
               >
-                {pageNum}
+                1
               </button>
-            );
-          })}
+              {startPage > 2 && <span className="text-slate-400 px-0.5 font-bold">...</span>}
+            </>
+          )}
+
+          {pageNumbers.map((pageNum) => (
+            <button
+              key={pageNum}
+              onClick={() => onPageChange && onPageChange(pageNum)}
+              className={`w-8 h-8 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                safeCurrentPage === pageNum
+                  ? 'bg-[#88BDF2] dark:bg-[#88BDF2] text-slate-900 shadow-md scale-105 border border-[#88BDF2]/50'
+                  : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/80'
+              }`}
+            >
+              {pageNum}
+            </button>
+          ))}
+
+          {endPage < safeTotalPages && (
+            <>
+              {endPage < safeTotalPages - 1 && <span className="text-slate-400 px-0.5 font-bold">...</span>}
+              <button
+                onClick={() => onPageChange && onPageChange(safeTotalPages)}
+                className="w-8 h-8 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all cursor-pointer"
+              >
+                {safeTotalPages}
+              </button>
+            </>
+          )}
         </div>
 
+        {/* Next Button */}
         <button
-          disabled={currentPage === totalPages}
-          onClick={() => onPageChange(currentPage + 1)}
-          className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-slate-700 dark:text-slate-200 text-xs transition-colors cursor-pointer"
+          disabled={safeCurrentPage >= safeTotalPages}
+          onClick={() => onPageChange && onPageChange(safeCurrentPage + 1)}
+          className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed font-bold text-slate-700 dark:text-slate-200 text-xs transition-all shadow-xs cursor-pointer active:scale-95"
         >
           Next
         </button>

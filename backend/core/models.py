@@ -18,6 +18,7 @@ class User(AbstractUser):
     salary = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     hire_date = models.DateField(blank=True, null=True)
     is_staff_active = models.BooleanField(default=True)
+    attendance_data = models.JSONField(default=dict, blank=True, null=True)
     
     def __str__(self):
         return f"{self.username} ({self.get_role_display()})"
