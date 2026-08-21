@@ -14,6 +14,8 @@ from expenses.models import Expense
 from suppliers.models import PurchaseOrder, Supplier
 from core.models import StoreSetting
 
+from orders.serializers import OrderSerializer
+
 class DashboardSummaryView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -31,6 +33,7 @@ class DashboardSummaryView(APIView):
         month_sales = paid_orders.filter(created_at__date__gte=first_day_of_month).aggregate(t=Sum('total_amount'))['t'] or Decimal('0.00')
 
         total_orders_count = all_orders.count()
+        today_orders_count = all_orders.filter(created_at__date=today).count()
         pending_orders_count = all_orders.filter(status__in=['NEW', 'PROCESSING', 'PACKED', 'OUT_FOR_DELIVERY']).count()
         completed_orders_count = all_orders.filter(status='DELIVERED').count()
         cancelled_orders_count = all_orders.filter(status='CANCELLED').count()
@@ -48,7 +51,6 @@ class DashboardSummaryView(APIView):
         total_expenses = Expense.objects.aggregate(t=Sum('amount'))['t'] or Decimal('0.00')
 
         # Estimated Profit (Revenue - Cost of Goods - Expenses)
-        # Calculate cost of sold items in delivered/paid orders
         total_cogs = OrderItem.objects.filter(order__payment_status='PAID').aggregate(
             cogs=Sum(F('quantity') * F('product__cost_price'))
         )['cogs'] or Decimal('0.00')
@@ -78,6 +80,7 @@ class DashboardSummaryView(APIView):
                 'date': d.strftime('%d %b'),
                 'raw_date': str(d),
                 'sales': float(sales_sum),
+                'revenue': float(sales_sum),
                 'orders': order_cnt,
                 'expenses': float(day_exp),
                 'profit': float(sales_sum - day_exp)
@@ -102,14 +105,12 @@ class DashboardSummaryView(APIView):
         # Low Stock Alert list
         low_stock_items = (
             Product.objects.filter(stock_quantity__lte=F('min_stock_alert'))
-            .values('id', 'name', 'sku', 'stock_quantity', 'min_stock_alert', 'image', 'mrp', 'selling_price')[:6]
+            .values('id', 'name', 'sku', 'stock_quantity', 'min_stock_alert', 'image', 'mrp', 'selling_price', category_name=F('category__name'))[:6]
         )
 
-        # Recent Orders
-        recent_orders = (
-            Order.objects.all().order_by('-created_at')[:6]
-            .values('id', 'order_number', 'customer_name', 'total_amount', 'status', 'payment_status', 'payment_method', 'created_at')
-        )
+        # Recent Orders (Full serialization for invoice modal compatibility)
+        recent_orders_queryset = Order.objects.all().order_by('-created_at')[:6]
+        recent_orders = OrderSerializer(recent_orders_queryset, many=True).data
 
         return Response({
             'kpis': {
@@ -117,6 +118,7 @@ class DashboardSummaryView(APIView):
                 'today_sales': float(today_sales),
                 'month_sales': float(month_sales),
                 'total_orders': total_orders_count,
+                'today_orders': today_orders_count,
                 'pending_orders': pending_orders_count,
                 'completed_orders': completed_orders_count,
                 'cancelled_orders': cancelled_orders_count,
@@ -148,7 +150,7 @@ class DashboardSummaryView(APIView):
                 } for p in top_products
             ],
             'low_stock_items': list(low_stock_items),
-            'recent_orders': list(recent_orders),
+            'recent_orders': recent_orders,
             'notifications': []
         })
 

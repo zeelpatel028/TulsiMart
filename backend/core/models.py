@@ -18,6 +18,7 @@ class User(AbstractUser):
     salary = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     hire_date = models.DateField(blank=True, null=True)
     is_staff_active = models.BooleanField(default=True)
+    attendance_data = models.JSONField(default=dict, blank=True, null=True)
     
     def __str__(self):
         return f"{self.username} ({self.get_role_display()})"
@@ -29,6 +30,7 @@ class StoreSetting(models.Model):
     logo_url = models.CharField(max_length=500, default="/logo.png")
     phone = models.CharField(max_length=30, default="+91 98765 43210")
     email = models.EmailField(default="contact@tulsimart.com")
+    otp_email = models.EmailField(default="admin@tulsimart.com", blank=True, null=True)
     address = models.TextField(default="Shop No. 12, Green Park Avenue, Main Market, Mumbai, MH - 400001")
     gstin = models.CharField(max_length=30, default="27AABCT1234F1Z8")
     currency_symbol = models.CharField(max_length=10, default="₹")

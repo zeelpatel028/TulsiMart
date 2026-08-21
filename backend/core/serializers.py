@@ -7,7 +7,7 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'role', 'phone', 'avatar', 'address', 'salary', 'hire_date', 'is_staff_active', 'is_active', 'date_joined']
+        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'role', 'phone', 'avatar', 'address', 'salary', 'hire_date', 'is_staff_active', 'is_active', 'date_joined', 'attendance_data']
         read_only_fields = ['date_joined']
 
 
@@ -15,10 +15,11 @@ class StaffCreateUpdateSerializer(serializers.ModelSerializer):
     username = serializers.CharField(required=False, allow_blank=True)
     password = serializers.CharField(write_only=True, required=False)
     role = serializers.CharField(required=False, allow_blank=True, default='CASHIER')
+    attendance_data = serializers.JSONField(required=False)
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'password', 'role', 'phone', 'avatar', 'address', 'salary', 'hire_date', 'is_staff_active']
+        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'password', 'role', 'phone', 'avatar', 'address', 'salary', 'hire_date', 'is_staff_active', 'attendance_data']
 
     def validate(self, attrs):
         if not attrs.get('username'):

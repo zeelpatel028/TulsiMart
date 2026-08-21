@@ -92,6 +92,15 @@ export const StaffList = () => {
   const [leaveType, setLeaveType] = useState('FULL');
   const [leaveNote, setLeaveNote] = useState('');
 
+  // View All Raja Dates Modal State (તમામ રજાઓની વિગત જોવા માટે)
+  const [isRajaViewModalOpen, setIsRajaViewModalOpen] = useState(false);
+  const [rajaViewStaff, setRajaViewStaff] = useState(null);
+
+  const handleOpenRajaViewModal = (staff) => {
+    setRajaViewStaff(staff);
+    setIsRajaViewModalOpen(true);
+  };
+
   // Staff Note / Remark Modal State (સ્પેશિયલ સ્ટાફ નોટ / રિમાર્કસ)
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const [noteStaff, setNoteStaff] = useState(null);
@@ -190,11 +199,38 @@ export const StaffList = () => {
     try {
       setLoading(true);
       const res = await authApi.getStaff({ search });
-      setStaffList(res.data?.results || res.data || []);
+      const list = res.data?.results || res.data || [];
+      setStaffList(list);
+
+      setAttendance((prev) => {
+        const merged = { ...prev };
+        list.forEach((s) => {
+          if (s.attendance_data && typeof s.attendance_data === 'object' && Object.keys(s.attendance_data).length > 0) {
+            merged[s.id] = {
+              ...(merged[s.id] || {}),
+              ...s.attendance_data,
+            };
+          }
+        });
+        return merged;
+      });
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const updateAndPersistStaffAttendance = async (staffId, updatedRecord) => {
+    setAttendance((prev) => ({
+      ...prev,
+      [staffId]: updatedRecord,
+    }));
+
+    try {
+      await authApi.updateStaffAttendance(staffId, updatedRecord);
+    } catch (err) {
+      console.warn('Backend attendance sync warning:', err);
     }
   };
 
@@ -232,10 +268,7 @@ export const StaffList = () => {
       showToast(`Marked ${staff.first_name || staff.username} as Absent (ગેરહાજર) today!`, 'warning');
     }
 
-    setAttendance(prev => ({
-      ...prev,
-      [staff.id]: updated
-    }));
+    updateAndPersistStaffAttendance(staff.id, updated);
   };
 
   // Staff Note Handlers (સ્ટાફ રિમાર્કસ / નોટ હેન્ડલર)
@@ -262,14 +295,12 @@ export const StaffList = () => {
     };
 
     const updatedNotes = [newNote, ...(att.staffNotes || [])];
+    const updatedRecord = {
+      ...att,
+      staffNotes: updatedNotes
+    };
 
-    setAttendance(prev => ({
-      ...prev,
-      [noteStaff.id]: {
-        ...att,
-        staffNotes: updatedNotes
-      }
-    }));
+    updateAndPersistStaffAttendance(noteStaff.id, updatedRecord);
 
     showToast(`Note logged for ${noteStaff.first_name || noteStaff.username}!`, 'success');
     setIsNoteModalOpen(false);
@@ -278,14 +309,12 @@ export const StaffList = () => {
   const handleRemoveNote = (staffId, noteId) => {
     const att = getStaffAttendance(staffId);
     const updatedNotes = (att.staffNotes || []).filter(n => n.id !== noteId);
+    const updatedRecord = {
+      ...att,
+      staffNotes: updatedNotes
+    };
 
-    setAttendance(prev => ({
-      ...prev,
-      [staffId]: {
-        ...att,
-        staffNotes: updatedNotes
-      }
-    }));
+    updateAndPersistStaffAttendance(staffId, updatedRecord);
     showToast('Staff note deleted!', 'info');
   };
 
@@ -320,16 +349,15 @@ export const StaffList = () => {
     const deduction = leaveType === 'FULL' ? 1 : 0.5;
     const newPresentDays = Math.max(0, att.presentDays - deduction);
 
-    setAttendance(prev => ({
-      ...prev,
-      [leaveStaff.id]: {
-        ...att,
-        presentDays: newPresentDays,
-        absentDays: leaveType === 'FULL' ? att.absentDays + 1 : att.absentDays,
-        halfDays: leaveType === 'HALF' ? att.halfDays + 1 : att.halfDays,
-        leaveDates: updatedLeaves
-      }
-    }));
+    const updatedRecord = {
+      ...att,
+      presentDays: newPresentDays,
+      absentDays: leaveType === 'FULL' ? att.absentDays + 1 : att.absentDays,
+      halfDays: leaveType === 'HALF' ? att.halfDays + 1 : att.halfDays,
+      leaveDates: updatedLeaves
+    };
+
+    updateAndPersistStaffAttendance(leaveStaff.id, updatedRecord);
 
     showToast(`Raja Date (${leaveDateInput}) logged for ${leaveStaff.first_name || leaveStaff.username}!`, 'success');
     setIsLeaveModalOpen(false);
@@ -343,14 +371,13 @@ export const StaffList = () => {
     const updatedLeaves = (att.leaveDates || []).filter(l => l.id !== leaveId);
     const restoration = target.type === 'FULL' ? 1 : 0.5;
 
-    setAttendance(prev => ({
-      ...prev,
-      [staffId]: {
-        ...att,
-        presentDays: att.presentDays + restoration,
-        leaveDates: updatedLeaves
-      }
-    }));
+    const updatedRecord = {
+      ...att,
+      presentDays: att.presentDays + restoration,
+      leaveDates: updatedLeaves
+    };
+
+    updateAndPersistStaffAttendance(staffId, updatedRecord);
 
     showToast('Leave date removed and work day restored!', 'info');
   };
@@ -663,15 +690,14 @@ export const StaffList = () => {
         text: `Paid ₹${net.toLocaleString('en-IN')} (${salaryForm.salary_month}) via ${salaryForm.payment_method}. ${salaryForm.notes}`
       };
 
-      setAttendance(prev => ({
-        ...prev,
-        [salaryStaff.id]: {
-          ...att,
-          advanceTaken: 0, // Reset advance after deduction
-          payoutHistory: [historyItem, ...(att.payoutHistory || [])],
-          staffNotes: [newSalaryNote, ...(att.staffNotes || [])]
-        }
-      }));
+      const updatedSalaryRecord = {
+        ...att,
+        advanceTaken: 0, // Reset advance after deduction
+        payoutHistory: [historyItem, ...(att.payoutHistory || [])],
+        staffNotes: [newSalaryNote, ...(att.staffNotes || [])]
+      };
+
+      updateAndPersistStaffAttendance(salaryStaff.id, updatedSalaryRecord);
 
       // Reload live Gulla summary
       loadGullaSummary();
@@ -716,13 +742,12 @@ export const StaffList = () => {
         console.warn(err);
       }
 
-      setAttendance(prev => ({
-        ...prev,
-        [advanceStaff.id]: {
-          ...att,
-          advanceTaken: (att.advanceTaken || 0) + amount
-        }
-      }));
+      const updatedAdvanceRecord = {
+        ...att,
+        advanceTaken: (att.advanceTaken || 0) + amount
+      };
+
+      updateAndPersistStaffAttendance(advanceStaff.id, updatedAdvanceRecord);
 
       showToast(`₹${amount.toLocaleString('en-IN')} advance (ઉપાડ) given to ${staffName}!`, 'success');
       setIsAdvanceModalOpen(false);
@@ -748,116 +773,174 @@ export const StaffList = () => {
     return att.todayMarked === 'PRESENT' || att.todayMarked === 'HALF_DAY';
   }).length;
 
+  const [roleFilter, setRoleFilter] = useState('ALL');
+
+  const filteredStaffList = staffList.filter((s) => {
+    if (roleFilter === 'ALL') return true;
+    if (roleFilter === 'MANAGER') return s.role === 'STORE_MANAGER' || s.role === 'Store Manager' || s.role === 'STORE_MANAGEMENT' || s.role === 'Store Management';
+    if (roleFilter === 'CASHIER') return s.role === 'CASHIER' || s.role === 'Cashier';
+    if (roleFilter === 'DELIVERY') return s.role === 'DELIVERY' || s.role === 'Delivery Staff';
+    return true;
+  });
+
   return (
     <div className="space-y-6 font-sans">
       {/* Header & Title */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-black text-[#384959] dark:text-slate-100 tracking-tight font-heading flex items-center gap-2.5">
-            <Users className="w-6 h-6 text-[#6A89A7]" /> Store Staff & Salary Management
-          </h1>
-          <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Manage staff members, attendance (હાજરી / રોજ ગણતરી), cash advances (ઉપાડ), and salary payouts.
-          </p>
-        </div>
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white p-5 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-800 shadow-lg relative overflow-hidden">
+        <div className="absolute right-0 top-0 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
-        <Button variant="primary" size="sm" icon={Plus} onClick={handleOpenCreate} className="self-start sm:self-auto">
-          Add New Staff
-        </Button>
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 text-[10px] font-extrabold uppercase tracking-wider border border-sky-500/30">
+                 Tulsi Mart Staff Portal
+              </span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight font-heading flex items-center gap-2.5">
+              <Users className="w-6 h-6 text-sky-400" /> Store Staff & Payroll Hub
+            </h1>
+            <p className="text-xs text-slate-300 mt-1 max-w-xl">
+              Manage store employees, track daily attendance (હાજરી / રોજ ગણતરી), issue cash advances (ઉપાડ), and calculate monthly salary payouts with live Gulla tallying.
+            </p>
+          </div>
+
+          <Button
+            variant="primary"
+            size="md"
+            icon={Plus}
+            onClick={handleOpenCreate}
+            className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 font-extrabold text-white shadow-lg self-start lg:self-auto shrink-0"
+          >
+            Add New Staff Member
+          </Button>
+        </div>
       </div>
 
       {/* KPI Stats Overview Bar */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between shadow-xs">
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between shadow-xs hover:border-sky-400/50 transition-all">
           <div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Staff</p>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Active Staff</p>
             <h3 className="text-xl sm:text-2xl font-black text-[#384959] dark:text-slate-100 mt-0.5">{totalStaffCount}</h3>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+          <div className="w-11 h-11 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200/50 dark:border-blue-900/50 shadow-xs">
             <Users className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between shadow-xs">
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between shadow-xs hover:border-emerald-400/50 transition-all">
           <div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Active Staff</p>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Active Status</p>
             <h3 className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">{activeStaffCount}</h3>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+          <div className="w-11 h-11 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200/50 dark:border-emerald-900/50 shadow-xs">
             <UserCheck className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between shadow-xs">
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between shadow-xs hover:border-amber-400/50 transition-all">
           <div>
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Monthly Payroll Budget</p>
             <h3 className="text-xl sm:text-2xl font-black text-[#384959] dark:text-slate-100 mt-0.5">
               ₹{totalMonthlyPayroll.toLocaleString('en-IN')}
             </h3>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+          <div className="w-11 h-11 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200/50 dark:border-amber-900/50 shadow-xs">
             <Wallet className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between shadow-xs">
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between shadow-xs hover:border-indigo-400/50 transition-all">
           <div>
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Today's Attendance (હાજરી)</p>
             <h3 className="text-xl sm:text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-0.5">
               {todayPresentCount} / {totalStaffCount}
             </h3>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+          <div className="w-11 h-11 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/50 dark:border-indigo-900/50 shadow-xs">
             <CheckCircle2 className="w-5 h-5" />
           </div>
         </div>
       </div>
 
+      {/* Filter & Search Controls Bar */}
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        {/* Search Bar */}
+        <div className="w-full sm:w-72">
+          <SearchInput
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onClear={() => setSearch('')}
+            placeholder="Search staff name or phone..."
+          />
+        </div>
+
+        {/* Role Filters */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar touch-pan">
+          {[
+            { id: 'ALL', label: 'All Staff' },
+            { id: 'MANAGER', label: 'Managers (મેનેજર)' },
+            { id: 'CASHIER', label: 'Cashiers (કેશિયર)' },
+            { id: 'DELIVERY', label: 'Delivery (ડીલીવરી)' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setRoleFilter(tab.id)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
+                roleFilter === tab.id
+                  ? 'bg-[#384959] dark:bg-[#88BDF2] text-white dark:text-[#384959] shadow-xs'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Staff Members List & Management Cards */}
-      {staffList.length === 0 ? (
+      {filteredStaffList.length === 0 ? (
         <EmptyState
           icon={ShieldCheck}
           title="No Staff Members Found"
-          description="There are currently no staff accounts registered in the system."
+          description="There are currently no staff accounts matching your search filter."
           variant="card"
           actionLabel="Add New Staff"
           onAction={handleOpenCreate}
           actionIcon={Plus}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {staffList.map((s) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+          {filteredStaffList.map((s) => {
             const att = getStaffAttendance(s.id);
             const monthlySalary = Number(s.salary || 0);
 
             return (
               <div
                 key={s.id}
-                className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-5 hover:shadow-xl transition-all duration-200 flex flex-col justify-between"
+                className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-5 hover:shadow-2xl hover:border-sky-400/40 transition-all duration-300 flex flex-col justify-between group"
               >
                 <div>
                   {/* Top Header Card Info */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-2xl bg-linear-to-br from-[#6A89A7] to-[#384959] text-white flex items-center justify-center font-black text-base shrink-0 shadow-md">
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#384959] to-sky-600 text-white flex items-center justify-center font-black text-lg shrink-0 shadow-md border border-white/20 group-hover:scale-105 transition-transform">
                         {s.first_name ? s.first_name[0] : (s.username?.[0] || 'U')}
                       </div>
                       <div className="min-w-0">
                         <h3 className="text-base font-black text-[#384959] dark:text-slate-100 leading-tight truncate">
                           {s.first_name ? `${s.first_name} ${s.last_name || ''}` : s.username}
                         </h3>
-                        <div className="flex items-center gap-2 mt-0.5">
+                        <div className="flex items-center gap-2 mt-1">
                           <span className="text-[11px] text-slate-400 font-mono">@{s.username}</span>
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                            s.role === 'ADMIN' || s.role === 'Admin' || s.role === 'STORE_OWNER' || s.role === 'Store Owner'
-                              ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
-                              : s.role === 'STORE_MANAGER' || s.role === 'Store Manager' || s.role === 'STORE_MANAGEMENT' || s.role === 'Store Management'
+                            s.role === 'STORE_MANAGER' || s.role === 'Store Manager' || s.role === 'STORE_MANAGEMENT' || s.role === 'Store Management'
                               ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
-                              : 'bg-slate-100 dark:bg-slate-800 text-[#384959] dark:text-slate-300'
+                              : s.role === 'CASHIER' || s.role === 'Cashier'
+                              ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                              : 'bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800'
                           }`}>
-                            {s.role === 'ADMIN' || s.role === 'Admin' || s.role === 'STORE_OWNER' || s.role === 'Store Owner' 
-                              ? '👑 Store Owner' 
-                              : s.role === 'STORE_MANAGEMENT' || s.role === 'Store Management'
+                            {s.role === 'STORE_MANAGEMENT' || s.role === 'Store Management'
                               ? '🏢 Store Management'
                               : s.role === 'STORE_MANAGER' || s.role === 'Store Manager'
                               ? '🏪 Store Manager'
@@ -873,12 +956,13 @@ export const StaffList = () => {
 
                     <button
                       onClick={() => handleToggleStatus(s)}
-                      className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 cursor-pointer ${
+                      className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 cursor-pointer transition-transform active:scale-95 flex items-center gap-1 ${
                         s.is_staff_active 
-                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' 
-                          : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' 
+                          : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
                       }`}
                     >
+                      <span className={`w-1.5 h-1.5 rounded-full ${s.is_staff_active ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}></span>
                       {s.is_staff_active ? 'Active' : 'Disabled'}
                     </button>
                   </div>
@@ -904,49 +988,6 @@ export const StaffList = () => {
 
                   {/* Attendance & Work Days Box (હાજરી / રોજ ગણતરી) */}
                   <div className="mt-4 p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-[#384959] dark:text-slate-200 flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-[#6A89A7]" /> Month Work Days (રોજ):
-                      </span>
-                      <span className="text-xs font-black text-[#384959] dark:text-slate-100">
-                        {att.presentDays + (att.halfDays * 0.5)} / 30 Days
-                      </span>
-                    </div>
-
-                    {/* Attendance Action Buttons */}
-                    <div className="grid grid-cols-3 gap-1.5">
-                      <button
-                        onClick={() => handleMarkAttendance(s, 'PRESENT')}
-                        className={`px-2 py-1.5 rounded-xl text-[10px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                          att.todayMarked === 'PRESENT'
-                            ? 'bg-emerald-600 text-white shadow-xs'
-                            : 'bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-50'
-                        }`}
-                      >
-                        <Check className="w-3 h-3" /> + Present
-                      </button>
-                      <button
-                        onClick={() => handleMarkAttendance(s, 'HALF_DAY')}
-                        className={`px-2 py-1.5 rounded-xl text-[10px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                          att.todayMarked === 'HALF_DAY'
-                            ? 'bg-amber-600 text-white shadow-xs'
-                            : 'bg-white dark:bg-slate-700 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-50'
-                        }`}
-                      >
-                        <Clock className="w-3 h-3" /> ½ Day
-                      </button>
-                      <button
-                        onClick={() => handleMarkAttendance(s, 'ABSENT')}
-                        className={`px-2 py-1.5 rounded-xl text-[10px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                          att.todayMarked === 'ABSENT'
-                            ? 'bg-rose-600 text-white shadow-xs'
-                            : 'bg-white dark:bg-slate-700 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 hover:bg-rose-50'
-                        }`}
-                      >
-                        <X className="w-3 h-3" /> Absent
-                      </button>
-                    </div>
-
                     {/* Advance Taken Banner (ઉપાડ) */}
                     <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 dark:border-slate-700/60 text-[11px]">
                       <span className="text-slate-500 flex items-center gap-1">
@@ -965,38 +1006,76 @@ export const StaffList = () => {
                       </div>
                     </div>
 
-                    {/* Raja / Leave Dates Section (રજા તારીખો) */}
-                    <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 text-[11px]">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-slate-500 font-bold flex items-center gap-1">
-                          <CalendarDays className="w-3 h-3 text-rose-500" /> Raja Dates (રજાઓ):
-                        </span>
-                        <button
-                          onClick={() => handleOpenLeaveModal(s)}
-                          className="text-[10px] text-rose-600 dark:text-rose-400 font-bold hover:underline cursor-pointer"
-                        >
-                          + Log Raja Date (રજા)
-                        </button>
+                    {/* Upgraded Raja System (કાયમી રજાઓનું લિસ્ટ) */}
+                    <div className="pt-2.5 border-t border-slate-200/60 dark:border-slate-700/60 text-[11px]">
+                      <div className="flex items-center justify-between gap-1 mb-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <CalendarDays className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                          <span className="text-xs font-black text-slate-700 dark:text-slate-200 truncate">
+                            Raja Dates (રજાઓ)
+                          </span>
+                          <span className="px-1.5 py-0.2 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 text-[10px] font-black shrink-0">
+                            {(att.leaveDates || []).length}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => handleOpenLeaveModal(s)}
+                            className="text-[10px] bg-rose-500 hover:bg-rose-600 text-white font-extrabold px-2 py-0.5 rounded-lg transition-colors cursor-pointer shadow-xs"
+                            title="Log New Raja Date"
+                          >
+                            + Log Raja
+                          </button>
+                          {(att.leaveDates || []).length > 0 && (
+                            <button
+                              onClick={() => handleOpenRajaViewModal(s)}
+                              className="text-[10px] bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-extrabold px-2 py-0.5 rounded-lg transition-colors cursor-pointer"
+                              title="View All Raja Dates"
+                            >
+                              View All
+                            </button>
+                          )}
+                        </div>
                       </div>
 
                       {(att.leaveDates || []).length === 0 ? (
-                        <span className="text-[10px] text-slate-400 italic">No leaves logged this month</span>
+                        <div className="p-2 bg-white dark:bg-slate-800/40 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 text-center">
+                          <span className="text-[10px] text-slate-400 font-medium">No Raja dates logged (કોઈ રજા નથી)</span>
+                        </div>
                       ) : (
-                        <div className="flex flex-wrap gap-1 mt-1">
+                        <div className="space-y-1 mt-1 max-h-36 overflow-y-auto pr-1">
                           {(att.leaveDates || []).map((l) => (
-                            <span
+                            <div
                               key={l.id}
-                              className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800"
+                              className="p-1.5 bg-rose-50/70 dark:bg-rose-950/40 rounded-xl border border-rose-100 dark:border-rose-900/60 text-[10px] flex items-center justify-between gap-1.5"
                             >
-                              {l.date} ({l.type === 'FULL' ? 'Full' : 'Half'})
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="font-mono font-bold text-rose-800 dark:text-rose-300 shrink-0">
+                                  {l.date}
+                                </span>
+                                <span className={`px-1.5 py-0.2 rounded-md font-extrabold text-[9px] ${
+                                  l.type === 'FULL' 
+                                    ? 'bg-rose-200 dark:bg-rose-900 text-rose-900 dark:text-rose-100' 
+                                    : 'bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100'
+                                }`}>
+                                  {l.type === 'FULL' ? 'Full Raja' : 'Half Day Raja'}
+                                </span>
+                                {l.note && (
+                                  <span className="text-slate-500 dark:text-slate-400 truncate text-[9px]">
+                                    ({l.note})
+                                  </span>
+                                )}
+                              </div>
+
                               <button
                                 onClick={() => handleRemoveLeave(s.id, l.id)}
-                                className="hover:text-rose-900 dark:hover:text-white cursor-pointer ml-0.5"
-                                title="Remove Leave Date"
+                                className="w-4 h-4 rounded-full bg-rose-200 dark:bg-rose-900 text-rose-800 dark:text-rose-200 hover:bg-rose-600 hover:text-white flex items-center justify-center text-[11px] font-black cursor-pointer shrink-0 transition-colors"
+                                title="Remove Raja Date & Restore Work Day"
                               >
                                 ×
                               </button>
-                            </span>
+                            </div>
                           ))}
                         </div>
                       )}
@@ -1055,13 +1134,13 @@ export const StaffList = () => {
                       size="xs"
                       icon={IndianRupee}
                       onClick={() => handleOpenSalaryModal(s)}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold shadow-md active:scale-95 transition-transform"
                     >
                       Pay Salary (પગાર આપો)
                     </Button>
                     <button
                       onClick={() => handleOpenHistoryModal(s)}
-                      className="p-2 text-slate-500 hover:text-[#384959] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+                      className="p-2 text-slate-500 hover:text-sky-600 dark:hover:text-sky-300 hover:bg-sky-50 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
                       title="View Salary History"
                     >
                       <History className="w-4 h-4" />
@@ -1071,7 +1150,7 @@ export const StaffList = () => {
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => handleOpenEdit(s)}
-                      className="p-2 text-slate-500 hover:text-[#384959] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+                      className="p-2 text-slate-500 hover:text-blue-600 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
                       title="Edit Staff Member"
                     >
                       <Edit className="w-4 h-4" />
@@ -1151,7 +1230,6 @@ export const StaffList = () => {
               <option value="Store Manager">🏪 Store Manager (સ્ટોર મેનેજર)</option>
               <option value="Cashier">💵 Cashier / Billing Staff (કાઉન્ટર કેશિયર)</option>
               <option value="Delivery Staff">🚚 Delivery / Helper (ડીલીવરી સ્ટાફ)</option>
-              <option value="Store Owner">👑 Store Owner / Admin (સ્ટોર ઓનર / માલિક)</option>
             </select>
           </div>
 
@@ -1708,6 +1786,100 @@ export const StaffList = () => {
             This action will remove the staff member from active store records.
           </p>
         </div>
+      </Modal>
+
+      {/* 8. View All Raja Dates Modal (તમામ રજાઓની વિગત જોવા માટે) */}
+      <Modal
+        isOpen={isRajaViewModalOpen}
+        onClose={() => setIsRajaViewModalOpen(false)}
+        title={`Raja History: ${rajaViewStaff ? (rajaViewStaff.first_name ? `${rajaViewStaff.first_name} ${rajaViewStaff.last_name || ''}`.trim() : rajaViewStaff.username) : ''}`}
+        subtitle="Complete log of all registered leaves & Raja dates (રજાઓની યાદી)"
+        maxWidth="max-w-lg"
+        footer={
+          <div className="flex items-center justify-between w-full">
+            <Button
+              variant="outline"
+              size="sm"
+              icon={Plus}
+              onClick={() => {
+                setIsRajaViewModalOpen(false);
+                if (rajaViewStaff) handleOpenLeaveModal(rajaViewStaff);
+              }}
+              className="border-rose-200 text-rose-600 hover:bg-rose-50 font-bold"
+            >
+              + Log New Raja Date
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setIsRajaViewModalOpen(false)}>
+              Close
+            </Button>
+          </div>
+        }
+      >
+        {rajaViewStaff && (() => {
+          const att = getStaffAttendance(rajaViewStaff.id);
+          const leaves = att.leaveDates || [];
+          return (
+            <div className="space-y-3 font-sans text-xs">
+              <div className="p-3.5 bg-rose-50 dark:bg-rose-950/40 rounded-2xl border border-rose-200 dark:border-rose-900/80 flex items-center justify-between">
+                <div>
+                  <p className="text-[11px] font-bold text-rose-700 dark:text-rose-300 uppercase tracking-wider">Total Logged Leaves (રજાઓ)</p>
+                  <h3 className="text-xl font-black text-rose-900 dark:text-rose-100">{leaves.length} Days / Dates Logged</h3>
+                </div>
+                <CalendarDays className="w-8 h-8 text-rose-500" />
+              </div>
+
+              {leaves.length === 0 ? (
+                <div className="p-6 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 text-center">
+                  <p className="text-slate-500 dark:text-slate-400 font-medium">No Raja dates logged for this employee yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                  {leaves.map((l, idx) => (
+                    <div
+                      key={l.id || idx}
+                      className="p-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-700 flex items-center justify-between gap-3 hover:border-rose-300 dark:hover:border-rose-700 transition-colors shadow-2xs"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-xl bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 font-black text-xs flex items-center justify-center shrink-0">
+                          #{idx + 1}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-[#384959] dark:text-slate-100 text-sm">
+                              {l.date}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${
+                              l.type === 'FULL'
+                                ? 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-200 border border-rose-200 dark:border-rose-800'
+                                : 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-800'
+                            }`}>
+                              {l.type === 'FULL' ? 'Full Day Leave' : 'Half Day Leave'}
+                            </span>
+                          </div>
+                          {l.note && (
+                            <p className="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5 truncate">
+                              Note: {l.note}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          handleRemoveLeave(rajaViewStaff.id, l.id);
+                        }}
+                        className="px-2.5 py-1 text-[10px] font-bold text-rose-600 hover:text-white bg-rose-50 hover:bg-rose-600 dark:bg-rose-950/60 dark:hover:bg-rose-600 rounded-xl border border-rose-200 dark:border-rose-800 transition-colors cursor-pointer shrink-0"
+                        title="Delete this leave entry"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </Modal>
     </div>
   );

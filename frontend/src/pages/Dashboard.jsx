@@ -44,6 +44,7 @@ import { EmptyState } from '../components/common/UiHelpers';
 import { analyticsApi } from '../api';
 import { useAuth } from '../context/AuthContext';
 import InvoiceModal from '../components/invoices/InvoiceModal';
+import CartLoader from '../components/common/CartLoader';
 
 export const Dashboard = () => {
   const navigate = useNavigate();
@@ -73,10 +74,7 @@ export const Dashboard = () => {
   if (loading || !dashboardData) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-3">
-          <div className="w-12 h-12 rounded-2xl bg-[#384959]/10 border-2 border-[#88BDF2] border-t-transparent animate-spin mx-auto" />
-          <p className="text-sm font-bold text-[#384959]">Loading Tulsi Mart Dashboard...</p>
-        </div>
+        <CartLoader text="Loading Tulsi Mart Dashboard..." size="lg" />
       </div>
     );
   }
@@ -234,7 +232,7 @@ export const Dashboard = () => {
                     contentStyle={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
                     className="dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
                   />
-                  <Area type="monotone" dataKey="revenue" stroke="#384959" strokeWidth={2.5} fillOpacity={1} fill="url(#salesGrad)" />
+                  <Area type="monotone" dataKey="sales" stroke="#384959" strokeWidth={2.5} fillOpacity={1} fill="url(#salesGrad)" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -264,7 +262,6 @@ export const Dashboard = () => {
                       </div>
                     </div>
 
-
                     <div className="flex items-center gap-2 shrink-0">
                       <div className="text-right">
                         <span className={`text-xs font-extrabold ${item.stock_quantity <= 0 ? 'text-rose-600' : 'text-amber-600'}`}>
@@ -287,6 +284,108 @@ export const Dashboard = () => {
                   icon={CheckCircle2}
                   title="Inventory Healthy"
                   description="All stock items are currently above minimum levels."
+                />
+              )}
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {/* Category Breakdown & Top Selling Products */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
+        {/* Category Share Donut Chart (5 Cols) */}
+        <div className="lg:col-span-5">
+          <Card
+            title="Sales by Category"
+            subtitle="Revenue distribution across product categories"
+            action={
+              <Button variant="ghost" size="sm" onClick={() => navigate('/products')}>
+                Categories →
+              </Button>
+            }
+          >
+            {category_breakdown && category_breakdown.length > 0 ? (
+              <div className="h-64 w-full flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={category_breakdown}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={75}
+                      paddingAngle={4}
+                      dataKey="value"
+                    >
+                      {category_breakdown.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={PALETTE_COLORS[index % PALETTE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(val) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Revenue']}
+                      contentStyle={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #E2E8F0' }}
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      height={36}
+                      iconType="circle"
+                      formatter={(value) => <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">{value}</span>}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <EmptyState
+                variant="compact"
+                icon={Layers}
+                title="No Category Sales"
+                description="Category distribution will update once orders are completed."
+              />
+            )}
+          </Card>
+        </div>
+
+        {/* Top Selling Products List (7 Cols) */}
+        <div className="lg:col-span-7">
+          <Card
+            title="Top Selling Grocery Products"
+            subtitle="Most popular items based on volume and sales"
+            action={
+              <Button variant="ghost" size="sm" onClick={() => navigate('/products')}>
+                All Products →
+              </Button>
+            }
+          >
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+              {top_products && top_products.length > 0 ? (
+                top_products.map((item, idx) => (
+                  <div key={idx} className="py-2.5 flex items-center justify-between gap-3 first:pt-0 last:pb-0">
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 shrink-0 flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-700">
+                        {item.image ? (
+                          <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <ShoppingBag className="w-4 h-4 text-slate-400" />
+                        )}
+                      </div>
+                      <div className="overflow-hidden">
+                        <p className="text-xs font-bold text-[#384959] dark:text-slate-100 truncate">{item.name}</p>
+                        <p className="text-[11px] text-slate-400">₹{Number(item.price).toFixed(2)} / unit</p>
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <p className="text-xs font-extrabold text-[#384959] dark:text-[#88BDF2]">₹{Number(item.revenue).toLocaleString('en-IN')}</p>
+                      <p className="text-[10px] font-bold text-slate-400">{item.sold} units sold</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <EmptyState
+                  variant="compact"
+                  icon={ShoppingBag}
+                  title="No Product Sales Yet"
+                  description="Top products will be listed here after initial store transactions."
                 />
               )}
             </div>

@@ -20,11 +20,12 @@ import {
   Send,
   Sparkle
 } from 'lucide-react';
+import CartLoader from '../components/common/CartLoader';
 
 export const Login = () => {
-  // Step 1: Credentials ('tulshi' / 'tulshi@123')
-  const [username, setUsername] = useState('tulshi');
-  const [password, setPassword] = useState('tulshi@123');
+  // Step 1: Credentials
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   
   // Step 2: OTP verification
@@ -198,21 +199,17 @@ export const Login = () => {
           {/* Card subtle top glow line */}
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#88BDF2] to-transparent opacity-80" />
 
-          {/* Display Credentials Notification (NO Auto-Fill option as requested) */}
-          <div className="mb-6 p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/90 text-slate-300 text-xs">
-            <div className="flex items-center justify-between font-bold text-slate-200 mb-1">
-              <span className="flex items-center gap-1.5 text-[#88BDF2]">
-                <ShieldCheck className="w-4 h-4 text-[#88BDF2]" /> Account Credentials
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-700 text-slate-300 font-mono">
-                STORE OWNER
-              </span>
+          {/* Active Loading Overlay with Custom Shopping Cart SVG */}
+          {loading && (
+            <div className="absolute inset-0 z-30 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-6 transition-all">
+              <CartLoader 
+                text={step === 1 ? "Authenticating credentials & sending OTP..." : "Verifying 2FA OTP & Logging In..."} 
+                size="lg" 
+              />
             </div>
-            <div className="font-mono text-[11px] text-slate-300 space-y-0.5 bg-slate-900/60 p-2 rounded-xl border border-slate-800">
-              <div><span className="text-slate-400">Username:</span> <strong className="text-emerald-400">tulshi</strong></div>
-              <div><span className="text-slate-400">Password:</span> <strong className="text-emerald-400">tulshi@123</strong></div>
-            </div>
-          </div>
+          )}
+
+
 
           {/* Global Error Banner */}
           {error && (
@@ -236,7 +233,7 @@ export const Login = () => {
                     required
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Enter username (e.g. tulshi)"
+                    placeholder="Enter username"
                     className="w-full pl-10 pr-4 py-3 text-sm bg-slate-800/90 border border-slate-700 focus:border-[#88BDF2] focus:ring-2 focus:ring-[#88BDF2]/20 rounded-xl outline-none text-white transition-all placeholder:text-slate-500 font-medium"
                   />
                 </div>
@@ -291,16 +288,8 @@ export const Login = () => {
                   <Mail className="w-4 h-4 text-[#88BDF2]" /> Nodemailer Service Activated
                 </div>
                 <p className="text-[11px] text-slate-300">
-                  OTP dispatched to <strong className="text-white">{userEmail}</strong>
+                  OTP code has been sent to <strong className="text-white">{userEmail}</strong>. Please check your email inbox.
                 </p>
-                {dispatchedOtp && (
-                  <div className="mt-2 pt-2 border-t border-sky-800/50 flex items-center justify-between text-[11px]">
-                    <span className="text-slate-400">Nodemailer Live OTP Preview:</span>
-                    <span className="font-mono font-extrabold text-amber-300 tracking-widest text-sm bg-slate-900 px-2.5 py-0.5 rounded-md border border-amber-500/40">
-                      {dispatchedOtp}
-                    </span>
-                  </div>
-                )}
               </div>
 
               <div>
