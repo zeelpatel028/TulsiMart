@@ -932,7 +932,7 @@ export const SettingsPage = () => {
                     value={formData.logo_url}
                     onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
                     className="mt-2 w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg outline-hidden focus:border-[#88BDF2] text-[#384959] dark:text-slate-100"
-                    placeholder="/logo.png or Cloudinary URL"
+                    placeholder="/logo.png or Image URL"
                   />
                 </div>
               </div>
