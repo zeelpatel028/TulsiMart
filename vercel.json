@@ -10,11 +10,7 @@
     },
     {
       "src": "backend/tulsimart_backend/wsgi.py",
-      "use": "@vercel/python",
-      "config": {
-        "maxLambdaSize": "15mb",
-        "runtime": "python3.11"
-      }
+      "use": "@vercel/python"
     }
   ],
   "routes": [
@@ -23,12 +19,20 @@
       "dest": "backend/tulsimart_backend/wsgi.py"
     },
     {
+      "src": "/admin/(.*)",
+      "dest": "backend/tulsimart_backend/wsgi.py"
+    },
+    {
       "src": "/static/(.*)",
       "dest": "backend/tulsimart_backend/wsgi.py"
     },
     {
-      "src": "/admin/(.*)",
-      "dest": "backend/tulsimart_backend/wsgi.py"
+      "src": "/assets/(.*)",
+      "dest": "/frontend/assets/$1"
+    },
+    {
+      "src": "/logo.png",
+      "dest": "/frontend/logo.png"
     },
     {
       "handle": "filesystem"
