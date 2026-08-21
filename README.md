@@ -57,7 +57,7 @@ npm run dev
 
 ## 🌿 Branching Strategy
 
-- **`main`**: Project overview, documentation, and production releases.
+- **`main`**: Default branch containing full backend & frontend source code, documentation, and releases.
 - **`dev`**: Active development branch containing full backend & frontend source code.
 
 ---
