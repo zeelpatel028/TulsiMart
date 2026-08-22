@@ -28,18 +28,18 @@
     },
     {
       "src": "/assets/(.*)",
-      "dest": "/assets/$1"
+      "dest": "/frontend/assets/$1"
     },
     {
       "src": "/logo.png",
-      "dest": "/logo.png"
+      "dest": "/frontend/logo.png"
     },
     {
       "handle": "filesystem"
     },
     {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "/frontend/index.html"
     }
   ]
 }
