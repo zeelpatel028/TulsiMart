@@ -10,6 +10,7 @@ ENV/
 env.bak/
 venv.bak/
 *.sqlite3
+!backend/db.sqlite3
 .env
 
 # Node / Frontend

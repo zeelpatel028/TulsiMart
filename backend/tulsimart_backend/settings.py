@@ -11,6 +11,9 @@ load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+import sys
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
 
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-tulsimart-super-secret-key-2026-grocery-management')
 

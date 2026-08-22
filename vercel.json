@@ -9,22 +9,22 @@
       }
     },
     {
-      "src": "backend/tulsimart_backend/wsgi.py",
+      "src": "api/index.py",
       "use": "@vercel/python"
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "backend/tulsimart_backend/wsgi.py"
+      "dest": "api/index.py"
     },
     {
       "src": "/admin/(.*)",
-      "dest": "backend/tulsimart_backend/wsgi.py"
+      "dest": "api/index.py"
     },
     {
       "src": "/static/(.*)",
-      "dest": "backend/tulsimart_backend/wsgi.py"
+      "dest": "api/index.py"
     },
     {
       "src": "/assets/(.*)",
