@@ -16,3 +16,9 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tulsimart_backend.settings')
 application = get_wsgi_application()
 app = application
 
+# Run auto-migration on serverless container initialization
+try:
+    from django.core.management import call_command
+    call_command('migrate', interactive=False)
+except Exception as e:
+    pass
