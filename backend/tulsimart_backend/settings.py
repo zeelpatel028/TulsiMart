@@ -82,12 +82,29 @@ TEMPLATES = [
 WSGI_APPLICATION = 'tulsimart_backend.wsgi.application'
 
 # Database configuration (SQLite for Relational ORM + MongoDB for Document Storage)
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+import shutil
+
+if os.getenv('VERCEL') or os.getenv('AWS_LAMBDA_FUNCTION_NAME'):
+    db_tmp_path = Path('/tmp/db.sqlite3')
+    original_db = BASE_DIR / 'db.sqlite3'
+    if not db_tmp_path.exists() and original_db.exists():
+        try:
+            shutil.copy2(original_db, db_tmp_path)
+        except Exception:
+            pass
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': db_tmp_path if db_tmp_path.exists() else original_db,
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # Custom User Model
 AUTH_USER_MODEL = 'core.User'
