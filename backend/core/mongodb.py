@@ -133,7 +133,7 @@ def sync_all_data_to_mongodb():
         }
 
     try:
-        from core.models import User, StoreSetting, SmartNotification
+        from core.models import User, StoreSetting
         from inventory.models import Category, Brand, Unit, Product, StockMovement
         from orders.models import Order, OrderItem, PaymentTransaction
         from customers.models import Customer, CustomerFeedback
@@ -143,7 +143,6 @@ def sync_all_data_to_mongodb():
 
         results['users'] = sync_model_to_mongo('users', User.objects.all())
         results['store_settings'] = sync_model_to_mongo('store_settings', StoreSetting.objects.all())
-        results['notifications'] = sync_model_to_mongo('notifications', SmartNotification.objects.all())
 
         results['categories'] = sync_model_to_mongo('categories', Category.objects.all())
         results['brands'] = sync_model_to_mongo('brands', Brand.objects.all())
