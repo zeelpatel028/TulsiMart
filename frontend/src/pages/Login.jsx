@@ -223,14 +223,17 @@ export const Login = () => {
           {step === 1 && (
             <form className="space-y-5" onSubmit={handleCredentialsSubmit}>
               <div>
-                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                <label htmlFor="username" className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
                   Username or Staff Email
                 </label>
                 <div className="relative flex items-center">
                   <User className="w-4 h-4 text-slate-400 absolute left-3.5" />
                   <input
+                    id="username"
+                    name="username"
                     type="text"
                     required
+                    autoComplete="username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="Enter username"
@@ -240,14 +243,17 @@ export const Login = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                <label htmlFor="password" className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
                   Password
                 </label>
                 <div className="relative flex items-center">
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5" />
                   <input
+                    id="password"
+                    name="password"
                     type={showPassword ? "text" : "password"}
                     required
+                    autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
@@ -257,6 +263,7 @@ export const Login = () => {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3.5 text-slate-400 hover:text-slate-200 transition-colors"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -294,7 +301,7 @@ export const Login = () => {
 
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  <label htmlFor="otp-digit-0" className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
                     Enter 6-Digit Security OTP
                   </label>
                   <span className="text-xs font-mono font-bold text-[#88BDF2]">
@@ -307,10 +314,13 @@ export const Login = () => {
                   {otpDigits.map((digit, idx) => (
                     <input
                       key={idx}
+                      id={`otp-digit-${idx}`}
+                      name={`otp_digit_${idx}`}
                       ref={(el) => (otpInputRefs.current[idx] = el)}
                       type="text"
                       inputMode="numeric"
                       maxLength={1}
+                      autoComplete={idx === 0 ? "one-time-code" : "off"}
                       value={digit}
                       onChange={(e) => handleDigitChange(idx, e.target.value)}
                       onKeyDown={(e) => handleKeyDown(idx, e)}
