@@ -162,13 +162,15 @@ def send_otp_view(request):
         if not sent_via_node:
             try:
                 from django.core.mail import send_mail
+                sender_email = getattr(django_settings, 'EMAIL_HOST_USER', '') or os.getenv('EMAIL_FROM', 'noreply@tulsimart.com')
                 send_mail(
                     subject='🔒 Tulsi Mart Login OTP Security Code',
-                    message=f'Hello {getattr(user, "first_name", "") or user.username},\n\nYour 6-digit OTP code for Tulsi Mart login is: {otp_code}',
-                    from_email=os.getenv('EMAIL_FROM', 'noreply@tulsimart.com'),
+                    message=f'Hello {getattr(user, "first_name", "") or user.username},\n\nYour 6-digit OTP code for Tulsi Mart login is: {otp_code}\n\nValid for 5 minutes.',
+                    from_email=sender_email,
                     recipient_list=[user_email],
                     fail_silently=False,
                 )
+                print(f"[OTP Email] Successfully dispatched OTP email to {user_email}")
             except Exception as err:
                 print(f"[OTP Email] Django send_mail error: {err}")
 
