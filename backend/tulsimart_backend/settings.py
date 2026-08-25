@@ -118,7 +118,6 @@ elif os.getenv('VERCEL') or os.getenv('AWS_LAMBDA_FUNCTION_NAME'):
             'NAME': db_tmp_path if db_tmp_path.exists() else original_db,
         }
     }
-
 else:
     DATABASES = {
         'default': {
