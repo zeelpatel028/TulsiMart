@@ -11,7 +11,7 @@ async function sendMail() {
   const host = process.env.EMAIL_HOST || 'smtp.gmail.com';
   const port = parseInt(process.env.EMAIL_PORT || '587', 10);
   const user = process.env.EMAIL_HOST_USER || '';
-  const pass = process.env.EMAIL_HOST_PASSWORD || '';
+  const pass = (process.env.EMAIL_HOST_PASSWORD || '').replace(/^["']|["']$/g, '').trim();
   const fromEmail = process.env.EMAIL_FROM || (user ? user : '"Tulsi Mart Security" <noreply@tulsimart.com>');
 
   let transporter;
