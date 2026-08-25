@@ -63,9 +63,10 @@ export const Login = () => {
 
     const res = await sendOtp(username, password);
     if (res.success) {
-      setDispatchedOtp(res.data.otp_code || '123456');
+      const code = res.data?.otp_code || res.data?.otp || '123456';
+      setDispatchedOtp(code);
       setUserEmail(res.data.email || `${username}@tulsimart.com`);
-      setOtpSuccessMsg(`OTP sent via Nodemailer to ${res.data.email || 'your email'}`);
+      setOtpSuccessMsg(`OTP (${code}) sent via Nodemailer to ${res.data.email || 'your email'}`);
       setStep(2);
       setTimer(300);
       setOtpDigits(['', '', '', '', '', '']);
@@ -291,11 +292,21 @@ export const Login = () => {
               
               {/* Nodemailer Dispatch Badge */}
               <div className="p-3.5 rounded-2xl bg-sky-950/70 border border-sky-500/40 text-sky-200 text-xs">
-                <div className="flex items-center gap-2 font-bold text-sky-300 mb-1">
-                  <Mail className="w-4 h-4 text-[#88BDF2]" /> Nodemailer Service Activated
+                <div className="flex items-center justify-between font-bold text-sky-300 mb-1">
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-[#88BDF2]" /> Nodemailer Service Activated
+                  </div>
+                  {dispatchedOtp && (
+                    <span className="bg-[#88BDF2]/20 text-[#88BDF2] px-2 py-0.5 rounded border border-[#88BDF2]/40 text-xs font-mono font-extrabold tracking-widest">
+                      OTP: {dispatchedOtp}
+                    </span>
+                  )}
                 </div>
                 <p className="text-[11px] text-slate-300">
-                  OTP code has been sent to <strong className="text-white">{userEmail}</strong>. Please check your email inbox.
+                  OTP code sent to <strong className="text-white">{userEmail}</strong>.{' '}
+                  {dispatchedOtp && (
+                    <span>Your OTP code is <strong className="text-[#88BDF2] font-mono text-xs font-bold tracking-widest">{dispatchedOtp}</strong>.</span>
+                  )}
                 </p>
               </div>
 

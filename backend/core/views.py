@@ -180,7 +180,9 @@ def send_otp_view(request):
         'success': True,
         'message': f'OTP code dispatched to {user_email}',
         'email': user_email,
-        'username': user.username
+        'username': user.username,
+        'otp_code': otp_code,
+        'otp': otp_code
     })
 
 
