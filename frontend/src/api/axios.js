@@ -9,7 +9,7 @@ if (rawApiUrl) {
 } else if (import.meta.env.DEV) {
   API_BASE_URL = 'http://127.0.0.1:8000/api';
 } else {
-  API_BASE_URL = '/api';
+  API_BASE_URL = 'https://tulsimart.onrender.com/api';
 }
 
 
