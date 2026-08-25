@@ -138,38 +138,45 @@ def send_otp_view(request):
     if not user_email:
         user_email = getattr(user, 'email', None) or f"{user.username}@tulsimart.com"
 
-    # Execute Nodemailer Node.js Transport Service safely if node is available
-    import subprocess, os, shutil
+    # Execute Nodemailer & Django Mail Transport Service in background thread
+    import subprocess, os, shutil, threading
     from django.conf import settings as django_settings
 
-    if shutil.which('node'):
-        try:
-            script_path = os.path.join(django_settings.BASE_DIR, 'send_email.js')
-            if os.path.exists(script_path):
-                subprocess.run(
-                    ['node', script_path, user_email, otp_code, getattr(user, 'first_name', '') or user.username],
-                    capture_output=True,
-                    text=True,
-                    timeout=5
-                )
-        except Exception:
-            pass
+    def dispatch_otp_email():
+        sent_via_node = False
+        if shutil.which('node'):
+            try:
+                script_path = os.path.join(django_settings.BASE_DIR, 'send_email.js')
+                if os.path.exists(script_path):
+                    res = subprocess.run(
+                        ['node', script_path, user_email, otp_code, getattr(user, 'first_name', '') or user.username],
+                        capture_output=True,
+                        text=True,
+                        timeout=30
+                    )
+                    if res.returncode == 0:
+                        sent_via_node = True
+            except Exception as err:
+                print(f"[OTP Email] Nodemailer dispatch error: {err}")
 
-    try:
-        from django.core.mail import send_mail
-        send_mail(
-            subject='🔒 Tulsi Mart Login OTP Security Code',
-            message=f'Hello {getattr(user, "first_name", "") or user.username},\n\nYour 6-digit OTP code for Tulsi Mart login is: {otp_code}',
-            from_email=os.getenv('EMAIL_FROM', 'noreply@tulsimart.com'),
-            recipient_list=[user_email],
-            fail_silently=True,
-        )
-    except Exception:
-        pass
+        if not sent_via_node:
+            try:
+                from django.core.mail import send_mail
+                send_mail(
+                    subject='🔒 Tulsi Mart Login OTP Security Code',
+                    message=f'Hello {getattr(user, "first_name", "") or user.username},\n\nYour 6-digit OTP code for Tulsi Mart login is: {otp_code}',
+                    from_email=os.getenv('EMAIL_FROM', 'noreply@tulsimart.com'),
+                    recipient_list=[user_email],
+                    fail_silently=False,
+                )
+            except Exception as err:
+                print(f"[OTP Email] Django send_mail error: {err}")
+
+    threading.Thread(target=dispatch_otp_email, daemon=True).start()
 
     return Response({
         'success': True,
-        'message': f'OTP code dispatched via Nodemailer Service to {user_email}',
+        'message': f'OTP code dispatched to {user_email}',
         'email': user_email,
         'username': user.username
     })

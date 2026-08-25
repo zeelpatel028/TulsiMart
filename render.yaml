@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: tulsi-mart-backend
+    env: python
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate"
+    startCommand: "gunicorn tulsimart_backend.wsgi:application"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.11
+      - key: DEBUG
+        value: "False"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: CORS_ALLOW_ALL_ORIGINS
+        value: "True"
