@@ -53,6 +53,13 @@ class LoginAccountViewSet(viewsets.ModelViewSet):
         acc.save()
         return Response({'status': 'success', 'is_active': acc.is_active})
 
+    @action(detail=True, methods=['post'])
+    def toggle_otp(self, request, pk=None):
+        acc = self.get_object()
+        acc.require_otp = not acc.require_otp
+        acc.save()
+        return Response({'status': 'success', 'require_otp': acc.require_otp})
+
 
 
 class StoreSettingView(APIView):
@@ -520,9 +527,9 @@ def login_auth_view(request):
     if acc.password != password:
         return Response({'detail': 'Invalid username or password.'}, status=status.HTTP_401_UNAUTHORIZED)
 
-    # Check if 2FA OTP is required
+    # Check if 2FA OTP is required based on LoginAccount settings in DB
     store_settings = StoreSetting.get_settings()
-    otp_required = acc.require_otp or store_settings.security_require_otp
+    otp_required = acc.require_otp
 
     if otp_required:
         otp_code = str(random.randint(100000, 999999))
@@ -756,18 +763,18 @@ def verify_otp_auth_view(request):
 
 
 @api_view(['GET'])
-
 @permission_classes([permissions.AllowAny])
 def get_me_auth_view(request):
-    acc = LoginAccount.objects.first()
+    acc = None
+    if request.user and request.user.is_authenticated:
+        acc = LoginAccount.objects.filter(username__iexact=request.user.username).first()
+
     if not acc:
-        acc = LoginAccount.objects.create(
-            username='admin',
-            password='password123',
-            full_name='Store Administrator',
-            email='admin@tulsimart.com',
-            role='ADMIN'
-        )
+        acc = LoginAccount.objects.first()
+
+    if not acc:
+        return Response({'detail': 'User account not found.'}, status=status.HTTP_404_NOT_FOUND)
+
     store_settings = StoreSetting.get_settings()
     return Response({
         'user': {

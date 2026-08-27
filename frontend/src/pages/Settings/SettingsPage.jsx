@@ -281,6 +281,17 @@ export const SettingsPage = () => {
     }
   };
 
+  const handleToggleAccountOtp = async (id, username) => {
+    try {
+      const res = await loginAccountsApi.toggleAccountOtp(id);
+      const isOtp = res.data?.require_otp;
+      showToast(`OTP Verification for '${username}' ${isOtp ? 'ENABLED' : 'DISABLED'}.`, 'success');
+      fetchLoginAccounts();
+    } catch {
+      showToast('Failed to toggle OTP verification setting.', 'error');
+    }
+  };
+
   const handleDeleteAccount = async (id, username) => {
     if (!window.confirm(`Are you sure you want to delete login account '${username}' from database?`)) return;
     try {
@@ -494,6 +505,7 @@ export const SettingsPage = () => {
                       <th className="py-3 px-3">OTP Delivery Email</th>
                       <th className="py-3 px-3">Password</th>
                       <th className="py-3 px-3">Role</th>
+                      <th className="py-3 px-3 text-center">OTP Verification</th>
                       <th className="py-3 px-3 text-center">Status</th>
                       <th className="py-3 px-3 text-right">Actions</th>
                     </tr>
@@ -532,6 +544,19 @@ export const SettingsPage = () => {
                             <Badge variant={acc.role === 'ADMIN' ? 'primary' : 'secondary'} size="sm">
                               {acc.role_label || acc.role}
                             </Badge>
+                          </td>
+                          <td className="py-3.5 px-3 text-center">
+                            <span
+                              onClick={() => handleToggleAccountOtp(acc.id, acc.username)}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold cursor-pointer transition-transform hover:scale-105 ${
+                                acc.require_otp
+                                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
+                                  : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                              }`}
+                              title="Click to toggle OTP requirement for this account"
+                            >
+                              {acc.require_otp ? '🔒 OTP Required' : '🔑 Password Only'}
+                            </span>
                           </td>
                           <td className="py-3.5 px-3 text-center">
                             <span

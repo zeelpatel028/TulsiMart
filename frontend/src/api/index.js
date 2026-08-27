@@ -14,6 +14,7 @@ export const loginAccountsApi = {
   updateAccount: (id, data) => apiClient.put(`/core/login-accounts/${id}/`, data),
   deleteAccount: (id) => apiClient.delete(`/core/login-accounts/${id}/`),
   toggleAccountStatus: (id) => apiClient.post(`/core/login-accounts/${id}/toggle_status/`),
+  toggleAccountOtp: (id) => apiClient.post(`/core/login-accounts/${id}/toggle_otp/`),
 };
 
 

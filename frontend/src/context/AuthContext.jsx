@@ -6,7 +6,8 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('tm_user');
-    return saved ? JSON.parse(saved) : { username: 'admin', role: 'ADMIN', name: 'Store Admin' };
+    const token = localStorage.getItem('tm_access_token');
+    return (saved && token) ? JSON.parse(saved) : null;
   });
   const [token, setToken] = useState(() => localStorage.getItem('tm_access_token') || null);
   const [storeSettings, setStoreSettings] = useState(() => {
