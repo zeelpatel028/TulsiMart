@@ -23,16 +23,6 @@ class LoginAccountViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
-        if not LoginAccount.objects.exists():
-            LoginAccount.objects.create(
-                username='admin',
-                password='password123',
-                full_name='Store Administrator',
-                email='admin@tulsimart.com',
-                role='ADMIN',
-                is_active=True,
-                require_otp=False
-            )
         qs = super().get_queryset()
         search = self.request.query_params.get('search')
         role = self.request.query_params.get('role')
@@ -511,45 +501,16 @@ def login_auth_view(request):
     if not username or not password:
         return Response({'detail': 'Username and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Ensure default admin account exists if no accounts are present
-    if not LoginAccount.objects.exists():
-        LoginAccount.objects.create(
-            username='admin',
-            password='password123',
-            full_name='Store Administrator',
-            email='admin@tulsimart.com',
-            role='ADMIN',
-            is_active=True,
-            require_otp=False
-        )
-
     try:
         acc = LoginAccount.objects.get(username__iexact=username)
     except LoginAccount.DoesNotExist:
-        if username.lower() == 'admin':
-            acc = LoginAccount.objects.create(
-                username='admin',
-                password='password123',
-                full_name='Store Administrator',
-                email='admin@tulsimart.com',
-                role='ADMIN',
-                is_active=True,
-                require_otp=False
-            )
-        else:
-            return Response({'detail': 'Invalid username or password. Please check your credentials.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'detail': 'Invalid username or password.'}, status=status.HTTP_400_BAD_REQUEST)
 
     if not acc.is_active:
         return Response({'detail': 'This account has been disabled by store admin.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    is_valid_pass = (acc.password == password)
-    if not is_valid_pass and acc.username.lower() == 'admin' and password.lower() in ['admin', 'password123']:
-        is_valid_pass = True
-        acc.password = password
-        acc.save()
-
-    if not is_valid_pass:
-        return Response({'detail': 'Invalid username or password. Please check your credentials.'}, status=status.HTTP_400_BAD_REQUEST)
+    if acc.password != password:
+        return Response({'detail': 'Invalid username or password.'}, status=status.HTTP_400_BAD_REQUEST)
 
     # Check if 2FA OTP is required based on LoginAccount settings in DB
     store_settings = StoreSetting.get_settings()
@@ -794,10 +755,7 @@ def get_me_auth_view(request):
         acc = LoginAccount.objects.filter(username__iexact=request.user.username).first()
 
     if not acc:
-        acc = LoginAccount.objects.first()
-
-    if not acc:
-        return Response({'detail': 'User account not found.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'detail': 'User account not found in database.'}, status=status.HTTP_404_NOT_FOUND)
 
     store_settings = StoreSetting.get_settings()
     return Response({
