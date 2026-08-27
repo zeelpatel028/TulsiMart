@@ -526,13 +526,13 @@ def login_auth_view(request):
     try:
         acc = LoginAccount.objects.get(username__iexact=username)
     except LoginAccount.DoesNotExist:
-        return Response({'detail': 'Invalid username or password.'}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({'detail': 'Invalid username or password.'}, status=status.HTTP_400_BAD_REQUEST)
 
     if not acc.is_active:
-        return Response({'detail': 'This account has been disabled by store admin.'}, status=status.HTTP_403_FORBIDDEN)
+        return Response({'detail': 'This account has been disabled by store admin.'}, status=status.HTTP_400_BAD_REQUEST)
 
     if acc.password != password:
-        return Response({'detail': 'Invalid username or password.'}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({'detail': 'Invalid username or password.'}, status=status.HTTP_400_BAD_REQUEST)
 
     # Check if 2FA OTP is required based on LoginAccount settings in DB
     store_settings = StoreSetting.get_settings()
