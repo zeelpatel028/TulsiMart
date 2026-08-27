@@ -8,8 +8,6 @@ if (import.meta.env.DEV) {
 } else if (rawApiUrl) {
   const cleanUrl = rawApiUrl.trim().replace(/\/+$/, '');
   API_BASE_URL = cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
-} else {
-  API_BASE_URL = 'https://tulsimart.onrender.com/api';
 }
 
 
