@@ -497,6 +497,18 @@ def login_auth_view(request):
     if not username or not password:
         return Response({'detail': 'Username and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
+    # Ensure default admin account exists if no accounts are present
+    if not LoginAccount.objects.exists():
+        LoginAccount.objects.create(
+            username='admin',
+            password='password123',
+            full_name='Store Administrator',
+            email='admin@tulsimart.com',
+            role='ADMIN',
+            is_active=True,
+            require_otp=False
+        )
+
     try:
         acc = LoginAccount.objects.get(username__iexact=username)
     except LoginAccount.DoesNotExist:
