@@ -113,35 +113,142 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
 }
 
-/* Custom modern scrollbars */
+/* Custom modern scrollbars - Tulsi Mart Brand Colors */
 ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #E2E8F0;
+  border-radius: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #0F172A;
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #6A89A7;
+  border-radius: 8px;
+  border: 1px solid #E2E8F0;
+  transition: background-color 0.2s ease;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #384959;
+  border-radius: 8px;
+  border: 1px solid #0F172A;
+  transition: background-color 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #384959;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #88BDF2;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* W3C Standard Firefox Scrollbar Rules */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #6A89A7 #E2E8F0;
+}
+
+.dark * {
+  scrollbar-width: thin;
+  scrollbar-color: #384959 #0F172A;
+}
+
+/* Explicit Utility Classes for Scrollbars */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #6A89A7 #E2E8F0;
+}
+
+.dark .custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #88BDF2 #1E293B;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #F1F5F9;
+  border-radius: 8px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-track {
+  background: #1E293B;
+  border-radius: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #6A89A7;
+  border-radius: 8px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #384959;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #88BDF2;
+}
+
+/* Compact Thin Scrollbar for Cart, Modals & Dropdowns */
+.custom-scrollbar-thin::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
-::-webkit-scrollbar-track {
-  background: #F1F5F9;
+.custom-scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-.dark ::-webkit-scrollbar-track {
-  background: #1E293B;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
+.custom-scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #6A89A7;
   border-radius: 9999px;
 }
 
-.dark ::-webkit-scrollbar-thumb {
+.dark .custom-scrollbar-thin::-webkit-scrollbar-thumb {
   background: #475569;
+  border-radius: 9999px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
+.custom-scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #384959;
 }
 
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: #64748B;
+.dark .custom-scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #88BDF2;
+}
+
+/* Scrollable Container with Sticky Table Headers */
+.table-scroll-container {
+  max-height: 640px;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+.table-scroll-container thead tr {
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 /* Hide scrollbar for mobile swipeable tabs while maintaining functionality */

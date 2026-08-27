@@ -133,7 +133,7 @@ def sync_all_data_to_mongodb():
         }
 
     try:
-        from core.models import User, StoreSetting
+        from core.models import Staff, StoreSetting, LoginAccount
         from inventory.models import Category, Brand, Unit, Product, StockMovement
         from orders.models import Order, OrderItem, PaymentTransaction
         from customers.models import Customer, CustomerFeedback
@@ -141,8 +141,9 @@ def sync_all_data_to_mongodb():
         from expenses.models import ExpenseCategory, Expense
         from offers.models import Coupon, FestivalOffer
 
-        results['users'] = sync_model_to_mongo('users', User.objects.all())
         results['store_settings'] = sync_model_to_mongo('store_settings', StoreSetting.objects.all())
+        results['login_accounts'] = sync_model_to_mongo('login_accounts', LoginAccount.objects.all())
+        results['staff'] = sync_model_to_mongo('staff', Staff.objects.all())
 
         results['categories'] = sync_model_to_mongo('categories', Category.objects.all())
         results['brands'] = sync_model_to_mongo('brands', Brand.objects.all())
@@ -175,3 +176,36 @@ def sync_all_data_to_mongodb():
         }
     except Exception as e:
         return {'status': 'error', 'message': str(e)}
+
+
+def get_mongo_store_settings():
+    """
+    Directly retrieves store settings document from MongoDB collection 'store_settings'.
+    """
+    try:
+        col = get_collection('store_settings')
+        if col is not None:
+            doc = col.find_one({'django_id': 1}, {'_id': 0})
+            if doc:
+                return doc
+    except Exception as e:
+        logger.warning(f"Failed to fetch store settings from MongoDB: {e}")
+    return None
+
+
+def save_mongo_store_settings(settings_dict):
+    """
+    Directly upserts store settings document into MongoDB collection 'store_settings'.
+    """
+    try:
+        col = get_collection('store_settings')
+        if col is not None:
+            doc = _sanitize_for_mongo(settings_dict)
+            doc['django_id'] = settings_dict.get('id', 1)
+            col.replace_one({'django_id': doc['django_id']}, doc, upsert=True)
+            return True
+    except Exception as e:
+        logger.warning(f"Failed to save store settings to MongoDB: {e}")
+    return False
+
+

@@ -12,7 +12,6 @@ from inventory.models import Product, Category, StockMovement
 from customers.models import Customer
 from expenses.models import Expense
 from suppliers.models import PurchaseOrder, Supplier
-from core.models import StoreSetting
 
 from orders.serializers import OrderSerializer
 

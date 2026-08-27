@@ -6,7 +6,6 @@ import { useAuth } from './context/AuthContext';
 import DashboardLayout from './components/layout/DashboardLayout';
 
 // Pages
-import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import ProductList from './pages/Products/ProductList';
 import InventoryList from './pages/Inventory/InventoryList';
@@ -18,30 +17,27 @@ import SupplierList from './pages/Suppliers/SupplierList';
 import ExpenseList from './pages/Expenses/ExpenseList';
 import StaffList from './pages/Staff/StaffList';
 import ReportsPage from './pages/Reports/ReportsPage';
-import SettingsPage from './pages/Settings/SettingsPage';
 import BillingPage from './pages/Billing/BillingPage';
 import GullaManagement from './pages/Gulla/GullaManagement';
+import SettingsPage from './pages/Settings/SettingsPage';
 
+import LoginPage from './pages/Auth/LoginPage';
 import CartLoader from './components/common/CartLoader';
 
-// Protected Route Component with RBAC checks
-const ProtectedRoute = ({ children, allowedRoles }) => {
-  const { isAuthenticated, user, loading } = useAuth();
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#F4F7FB] dark:bg-slate-950">
-        <CartLoader text="Logging into Tulsi Mart..." size="lg" />
+        <CartLoader text="Loading Tulsi Mart..." size="lg" />
       </div>
     );
   }
 
-  if (!isAuthenticated) {
+  if (!user) {
     return <Navigate to="/login" replace />;
-  }
-
-  if (allowedRoles && user && user.role !== 'ADMIN' && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/" replace />;
   }
 
   return children;
@@ -50,7 +46,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 export function App() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
+      <Route path="/login" element={<LoginPage />} />
 
       {/* Protected Dashboard Routes */}
       <Route
@@ -61,6 +57,7 @@ export function App() {
           </ProtectedRoute>
         }
       >
+
         <Route index element={<Dashboard />} />
         <Route path="billing" element={<BillingPage />} />
         <Route path="gulla" element={<GullaManagement />} />
@@ -77,6 +74,7 @@ export function App() {
         <Route path="reports" element={<ReportsPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
+
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />

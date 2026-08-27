@@ -1,24 +1,42 @@
 import apiClient from './axios';
 
-// Auth & Staff API
+// Store Settings API
+export const settingsApi = {
+  getSettings: () => apiClient.get('/core/settings/'),
+  updateSettings: (data) => apiClient.put('/core/settings/', data),
+  patchSettings: (data) => apiClient.patch('/core/settings/', data),
+};
+
+// Login Accounts API
+export const loginAccountsApi = {
+  getAccounts: (params) => apiClient.get('/core/login-accounts/', { params }),
+  createAccount: (data) => apiClient.post('/core/login-accounts/', data),
+  updateAccount: (id, data) => apiClient.put(`/core/login-accounts/${id}/`, data),
+  deleteAccount: (id) => apiClient.delete(`/core/login-accounts/${id}/`),
+  toggleAccountStatus: (id) => apiClient.post(`/core/login-accounts/${id}/toggle_status/`),
+};
+
+
+// Staff & System API
 export const authApi = {
-  login: (credentials) => apiClient.post('/core/auth/login/', credentials),
-  sendOtp: (credentials) => apiClient.post('/core/auth/send-otp/', credentials),
-  verifyOtp: (payload) => apiClient.post('/core/auth/verify-otp/', payload),
-  updateCredentials: (data) => apiClient.post('/core/auth/update-credentials/', data),
+  login: (data) => apiClient.post('/core/auth/login/', data),
+  sendOtp: (data) => apiClient.post('/core/auth/login/', data),
+  verifyOtp: (data) => apiClient.post('/core/auth/verify-otp/', data),
   getMe: () => apiClient.get('/core/auth/me/'),
+  getSettings: () => apiClient.get('/core/settings/'),
+
   getStaff: (params) => apiClient.get('/core/staff/', { params }),
+
   createStaff: (data) => apiClient.post('/core/staff/', data),
   updateStaff: (id, data) => apiClient.put(`/core/staff/${id}/`, data),
   deleteStaff: (id) => apiClient.delete(`/core/staff/${id}/`),
   toggleStaffStatus: (id) => apiClient.post(`/core/staff/${id}/toggle_status/`),
   updateStaffAttendance: (id, attendance_data) => apiClient.post(`/core/staff/${id}/update_attendance/`, { attendance_data }),
   getActivityLogs: (params) => apiClient.get('/core/logs/', { params }),
-  getSettings: () => apiClient.get('/core/settings/'),
-  updateSettings: (data) => apiClient.post('/core/settings/', data),
   getMongoStatus: () => apiClient.get('/core/mongodb/status/'),
   syncMongoDB: () => apiClient.post('/core/mongodb/sync/'),
 };
+
 
 // Inventory & Products API
 export const inventoryApi = {
@@ -121,5 +139,11 @@ export const bankApi = {
   getTransactions: (params) => apiClient.get('/core/bank-transactions/', { params }),
   createTransaction: (data) => apiClient.post('/core/bank-transactions/', data),
   getSummary: () => apiClient.get('/core/bank-transactions/summary/'),
+};
+
+// Home Safe Cash Vault API
+export const homeCashApi = {
+  getHomeCashData: () => apiClient.get('/core/home-cash/'),
+  createHomeCashTransaction: (data) => apiClient.post('/core/home-cash/', data),
 };
 

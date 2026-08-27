@@ -133,7 +133,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
         </div>
 
         {/* Categorized Navigation Sections */}
-        <div className="flex-1 px-3 py-3 overflow-y-auto space-y-4 touch-pan min-h-0">
+        <div className="flex-1 px-3 py-3 overflow-y-auto custom-scrollbar-thin space-y-4 touch-pan min-h-0">
           {navSections.map((section, sIdx) => (
             <div key={sIdx} className="space-y-1">
               {!isCollapsed && (

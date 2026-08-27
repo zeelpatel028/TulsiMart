@@ -1,6 +1,5 @@
 from django.core.management.base import BaseCommand
-from django.contrib.auth import get_user_model
-from core.models import StoreSetting, ActivityLog
+from core.models import ActivityLog
 from inventory.models import Category, Brand, Unit, Product, StockMovement
 from customers.models import Customer, CustomerFeedback
 from suppliers.models import Supplier, PurchaseOrder, PurchaseOrderItem, SupplierPayment
@@ -63,34 +62,7 @@ class Command(BaseCommand):
         ActivityLog.objects.all().delete()
         self.stdout.write(self.style.SUCCESS("[CLEARED] Activity Logs"))
 
-        # 8. Reset Users - Keep/Create single Superuser Admin
-        User.objects.all().delete()
-        admin_user = User.objects.create_superuser(
-            username='admin',
-            email='admin@tulsimart.com',
-            password='Admin@123',
-            first_name='Store',
-            last_name='Admin',
-            role='ADMIN',
-            phone='+91 98765 43210'
-        )
-        self.stdout.write(self.style.SUCCESS(f"[CREATED] Superuser Admin created (Username: admin, Password: Admin@123)"))
-
-        # 9. Ensure default StoreSetting
-        setting, _ = StoreSetting.objects.get_or_create(id=1)
-        setting.store_name = "Tulsi Mart"
-        setting.tagline = "Fresh Groceries & Supermarket"
-        setting.logo_url = "/logo.png"
-        setting.phone = "+91 98765 43210"
-        setting.email = "contact@tulsimart.com"
-        setting.address = "Shop No. 12-14, Heritage Plaza, MG Road, Mumbai, MH - 400001"
-        setting.gstin = "27AABCT8899F1Z4"
-        setting.currency_symbol = "Rs."
-        setting.invoice_prefix = "TM-INV-"
-        setting.save()
-        self.stdout.write(self.style.SUCCESS("[RESET] Default Store Settings Initialized"))
-
-        # 10. Clear & Sync MongoDB
+        # 8. Clear & Sync MongoDB
         try:
             db = get_mongo_db()
             if db is not None:

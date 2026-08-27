@@ -89,45 +89,16 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'tulsimart_backend.wsgi.application'
 
-try:
-    import dj_database_url
-except ImportError:
-    dj_database_url = None
-
-# Database configuration (SQLite / PostgreSQL ORM + MongoDB for Document Storage)
-import shutil
-
-if os.getenv('DATABASE_URL') and dj_database_url is not None:
-    DATABASES = {
-        'default': dj_database_url.config(
-            conn_max_age=600,
-            conn_health_checks=True,
-        )
+# Database Configuration & MongoDB Connection Settings
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'tulsimart.sqlite3',
     }
-elif os.getenv('VERCEL') or os.getenv('AWS_LAMBDA_FUNCTION_NAME'):
-    db_tmp_path = Path('/tmp/db.sqlite3')
-    original_db = BASE_DIR / 'db.sqlite3'
-    if not db_tmp_path.exists() and original_db.exists():
-        try:
-            shutil.copy2(original_db, db_tmp_path)
-        except Exception:
-            pass
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': db_tmp_path if db_tmp_path.exists() else original_db,
-        }
-    }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+}
 
-# Custom User Model
-AUTH_USER_MODEL = 'core.User'
+MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/')
+MONGODB_DB_NAME = os.getenv('MONGODB_DB_NAME', 'tulsimart_db')
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -220,7 +191,7 @@ EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '').strip('"\'')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '').replace(' ', '').replace('\t', '').strip('"\'')
 DEFAULT_FROM_EMAIL = os.getenv('EMAIL_FROM', EMAIL_HOST_USER)
 
 

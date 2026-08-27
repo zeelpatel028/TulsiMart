@@ -352,7 +352,8 @@ export const SupplierList = () => {
             denomination_counts: denominations
           });
         } catch (gullaErr) {
-          console.warn('Gulla cash entry note:', gullaErr);
+          const gMsg = gullaErr.response?.data?.message || gullaErr.response?.data?.detail || gullaErr.message;
+          showToast(gMsg || '⚠️ Gulla Note Warning: Cash deducted but check drawer note count.', 'warning');
         }
       }
 
@@ -361,7 +362,7 @@ export const SupplierList = () => {
       fetchProcurementData();
     } catch (err) {
       console.error('Error recording payment:', err);
-      showToast('Failed to record supplier payment', 'error');
+      showToast(err.response?.data?.message || err.response?.data?.detail || 'Failed to record supplier payment', 'error');
     }
   };
 
