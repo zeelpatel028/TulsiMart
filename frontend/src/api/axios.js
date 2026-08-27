@@ -38,8 +38,7 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    const isAuthEndpoint = originalRequest?.url?.includes('/core/auth/send-otp/') || 
-                          originalRequest?.url?.includes('/core/auth/login/') ||
+    const isAuthEndpoint = originalRequest?.url?.includes('/core/auth/login/') ||
                           originalRequest?.url?.includes('/core/auth/verify-otp/') ||
                           originalRequest?.url?.includes('/core/auth/refresh/');
 

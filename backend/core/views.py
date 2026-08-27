@@ -491,6 +491,13 @@ def get_tokens_for_account(acc):
         'is_staff': True,
         'is_superuser': (acc.role == 'ADMIN')
     })
+    user_obj.is_active = True
+    user_obj.email = acc.email
+    user_obj.first_name = acc.full_name
+    user_obj.is_staff = True
+    user_obj.is_superuser = (acc.role == 'ADMIN')
+    user_obj.save()
+
     refresh = RefreshToken.for_user(user_obj)
     return str(refresh.access_token), str(refresh)
 
