@@ -1,67 +1,229 @@
-# TulsiMart 🛒
+<div align="center">
+  <img src="frontend/public/logo.png" alt="Tulsi Mart Logo" width="180" style="border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.15);" />
+  
+  # 🌿 Tulsi Mart (તુલસી માર્ટ) 🛒
+  
+  **Next-Gen Retail POS, Live Gulla Drawer Currency Management, MongoDB Auto-Sync Engine & Supermarket ERP**
+  
+  [![Python](https://img.shields.io/badge/Python-3.13-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+  [![Django](https://img.shields.io/badge/Django-5.0.2-092E20?style=for-the-badge&logo=django&logoColor=white)](https://www.djangoproject.com/)
+  [![React](https://img.shields.io/badge/React-19.0-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
+  [![Vite](https://img.shields.io/badge/Vite-6.1-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
+  [![MongoDB](https://img.shields.io/badge/MongoDB-Replication_Sync-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+  [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
-TulsiMart is a modern, full-stack Point of Sale (POS), Inventory, Billing, and Supermarket Management System built for streamlined store operations.
+</div>
 
 ---
 
-## 🌟 Key Features
+## 📖 Overview
 
-- 🧾 **Billing & POS System**: Fast checkout experience, invoice generation, cash/UPI payment handling.
-- 📦 **Inventory Management**: Real-time product tracking, stock updates, barcode scanning, and category management.
-- 🚚 **Supplier & Procurement Management**: Purchase orders, Goods Receive Notes (GRN), and payment ledgers.
-- 📊 **Analytics & Reports**: Sales revenue insights, expense tracking, daily summaries, and profit analytics.
-- 👥 **Customer & Staff Management**: Customer loyalty profiles, staff roles, and access control.
-- 💰 **Gulla (Cash Counter) Management**: Opening/closing cash register tracking and reconciliation.
-- 🎁 **Offers & Discounts**: Dynamic promotional offers and discount rules.
+**Tulsi Mart** is a state-of-the-art, enterprise-grade **Supermarket Management & Point of Sale (POS) Ecosystem** specifically engineered for high-speed retail operations, physical currency note tracking, live cash register audits, and automated multi-database replication.
+
+Built using **Django REST Framework** on the backend and **React 19 + Vite** on the frontend, Tulsi Mart solves critical real-world retail challenges like missing cash float denominations, unrecorded cashier drawer withdrawals, complex change calculations, and real-time MongoDB database synchronization.
 
 ---
 
-## 🏗️ Project Architecture
+## ✨ Core Features & Highlights
 
-The repository is structured into two primary modules:
+### 🛒 1. Smart POS Billing Terminal
+- **Ultra-Fast Barcode Scanning & Search**: Instant product lookup via barcode or name keywords with real-time price & MRP savings indicators.
+- **Multi-Cart Hold/Resume**: Support for active customer cart tabs (`Cart 1`, `Cart 2`, `Cart 3`) allowing cashiers to hold pending bills seamlessly.
+- **Greedy Currency Denominations Algorithm**:
+  - Automatically calculates optimal physical note/coin breakdown (`₹500`, `₹200`, `₹100`, `₹50`, `₹20`, `₹10`, `₹5`, `₹2`, `₹1`) for t化ndered cash and change.
+  - **Gulla Live Drawer Note Availability Check**: Skips 0-count drawer notes automatically when calculating customer change.
+  - **Change Note Amount & Fit Validation**: Automatically disables note buttons larger than the remaining change needed to prevent cashier error.
+  - **Out-of-Stock Note Warning**: Displays red `⚠️ Out of Stock (નોટ નથી)` badges and triggers `GullaAlertModal` alerts.
+- **GST & Discount Engine**: Automatic extraction of inclusive retail GST (CGST + SGST) and promotional coupon code validation.
+- **Thermal Printing & OTP Email Receipts**: Instant browser receipt printing and automated Nodemailer / Django email delivery.
+
+### 💰 2. Gulla (Cash Register Drawer) Management
+- **Live Cash Register Tracking**: Real-time monitoring of Opening Float, Total Sales Inflow, Cash In (Deposits), Cash Out (Withdrawals), Supplier Payouts, and Expense Outflows.
+- **Physical Note Breakdown Grid**: Live 9-denomination matrix displaying exact note counts currently inside the cash register.
+- **Day-End Auto Cash Sweep (`EOD_SWEEP`)**: One-click Day-End closing action that sweeps net register cash to the **Home Safe Vault** while maintaining desired float for tomorrow.
+
+### 🏡 3. Home Safe Cash Vault (ઘરે રાખેલ તિજોરી કેશ)
+- **Centralized Home Safe Balance**: Real-time tracking of `StoreSetting.home_cash_amount`.
+- **Manual Deposits & Withdrawals**: Modals with physical note counters (`₹500`, `₹200`, `₹100`, `₹50`, `₹20`, `₹10`, `₹5`, `₹1`).
+- **Complete Audit History Ledger**: Comprehensive transaction log displaying Date, Entry Type (`DEPOSIT`, `WITHDRAWAL`, `SWEEP`), Note Breakdown (`2×₹500 + 5×₹200`), Balance After, User Name, and Reference Notes.
+
+### 🍃 4. MongoDB 2-Way Real-time Auto-Sync Engine
+- **Automated Replication**: Django ORM `post_save` & `post_delete` signals automatically sync every model modification (Products, Orders, Customers, Suppliers, Expenses, Staff, Gulla, Home Cash) to `tulsimart_db` MongoDB collections.
+- **Data Integrity**: Guaranteeing 100% data visibility across SQL & MongoDB databases.
+- **Sync Status Dashboard**: MongoDB connection health status monitoring and one-click manual synchronization trigger in Admin Settings.
+
+### 📦 5. Inventory & Barcode Management
+- **Catalog Control**: Full management of Products, Categories, Brands, and Measuring Units.
+- **Stock Audit Trail**: Stock movement tracking (Inward, Outward, Adjustment, Damage).
+- **Low Stock Badging**: Automatic visual alerts when inventory drops below reorder thresholds.
+
+### 🚚 6. Supplier & Procurement ERP
+- **Purchase Orders (PO)**: PO creation, status workflows (`DRAFT`, `ORDERED`, `RECEIVED`, `CANCELLED`).
+- **Goods Receive Notes (GRN)**: Automated stock level increments upon GRN verification.
+- **Supplier Payment Ledger**: Cash and UPI payment tracking with automatic Gulla drawer deduction.
+
+### 👥 7. Khata Customers & Staff Management
+- **Customer Khata Credit**: Credit balance tracking, partial payments, and purchase history.
+- **Staff & Access Control**: Role-based permissions (`ADMIN`, `STORE_MANAGER`, `CASHIER`) and attendance tracking.
+
+### 🔐 8. Dual-Layer OTP Email Authentication
+- Secure JWT authentication coupled with OTP verification sent directly to user email accounts.
+
+---
+
+## 🎨 Brand Design System & Aesthetics
+
+Tulsi Mart features a custom-crafted, modern color palette and dynamic UI layout:
+
+| Element | Color Code | Visual Role |
+| :--- | :--- | :--- |
+| **TM Navy** | `#384959` | Primary Headers, Navigation, Main Buttons |
+| **TM Sky Accent** | `#88BDF2` | High-contrast Badges, Highlights, Active States |
+| **TM Light Sky** | `#BDDDFC` | Soft Backgrounds, Hover Overlays |
+| **TM Slate** | `#6A89A7` | Secondary Buttons, Subtitles, Borders |
+| **Dark Slate** | `#0F172A` / `#1E293B` | Dark Mode Surfaces |
+
+- **Custom Brand Scrollbars**: High-visibility styled Webkit & W3C Firefox scrollbars (`.custom-scrollbar`, `.table-scroll-container`) with sticky `<thead>` headers across all heavy data tables.
+
+---
+
+## 📁 Repository Directory Structure
 
 ```text
 TulsiMart/
-├── backend/      # Django REST Framework API server
-└── frontend/     # React.js + Vite dashboard & POS interface
+├── backend/                        # Django 5.0 REST Framework Backend
+│   ├── core/                       # Models, Services, Views, Signals & Gulla Logic
+│   │   ├── gulla_services.py       # Gulla Cash Register & EOD Sweep Engine
+│   │   ├── signals.py              # MongoDB 2-Way Auto-Sync Signals
+│   │   ├── models.py               # Database Models (StoreSetting, HomeCash, Gulla, etc.)
+│   │   ├── views.py                # REST API Viewsets & Controllers
+│   │   └── urls.py                 # API Routing Endpoints
+│   ├── seed_tulsimart_mongodb.py   # Seed Data Script for MongoDB
+│   ├── send_email.js               # Node.js Email Delivery Service
+│   ├── render.yaml                 # Backend Cloud Deployment Config
+│   ├── requirements.txt            # Python Dependencies
+│   └── manage.py                   # Django CLI Controller
+│
+├── frontend/                       # React 19 + Vite Frontend Application
+│   ├── public/                     # Static Assets & Logo (`logo.png`)
+│   ├── src/
+│   │   ├── api/                    # Axios API Client Modules (`index.js`)
+│   │   ├── components/             # Reusable UI Components
+│   │   │   ├── common/             # Button, Modal, Card, Badge, Scrollbars
+│   │   │   ├── layout/             # Sidebar, Navbar, DashboardLayout
+│   │   │   └── pos/                # GullaAlertModal, QuickOrderModal
+│   │   ├── context/                # AuthContext, NotificationContext, ThemeContext
+│   │   ├── pages/                  # Page Views (Billing, Gulla, Settings, etc.)
+│   │   ├── App.jsx                 # Application Routing
+│   │   ├── main.jsx                # Application Entry Point
+│   │   └── index.css               # Design System & Scrollbar Styles
+│   ├── .vercelignore               # Vercel Deployment Exclusions
+│   ├── vercel.json                 # Frontend Vercel Deployment Config
+│   └── package.json                # Node.js Dependencies
+│
+└── README.md                       # Project Documentation
 ```
 
 ---
 
 ## 🚀 Getting Started
 
-### 1. Backend Setup (Django)
-
-```bash
-cd backend
-python -m venv venv
-# On Windows:
-venv\Scripts\activate
-# On Linux/macOS:
-source venv/bin/activate
-
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py runserver
-```
-
-### 2. Frontend Setup (React + Vite)
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
+### Prerequisites
+- **Python**: `3.10+` (Python 3.13 recommended)
+- **Node.js**: `18+`
+- **MongoDB**: Local (`mongodb://localhost:27017/`) or MongoDB Atlas
 
 ---
 
-## 🌿 Branching Strategy
+### 1. Backend Setup (Django REST API)
 
-- **`main`**: Default branch containing full backend & frontend source code, documentation, and releases.
-- **`dev`**: Active development branch containing full backend & frontend source code.
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
+
+2. Create and activate a virtual environment:
+   ```bash
+   # Windows (PowerShell)
+   python -m venv venv
+   .\venv\Scripts\activate
+
+   # Linux / macOS
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+
+3. Install Python dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Run database migrations:
+   ```bash
+   python manage.py makemigrations
+   python manage.py migrate
+   ```
+
+5. (Optional) Seed initial data & sync to MongoDB:
+   ```bash
+   python seed_tulsimart_mongodb.py
+   ```
+
+6. Start the Django development server:
+   ```bash
+   python manage.py runserver
+   ```
+   The backend API will be running at `http://127.0.0.1:8000/api/`.
+
+---
+
+### 2. Frontend Setup (React 19 + Vite)
+
+1. Open a new terminal and navigate to the frontend directory:
+   ```bash
+   cd frontend
+   ```
+
+2. Install Node.js dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Start the Vite development server:
+   ```bash
+   npm run dev
+   ```
+   The application will be accessible at `http://localhost:5173/`.
+
+---
+
+## 📜 Key API Endpoints Summary
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/core/auth/login/` | User Authentication & OTP Generation |
+| `POST` | `/api/core/auth/verify-otp/` | Verify OTP Code & Return JWT Tokens |
+| `GET` / `POST` | `/api/core/home-cash/` | Home Safe Cash Vault Balance & Audit History |
+| `GET` | `/api/core/gulla/` | Gulla Register Summary & Net Note Counts |
+| `POST` | `/api/core/gulla/entry/` | Record Gulla Register Cash In / Cash Out |
+| `POST` | `/api/core/gulla/eod-sweep/` | Trigger Day-End Auto Gulla Sweep to Home Safe |
+| `GET` / `POST` | `/api/inventory/products/` | Product Catalog Management & Stock Updates |
+| `GET` / `POST` | `/api/orders/orders/` | Create POS Orders & Invoice Details |
+| `GET` / `POST` | `/api/suppliers/suppliers/` | Supplier Directory & Procurement Payments |
+| `GET` / `POST` | `/api/expenses/expenses/` | Store Operating Expenses Ledger |
+
+---
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome! Feel free to check the issues page or submit pull requests.
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+This project is licensed under the **MIT License**.
+
+<div align="center">
+  <sub>Built with ❤️ for <b>Tulsi Mart Supermarket</b></sub>
+</div>
