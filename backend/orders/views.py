@@ -6,7 +6,6 @@ from django.db.models import Q, Sum
 from .models import Order, OrderItem, PaymentTransaction
 from .serializers import OrderSerializer, OrderItemSerializer, PaymentTransactionSerializer
 from inventory.models import StockMovement
-from core.models import StoreSetting
 
 class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all().prefetch_related('items').select_related('customer', 'created_by')
@@ -135,21 +134,21 @@ class OrderViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def invoice_details(self, request, pk=None):
         order = self.get_object()
-        settings = StoreSetting.get_settings()
+        store_info = {
+            'name': 'Tulsi Mart',
+            'tagline': 'Fresh Groceries & Daily Needs',
+            'phone': '+91 98765 43210',
+            'email': 'contact@tulsimart.com',
+            'address': 'Shop No. 12, Green Park Avenue, Main Market, Mumbai, MH - 400001',
+            'gstin': '27AABCT1234F1Z8',
+            'logo_url': '/logo.png',
+            'footer_terms': 'Thank you for shopping with Tulsi Mart!',
+        }
         order_data = OrderSerializer(order).data
         return Response({
             'order': order_data,
-            'store': {
-                'name': settings.store_name,
-                'tagline': settings.tagline,
-                'phone': settings.phone,
-                'email': settings.email,
-                'address': settings.address,
-                'gstin': settings.gstin,
-                'logo_url': settings.logo_url,
-                'footer_terms': settings.invoice_footer_terms,
-                'currency': settings.currency_symbol
-            }
+            'store': store_info,
+            'invoice_prefix': 'TM-INV-'
         })
 
 

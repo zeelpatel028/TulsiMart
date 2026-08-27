@@ -6,6 +6,7 @@ import { Badge } from '../../components/common/Badge';
 import { Modal } from '../../components/common/Modal';
 import { EmptyState } from '../../components/common/UiHelpers';
 import InvoiceModal from '../../components/invoices/InvoiceModal';
+import { GullaAlertModal } from '../../components/pos/GullaAlertModal';
 import { 
   Store, 
   Search, 
@@ -157,24 +158,41 @@ export const BillingPage = () => {
     1: 0
   });
 
+  const [gullaDrawerNotes, setGullaDrawerNotes] = useState({});
+  const [gullaAlertModal, setGullaAlertModal] = useState({ isOpen: false, title: '', message: '', denom: null });
+
   const calculateDenominationTotal = (counts) => {
     return Object.entries(counts).reduce((sum, [denom, count]) => sum + (Number(denom) * (Number(count) || 0)), 0);
   };
 
-  // Smart Greedy Currency Denominations Algorithm (e.g. ₹2200 -> 4x500 + 1x200)
+  // Smart Greedy Currency Denominations Algorithm with Gulla Live Drawer Availability Check (Pure Helper)
   const autoCalculateDenominations = (amount) => {
     let remaining = Math.max(0, Math.round(Number(amount) || 0));
     const denoms = [500, 200, 100, 50, 20, 10, 5, 2, 1];
     const breakdown = { 500: 0, 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 2: 0, 1: 0 };
+    const missingNotes = [];
 
     for (const d of denoms) {
       if (remaining >= d) {
-        const count = Math.floor(remaining / d);
-        breakdown[d] = count;
-        remaining = remaining % d;
+        const needed = Math.floor(remaining / d);
+        const avail = gullaDrawerNotes[d] !== undefined ? gullaDrawerNotes[d] : (gullaDrawerNotes[String(d)] || 999);
+
+        if (avail <= 0) {
+          missingNotes.push(d);
+          continue; // Skip notes that are 0 in Gulla drawer!
+        }
+
+        const canGive = Math.min(needed, avail);
+        breakdown[d] = canGive;
+        remaining -= (canGive * d);
       }
     }
-    return breakdown;
+
+    return {
+      breakdown,
+      remaining,
+      missingNotes
+    };
   };
 
   const getDenominationBreakdownSummary = (counts) => {
@@ -187,8 +205,8 @@ export const BillingPage = () => {
 
   const handleAutoSelectAndOpenNotes = (amount, openModal = false) => {
     const rounded = Math.ceil(amount || 0);
-    const breakdown = autoCalculateDenominations(rounded);
-    setNoteCounts(breakdown);
+    const res = autoCalculateDenominations(rounded);
+    setNoteCounts(res.breakdown);
     setCashTendered(rounded > 0 ? String(rounded) : '');
     if (openModal) {
       setIsDenominationModalOpen(true);
@@ -202,12 +220,12 @@ export const BillingPage = () => {
     const suggestions = [];
 
     // Exact
-    const exactBreakdown = autoCalculateDenominations(rounded);
+    const exactRes = autoCalculateDenominations(rounded);
     suggestions.push({
       label: `Exact ₹${rounded}`,
-      breakdownSummary: getDenominationBreakdownSummary(exactBreakdown),
+      breakdownSummary: getDenominationBreakdownSummary(exactRes.breakdown),
       amount: rounded,
-      breakdown: exactBreakdown,
+      breakdown: exactRes.breakdown,
       isExact: true
     });
 
@@ -325,6 +343,12 @@ export const BillingPage = () => {
       setLoadingGulla(true);
       const res = await gullaApi.getGullaSummary();
       setGullaData(res.data);
+      const netNotes = res.data?.notes_and_coins_summary?.net_drawer_notes || {};
+      const formatted = {};
+      [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach((d) => {
+        formatted[d] = Math.max(0, parseInt(netNotes[d] || netNotes[String(d)] || 0, 10));
+      });
+      setGullaDrawerNotes(formatted);
     } catch (err) {
       console.error('Failed to load Gulla summary', err);
     } finally {
@@ -349,7 +373,15 @@ export const BillingPage = () => {
       if (catRes.status === 'fulfilled') setCategories(catRes.value.data?.results || catRes.value.data || []);
       if (custRes.status === 'fulfilled') setCustomers(custRes.value.data?.results || custRes.value.data || []);
       if (coupRes.status === 'fulfilled') setCoupons(coupRes.value.data?.results || coupRes.value.data || []);
-      if (gullaRes.status === 'fulfilled') setGullaData(gullaRes.value.data);
+      if (gullaRes.status === 'fulfilled') {
+        setGullaData(gullaRes.value.data);
+        const netNotes = gullaRes.value.data?.notes_and_coins_summary?.net_drawer_notes || {};
+        const formatted = {};
+        [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach((d) => {
+          formatted[d] = Math.max(0, parseInt(netNotes[d] || netNotes[String(d)] || 0, 10));
+        });
+        setGullaDrawerNotes(formatted);
+      }
       if (suppRes.status === 'fulfilled') setSuppliers(suppRes.value.data?.results || suppRes.value.data || []);
       if (expCatRes.status === 'fulfilled') setExpenseCategories(expCatRes.value.data?.results || expCatRes.value.data || []);
     } catch (err) {
@@ -730,24 +762,74 @@ export const BillingPage = () => {
   // Auto-sync suggested change notes when change to return updates
   useEffect(() => {
     if (changeToReturn > 0) {
-      setChangeNotes(autoCalculateDenominations(changeToReturn));
+      const res = autoCalculateDenominations(changeToReturn);
+      setChangeNotes(res.breakdown);
     } else {
       setChangeNotes({ 500: 0, 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 2: 0, 1: 0 });
     }
-  }, [changeToReturn]);
+  }, [changeToReturn, gullaDrawerNotes]);
 
   const handleChangeNoteCountChange = (denom, newCount) => {
     const sanitizedCount = Math.max(0, parseInt(newCount) || 0);
+    const avail = gullaDrawerNotes[denom] !== undefined ? gullaDrawerNotes[denom] : (gullaDrawerNotes[String(denom)] || 0);
+
+    // Rule A: Out of Stock in Gulla Check
+    if (sanitizedCount > 0 && avail <= 0) {
+      showToast(`⚠️ ગલ્લા (Gulla) માં ₹${denom} ની નોટ ઉપલબ્ધ નથી! (પ્રાપ્ય: 0). કૃપા કરીને Cash In વડે નોટ ઉમેરો.`, 'error');
+      setGullaAlertModal({
+        isOpen: true,
+        title: `⚠️ Gulla Alert: ₹${denom} ની નોટ ગલ્લામાં નથી`,
+        message: `તમારી પાસે ગલ્લા (Gulla Drawer) માં ₹${denom} ની નોટ ઉપલબ્ધ નથી (પ્રાપ્ય: 0). કૃપા કરીને Opening Float અથવા Cash In વડે નોટો એડ કરો.`,
+        denom: denom
+      });
+      return;
+    }
+
+    // Rule B: Available Count in Drawer Check
+    if (sanitizedCount > avail) {
+      showToast(`⚠️ ગલ્લા (Gulla) માં માત્ર ${avail} જ ₹${denom} ની નોટો છે! (તમે ${sanitizedCount} સિલેક્ટ કરી છે).`, 'error');
+      setGullaAlertModal({
+        isOpen: true,
+        title: `⚠️ Gulla Alert: ₹${denom} ની નોટો ઓછી છે`,
+        message: `તમારી પાસે ગલ્લામાં માત્ર ${avail} જ ₹${denom} ની નોટો છે, જ્યારે તમે ${sanitizedCount} સિલેક્ટ કરી છે. કૃપા કરીને કેશ એડ કરો.`,
+        denom: denom
+      });
+      return;
+    }
+
+    // Rule C: Change Exceeds Target Check (User Request: note > remaining change cannot be selected)
+    const currentOtherTotal = Object.entries(changeNotes).reduce((sum, [dStr, cnt]) => {
+      return Number(dStr) === Number(denom) ? sum : sum + (Number(dStr) * (Number(cnt) || 0));
+    }, 0);
+    const newTotal = currentOtherTotal + (Number(denom) * sanitizedCount);
+
+    if (newTotal > changeToReturn && sanitizedCount > (changeNotes[denom] || 0)) {
+      const remainingAllowed = Math.max(0, changeToReturn - currentOtherTotal);
+      showToast(`⚠️ આ ₹${denom} ની નોટ ઉમેરવાથી પાછો આપવાનો કેશ ₹${changeToReturn.toFixed(2)} વટાવી જશે! (બાકી પૂરવા માટે જરૂરિયાત: ₹${remainingAllowed.toFixed(2)})`, 'warning');
+      return;
+    }
+
     setChangeNotes((prev) => ({ ...prev, [denom]: sanitizedCount }));
   };
 
   const handleChangeNoteQuickAdd = (amt) => {
-    setChangeNotes((prev) => ({ ...prev, [amt]: (prev[amt] || 0) + 1 }));
+    const currentCount = changeNotes[amt] || 0;
+    handleChangeNoteCountChange(amt, currentCount + 1);
   };
 
   const handleResetChangeNotes = () => {
     if (changeToReturn > 0) {
-      setChangeNotes(autoCalculateDenominations(changeToReturn));
+      const res = autoCalculateDenominations(changeToReturn);
+      setChangeNotes(res.breakdown);
+      if (res.remaining > 0) {
+        showToast(`⚠️ ગલ્લામાં કેશ નોટો ઓછી છે (બાકી: ₹${res.remaining})`, 'error');
+        setGullaAlertModal({
+          isOpen: true,
+          title: '⚠️ Gulla Live Drawer Cash Alert',
+          message: `ગુલ્લા (Gulla) માં ₹${changeToReturn} નો પાછો કેશ આપવા માટે પૂરતી નોટો નથી! (બાકી રકમ: ₹${res.remaining}). કૃપા કરીને Opening Float અથવા Cash In વડે ગલ્લામાં કેશ ઉમેરો.`,
+          denom: res.missingNotes[0] || null
+        });
+      }
     } else {
       setChangeNotes({ 500: 0, 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 2: 0, 1: 0 });
     }
@@ -772,9 +854,25 @@ export const BillingPage = () => {
       return;
     }
 
-    if (paymentMethod === 'CASH' && cashAmountNumber > 0 && cashAmountNumber < grandTotal) {
-      showToast(`Tendered cash (₹${cashAmountNumber}) is less than total amount (₹${grandTotal.toFixed(2)})`, 'warning');
-      return;
+    if (paymentMethod === 'CASH' && changeVal > 0) {
+      for (const [denomStr, count] of Object.entries(changeNotes)) {
+        const d = Number(denomStr);
+        const c = Number(count) || 0;
+        if (c > 0) {
+          const avail = gullaDrawerNotes[d] !== undefined ? gullaDrawerNotes[d] : (gullaDrawerNotes[String(d)] || 0);
+          if (avail < c) {
+            setSubmittingOrder(false);
+            showToast(`⚠️ ગલ્લામાં ₹${d} ની નોટ નથી / ઓછી છે! (પ્રાપ્ય: ${avail}, જરૂરિયાત: ${c}). કૃપા કરીને કેશ એડ કરો.`, 'error');
+            setGullaAlertModal({
+              isOpen: true,
+              title: `⚠️ Gulla Drawer Cash Error`,
+              message: `તમારી પાસે ગલ્લામાં ₹${d} ની નોટ નથી / ઓછી છે! (પ્રાપ્ય: ${avail}, આપવાના: ${c}). કૃપા કરીને Opening Float વડે કેશ ઉમેરો અથવા બીજી નોટમાં ચેન્જ આપો.`,
+              denom: d
+            });
+            return;
+          }
+        }
+      }
     }
 
     try {
@@ -1026,7 +1124,7 @@ export const BillingPage = () => {
                 }}
               />
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 max-h-[580px] overflow-y-auto no-scrollbar touch-pan pr-1">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 max-h-[580px] overflow-y-auto custom-scrollbar touch-pan pr-1">
                 {filteredProducts.map((product) => {
                   const isOutOfStock = product.stock_quantity <= 0;
                   const isLowStock = product.stock_quantity > 0 && product.stock_quantity <= (product.min_stock_alert || 5);
@@ -1201,7 +1299,7 @@ export const BillingPage = () => {
                   <p className="text-[10px] text-slate-400">Scan barcodes or click products on the left</p>
                 </div>
               ) : (
-                <div className="max-h-52 overflow-y-auto no-scrollbar touch-pan space-y-1.5 pr-0.5">
+                <div className="max-h-64 overflow-y-auto custom-scrollbar-thin touch-pan space-y-1.5 pr-1">
                   {cartItems.map((item) => (
                     <div
                       key={item.product.id}
@@ -1477,16 +1575,23 @@ export const BillingPage = () => {
               </div>
             )}
 
-            {/* Complete & Print Checkout Button - Tulsi Mart Navy Blue Palette */}
+            {/* Complete & Print Checkout Button - High Contrast & High Visibility */}
             <Button
               variant="primary"
               size="lg"
               onClick={handleCompleteCheckout}
               loading={submittingOrder}
               disabled={cartItems.length === 0}
-              className="w-full py-3 text-sm font-extrabold rounded-xl shadow-md bg-linear-to-r from-[#384959] to-[#2B3844] hover:from-[#2B3844] hover:to-[#1e2730] text-white flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.99]"
+              className={`w-full py-3.5 text-sm font-black rounded-xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-[0.99] ${
+                cartItems.length === 0
+                  ? 'bg-slate-200! dark:bg-slate-800! text-slate-500! dark:text-slate-400! border border-slate-300 dark:border-slate-700 cursor-not-allowed opacity-75'
+                  : 'bg-linear-to-r from-[#384959] via-[#2B3844] to-[#1E293B] hover:from-[#2B3844] hover:to-[#0F172A] text-white! dark:text-white! border border-[#88BDF2]/40 shadow-lg cursor-pointer'
+              }`}
             >
-              <Printer className="w-4 h-4 text-[#88BDF2]" /> Complete & Print Bill (₹{grandTotal.toFixed(2)}) [Enter]
+              <Printer className={`w-4 h-4 ${cartItems.length === 0 ? 'text-slate-400 dark:text-slate-500' : 'text-[#88BDF2]'}`} />
+              <span className={cartItems.length === 0 ? 'text-slate-500! dark:text-slate-400! font-bold' : 'text-white! dark:text-white! font-extrabold'}>
+                Complete & Print Bill ({grandTotal > 0 ? `₹${grandTotal.toFixed(2)}` : 'Cart Empty'}) [Enter]
+              </span>
             </Button>
           </div>
         </div>
@@ -2210,27 +2315,61 @@ export const BillingPage = () => {
               const count = changeNotes[amt] || 0;
               const lineTotal = amt * count;
               const isNote = amt >= 10;
+              const avail = gullaDrawerNotes[amt] !== undefined ? gullaDrawerNotes[amt] : (gullaDrawerNotes[String(amt)] || 0);
+              const isZero = avail <= 0;
+
+              // Compute remaining change needed excluding this denomination's count
+              const currentOtherTotal = Object.entries(changeNotes).reduce((sum, [dStr, cnt]) => {
+                return Number(dStr) === Number(amt) ? sum : sum + (Number(dStr) * (Number(cnt) || 0));
+              }, 0);
+              const remainingNeeded = Math.max(0, changeToReturn - currentOtherTotal);
+              const isExceeding = amt > remainingNeeded;
+
               return (
-                <div key={amt} className="py-2 flex items-center justify-between text-xs gap-2">
-                  <div className="flex items-center gap-2 w-24">
+                <div key={amt} className={`py-2 flex items-center justify-between text-xs gap-2 p-1.5 rounded-xl transition-all ${
+                  isZero
+                    ? 'bg-rose-50/40 dark:bg-rose-950/20 border border-rose-200/60 dark:border-rose-900/60'
+                    : isExceeding
+                    ? 'bg-slate-50/50 dark:bg-slate-800/40 border border-slate-200/40 dark:border-slate-800'
+                    : ''
+                }`}>
+                  <div className="flex items-center gap-2">
                     <span className={`px-2 py-1 rounded-lg text-xs font-black font-heading ${
-                      isNote
+                      isZero
+                        ? 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
+                        : isNote
                         ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border border-amber-200 dark:border-amber-800'
                         : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
                     }`}>
                       ₹{amt}
                     </span>
-                    <span className="text-[10px] text-slate-400">
-                      {isNote ? 'Note' : 'Coin'}
-                    </span>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-medium">
+                        {isNote ? 'Note' : 'Coin'}
+                      </span>
+                      {isZero ? (
+                        <span className="text-[10px] font-mono font-bold text-rose-600 dark:text-rose-400 block">
+                          ⚠️ Out of Stock (નોટ નથી)
+                        </span>
+                      ) : isExceeding ? (
+                        <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 block">
+                          ⛔ નોટ ₹{amt} બાકી ચેન્જ (₹{remainingNeeded.toFixed(0)}) થી મોટી છે
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 block">
+                          In Gulla: {avail} {isNote ? 'notes' : 'coins'}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Stepper & Direct Count Input */}
                   <div className="flex items-center gap-1.5">
                     <button
                       type="button"
+                      disabled={count <= 0}
                       onClick={() => handleChangeNoteCountChange(amt, count - 1)}
-                      className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold flex items-center justify-center cursor-pointer"
+                      className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold flex items-center justify-center cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       -
                     </button>
@@ -2244,16 +2383,23 @@ export const BillingPage = () => {
                     />
                     <button
                       type="button"
+                      disabled={isZero || isExceeding}
                       onClick={() => handleChangeNoteCountChange(amt, count + 1)}
-                      className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold flex items-center justify-center cursor-pointer"
+                      className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold flex items-center justify-center cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      title={isExceeding ? `Note ₹${amt} exceeds remaining change ₹${remainingNeeded.toFixed(2)}` : ''}
                     >
                       +
                     </button>
                     <button
                       type="button"
+                      disabled={isZero || isExceeding}
                       onClick={() => handleChangeNoteQuickAdd(amt)}
-                      className="px-1.5 py-1 text-[10px] font-bold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 rounded-md border border-amber-200 dark:border-amber-800 cursor-pointer"
-                      title={`Add 1 note of ₹${amt}`}
+                      className={`px-1.5 py-1 text-[10px] font-bold rounded-md border cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                        isZero
+                          ? 'text-rose-700 bg-rose-100 border-rose-300 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800'
+                          : 'text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 border-amber-200 dark:border-amber-800'
+                      }`}
+                      title={isExceeding ? `Note ₹${amt} exceeds remaining change ₹${remainingNeeded.toFixed(2)}` : `Add 1 note of ₹${amt}`}
                     >
                       +1
                     </button>
@@ -2268,6 +2414,19 @@ export const BillingPage = () => {
           </div>
         </div>
       </Modal>
+
+      {/* ⚠️ Gulla Drawer Cash Alert Modal */}
+      <GullaAlertModal
+        isOpen={gullaAlertModal.isOpen}
+        onClose={() => setGullaAlertModal((prev) => ({ ...prev, isOpen: false }))}
+        title={gullaAlertModal.title}
+        message={gullaAlertModal.message}
+        denom={gullaAlertModal.denom}
+        gullaDrawerNotes={gullaDrawerNotes}
+        onAddCashIn={() => {
+          setIsGullaModalOpen(true);
+        }}
+      />
 
       {/* Invoice Modal after Checkout */}
       {lastCreatedOrder && (

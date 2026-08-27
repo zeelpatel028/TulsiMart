@@ -288,6 +288,21 @@ export const GullaManagement = () => {
       return;
     }
 
+    if (['CASH_OUT', 'SUPPLIER_PAYMENT', 'EXPENSE'].includes(entryType)) {
+      const netNotesDict = summary.notes_and_coins_summary?.net_drawer_notes || {};
+      for (const [denomStr, countRaw] of Object.entries(modalNoteCounts)) {
+        const d = Number(denomStr);
+        const requested = parseInt(countRaw || 0, 10);
+        if (requested > 0) {
+          const avail = Math.max(0, parseInt(netNotesDict[d] || netNotesDict[String(d)] || 0, 10));
+          if (requested > avail) {
+            showToast(`⚠️ GULLA ALERT: ગુલ્લામાં ₹${d} ની નોટ ઉપલબ્ધ નથી! (પ્રાપ્ય: ${avail}, જરૂરિયાત: ${requested}). કૃપા કરીને Opening Float અથવા Cash In વડે નોટો ઉમેરો.`, 'error');
+            return;
+          }
+        }
+      }
+    }
+
     try {
       setEntrySubmitting(true);
 
@@ -586,26 +601,37 @@ export const GullaManagement = () => {
               const rawCount = found ? found.net_count : (netNotesDict[denom] || netNotesDict[String(denom)] || 0);
               const countVal = Math.max(0, parseInt(rawCount || 0, 10));
               const subtotalVal = denom === 1 ? countVal : countVal * denom;
+              const isOutOfStock = countVal <= 0;
 
               return (
                 <div
                   key={denom}
-                  className={`p-3 rounded-2xl border ${color} flex items-center justify-between gap-2 shadow-2xs`}
+                  className={`p-3 rounded-2xl border transition-all ${
+                    isOutOfStock
+                      ? 'border-rose-300 dark:border-rose-900/80 bg-rose-50/40 dark:bg-rose-950/20'
+                      : color
+                  } flex items-center justify-between gap-2 shadow-2xs`}
                 >
                   <div className="space-y-0.5 min-w-0">
                     <span className="text-xs font-black block truncate text-[#384959] dark:text-slate-100">
                       {label}
                     </span>
-                    <span className="text-[10px] text-slate-400 font-mono font-bold block truncate">
-                      {denom === 1 ? 'Coins Value' : `₹${denom} × ${countVal} notes`}
-                    </span>
+                    {isOutOfStock ? (
+                      <span className="text-[9px] font-black text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-950 px-1.5 py-0.5 rounded-md inline-block">
+                        ⚠️ Out of Stock (નોટ નથી - કેશ ઉમેરો)
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 font-mono font-bold block truncate">
+                        {denom === 1 ? 'Coins Value' : `₹${denom} × ${countVal} notes`}
+                      </span>
+                    )}
                   </div>
 
                   <div className="text-right shrink-0">
-                    <div className="text-xs font-black font-mono text-[#384959] dark:text-slate-100">
+                    <div className={`text-xs font-black font-mono ${isOutOfStock ? 'text-rose-600 dark:text-rose-400' : 'text-[#384959] dark:text-slate-100'}`}>
                       {countVal} {denom === 1 ? '₹' : 'Notes'}
                     </div>
-                    <div className="text-[11px] font-black font-mono text-emerald-600 dark:text-emerald-400">
+                    <div className={`text-[11px] font-black font-mono ${isOutOfStock ? 'text-rose-500 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                       ₹{subtotalVal.toLocaleString('en-IN')}
                     </div>
                   </div>

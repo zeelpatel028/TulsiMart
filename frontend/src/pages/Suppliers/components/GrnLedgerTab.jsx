@@ -7,9 +7,9 @@ import { Package } from 'lucide-react';
 export const GrnLedgerTab = ({ grnList }) => {
   return (
     <Card className="p-0 overflow-hidden font-sans">
-      <div className="overflow-x-auto touch-pan">
+      <div className="overflow-x-auto max-h-[640px] overflow-y-auto custom-scrollbar touch-pan">
         <table className="w-full min-w-[700px] text-left text-xs border-collapse">
-          <thead>
+          <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-800 shadow-xs">
             <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px]">
               <th className="py-3 px-4">GRN Number & Date</th>
               <th className="py-3 px-4">PO Reference</th>
