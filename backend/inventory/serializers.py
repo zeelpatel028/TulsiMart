@@ -33,6 +33,19 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = '__all__'
 
+    def to_internal_value(self, data):
+        if isinstance(data, dict):
+            data = data.copy()
+            for key in ['category', 'brand', 'unit']:
+                val = data.get(key)
+                if isinstance(val, dict) and 'id' in val:
+                    data[key] = val['id']
+                elif isinstance(val, str) and val.isdigit():
+                    data[key] = int(val)
+                elif val == '' or val == 'null':
+                    data[key] = None
+        return super().to_internal_value(data)
+
     def validate(self, data):
         # Auto calculate discount if mrp and selling_price provided
         mrp = data.get('mrp')

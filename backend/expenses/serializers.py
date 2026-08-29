@@ -10,6 +10,7 @@ class ExpenseCategorySerializer(serializers.ModelSerializer):
 
 
 class ExpenseSerializer(serializers.ModelSerializer):
+    date = serializers.DateField(required=False)
     category = serializers.PrimaryKeyRelatedField(queryset=ExpenseCategory.objects.all(), required=False, allow_null=True)
     category_name = serializers.CharField(source='category.name', read_only=True)
     category_icon = serializers.CharField(source='category.icon', read_only=True)
@@ -21,6 +22,9 @@ class ExpenseSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def validate(self, attrs):
+        if not attrs.get('date'):
+            from django.utils import timezone
+            attrs['date'] = timezone.now().date()
         if not attrs.get('category'):
             cat = ExpenseCategory.objects.filter(name__icontains='Staff').first() or \
                   ExpenseCategory.objects.filter(name__icontains='Payroll').first() or \

@@ -315,8 +315,9 @@ class BankTransactionViewSet(viewsets.ModelViewSet):
         return BankTransaction.objects.all().order_by('-created_at')
 
     def perform_create(self, serializer):
-        user = self.request.user if self.request.user.is_authenticated else None
-        serializer.save(created_by=user)
+        user = self.request.user if self.request.user and self.request.user.is_authenticated else None
+        created_by_name = (user.get_full_name() if (user and hasattr(user, 'get_full_name') and user.get_full_name()) else (user.username if (user and hasattr(user, 'username')) else 'Admin'))
+        serializer.save(created_by_name=created_by_name)
 
     @action(detail=False, methods=['get'])
     def summary(self, request):
@@ -512,9 +513,29 @@ def login_auth_view(request):
     if not username or not password:
         return Response({'detail': 'Username and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    try:
-        acc = LoginAccount.objects.get(username__iexact=username)
-    except LoginAccount.DoesNotExist:
+    acc = LoginAccount.objects.filter(username__iexact=username).first()
+    if not acc:
+        try:
+            from .mongodb import get_collection
+            col = get_collection('login_accounts')
+            if col is not None:
+                doc = col.find_one({'username': {'$regex': f'^{username}$', '$options': 'i'}})
+                if doc:
+                    acc, _ = LoginAccount.objects.update_or_create(
+                        username=doc.get('username', username),
+                        defaults={
+                            'password': doc.get('password', password),
+                            'full_name': doc.get('full_name', username.capitalize()),
+                            'email': doc.get('email', 'contact@tulsimart.com'),
+                            'role': doc.get('role', 'ADMIN'),
+                            'is_active': doc.get('is_active', True),
+                            'require_otp': doc.get('require_otp', False),
+                        }
+                    )
+        except Exception as mongo_err:
+            print("MongoDB user lookup fallback warning:", mongo_err)
+
+    if not acc:
         return Response({'detail': 'Invalid username or password.'}, status=status.HTTP_400_BAD_REQUEST)
 
     if not acc.is_active:
@@ -764,9 +785,43 @@ def get_me_auth_view(request):
     acc = None
     if request.user and request.user.is_authenticated:
         acc = LoginAccount.objects.filter(username__iexact=request.user.username).first()
+        if not acc:
+            try:
+                from .mongodb import get_collection
+                col = get_collection('login_accounts')
+                if col is not None:
+                    doc = col.find_one({'username': {'$regex': f'^{request.user.username}$', '$options': 'i'}})
+                    if doc:
+                        acc, _ = LoginAccount.objects.update_or_create(
+                            username=doc.get('username', request.user.username),
+                            defaults={
+                                'password': doc.get('password', 'password123'),
+                                'full_name': doc.get('full_name', request.user.username.capitalize()),
+                                'email': doc.get('email', request.user.email or 'contact@tulsimart.com'),
+                                'role': doc.get('role', 'ADMIN' if request.user.is_superuser else 'CASHIER'),
+                                'is_active': doc.get('is_active', True),
+                                'require_otp': doc.get('require_otp', False),
+                            }
+                        )
+            except Exception:
+                pass
+
+    if not acc and request.user and request.user.is_authenticated:
+        user_role = 'ADMIN' if request.user.is_superuser else 'CASHIER'
+        store_settings = StoreSetting.get_settings()
+        return Response({
+            'user': {
+                'id': request.user.id,
+                'username': request.user.username,
+                'name': request.user.get_full_name() or request.user.username,
+                'email': request.user.email,
+                'role': user_role
+            },
+            'store_settings': StoreSettingSerializer(store_settings).data
+        }, status=status.HTTP_200_OK)
 
     if not acc:
-        return Response({'detail': 'User account not found in database.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'detail': 'User session expired or user account not found.'}, status=status.HTTP_401_UNAUTHORIZED)
 
     store_settings = StoreSetting.get_settings()
     return Response({

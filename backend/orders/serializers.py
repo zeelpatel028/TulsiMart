@@ -65,6 +65,19 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = '__all__'
 
+    def to_internal_value(self, data):
+        if isinstance(data, dict):
+            data = data.copy()
+            if 'customer' in data:
+                val = data.get('customer')
+                if isinstance(val, dict) and 'id' in val:
+                    data['customer'] = val['id']
+                elif isinstance(val, str) and val.isdigit():
+                    data['customer'] = int(val)
+                elif val == '' or val == 'null':
+                    data['customer'] = None
+        return super().to_internal_value(data)
+
     def create(self, validated_data):
         request = self.context.get('request')
         items_data = request.data.get('items', []) if request and hasattr(request, 'data') else self.initial_data.get('items', [])

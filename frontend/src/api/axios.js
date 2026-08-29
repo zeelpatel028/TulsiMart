@@ -3,13 +3,20 @@ import axios from 'axios';
 const rawApiUrl = import.meta.env.VITE_API_BASE_URL;
 let API_BASE_URL;
 
-if (import.meta.env.DEV && (!rawApiUrl || rawApiUrl.includes('onrender.com') || rawApiUrl.includes('localhost') || rawApiUrl.includes('127.0.0.1'))) {
-  API_BASE_URL = 'http://127.0.0.1:8000/api';
-} else if (rawApiUrl) {
-  const cleanUrl = rawApiUrl.trim().replace(/\/+$/, '');
-  API_BASE_URL = cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
+if (import.meta.env.PROD) {
+  // In production, strictly use configured environment variable or deployed Render backend URL
+  const prodUrl = (rawApiUrl && !rawApiUrl.includes('localhost') && !rawApiUrl.includes('127.0.0.1'))
+    ? rawApiUrl.trim().replace(/\/+$/, '')
+    : 'https://tulsimart.onrender.com/api';
+  API_BASE_URL = prodUrl.endsWith('/api') ? prodUrl : `${prodUrl}/api`;
 } else {
-  API_BASE_URL = 'https://tulsimart.onrender.com/api';
+  // Local development mode
+  if (rawApiUrl) {
+    const cleanUrl = rawApiUrl.trim().replace(/\/+$/, '');
+    API_BASE_URL = cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
+  } else {
+    API_BASE_URL = 'http://127.0.0.1:8000/api';
+  }
 }
 
 
