@@ -10,9 +10,3 @@ class CoreConfig(AppConfig):
         except Exception:
             pass
 
-        # Trigger MongoDB initial sync
-        try:
-            from core.mongodb import sync_all_data_to_mongodb
-            sync_all_data_to_mongodb()
-        except Exception:
-            pass

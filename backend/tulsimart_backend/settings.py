@@ -154,9 +154,16 @@ SIMPLE_JWT = {
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
 }
 
+# Reverse Proxy SSL Configuration for Render/Production
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+
 # CORS Configuration
 CORS_ALLOW_ALL_ORIGINS = True
+CORS_ORIGIN_ALLOW_ALL = True  # Backward compatibility for django-cors-headers
 CORS_ALLOW_CREDENTIALS = True
+
 CORS_ALLOWED_ORIGINS = [
     'https://tulsimart.onrender.com',
     'https://tulsi-mart.vercel.app',
@@ -188,18 +195,29 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
 CSRF_TRUSTED_ORIGINS = [
     'https://tulsi-mart.vercel.app',
     'https://tulsimart.vercel.app',
     'https://tulsi-mart-4amuymdqt-zeel-dobariyas-projects.vercel.app',
     'http://localhost:5173',
     'http://127.0.0.1:5173',
+    'https://tulsimart.onrender.com',
     'https://*.onrender.com',
     'https://*.vercel.app',
 ]
 extra_csrf = os.getenv('CSRF_TRUSTED_ORIGINS', '')
 if extra_csrf:
     CSRF_TRUSTED_ORIGINS.extend([origin.strip() for origin in extra_csrf.split(',') if origin.strip()])
+
 
 
 # Email SMTP Configuration

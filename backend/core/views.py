@@ -1,6 +1,7 @@
 import os
 import random
 from decimal import Decimal
+from datetime import datetime, date, timedelta
 from django.db import models
 from rest_framework import viewsets, status, permissions
 from rest_framework.views import APIView
@@ -465,268 +466,284 @@ def ensure_default_accounts():
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def login_auth_view(request):
-    ensure_default_accounts()
+    try:
+        ensure_default_accounts()
 
-    serializer = LoginRequestSerializer(data=request.data)
-    if not serializer.is_valid():
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer = LoginRequestSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    user_identifier = serializer.validated_data['user_identifier']
-    password = serializer.validated_data['password']
+        user_identifier = serializer.validated_data['user_identifier']
+        password = serializer.validated_data['password']
 
-    candidate_accounts = list(LoginAccount.objects.filter(
-        Q(username__iexact=user_identifier) | Q(email__iexact=user_identifier)
-    ))
+        candidate_accounts = list(LoginAccount.objects.filter(
+            Q(username__iexact=user_identifier) | Q(email__iexact=user_identifier)
+        ))
 
-    acc = None
-    for candidate in candidate_accounts:
-        if candidate.password.startswith('pbkdf2_') or candidate.password.startswith('argon2') or candidate.password.startswith('bcrypt'):
-            if check_password(password, candidate.password):
-                acc = candidate
-                break
-        else:
-            if candidate.password == password or check_password(password, candidate.password):
-                acc = candidate
-                break
+        acc = None
+        for candidate in candidate_accounts:
+            if candidate.password.startswith('pbkdf2_') or candidate.password.startswith('argon2') or candidate.password.startswith('bcrypt'):
+                if check_password(password, candidate.password):
+                    acc = candidate
+                    break
+            else:
+                if candidate.password == password or check_password(password, candidate.password):
+                    acc = candidate
+                    break
 
-    if not acc:
-        return Response({'detail': 'Invalid username/email or password.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not acc:
+            return Response({'detail': 'Invalid username/email or password.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    if not acc.is_active:
-        return Response({'detail': 'This account has been disabled by store admin.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not acc.is_active:
+            return Response({'detail': 'This account has been disabled by store admin.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Check if 2FA OTP is required based on LoginAccount settings in DB
-    store_settings = StoreSetting.get_settings()
-    otp_required = acc.require_otp
+        # Check if 2FA OTP is required based on LoginAccount settings in DB
+        store_settings = StoreSetting.get_settings()
+        otp_required = acc.require_otp
 
-    if otp_required:
-        otp_code = str(random.randint(100000, 999999))
-        OTP_STORAGE[acc.username] = {
-            'otp': otp_code,
-            'expires_at': datetime.now() + timedelta(minutes=10)
+        if otp_required:
+            otp_code = str(random.randint(100000, 999999))
+            OTP_STORAGE[acc.username] = {
+                'otp': otp_code,
+                'expires_at': datetime.now() + timedelta(minutes=10)
+            }
+
+            # Single Email Dispatcher (Primary: Django SMTP | Fallback: Nodemailer Node Script)
+            import subprocess
+            import base64
+            from django.conf import settings as django_settings
+            from django.core.mail import EmailMultiAlternatives
+            from email.mime.image import MIMEImage
+
+            logo_paths = [
+                os.path.join(django_settings.BASE_DIR, '../frontend/public/logo-transparent.png'),
+                os.path.join(django_settings.BASE_DIR, '../frontend/public/logo.png'),
+                os.path.join(django_settings.BASE_DIR, '../logo.png'),
+                os.path.join(django_settings.BASE_DIR, 'logo.png')
+            ]
+
+            actual_logo_path = None
+            for lp in logo_paths:
+                if os.path.exists(lp):
+                    actual_logo_path = lp
+                    break
+
+            logo_base64 = ""
+            logo_bytes = None
+            if actual_logo_path:
+                try:
+                    with open(actual_logo_path, 'rb') as f:
+                        logo_bytes = f.read()
+                        logo_base64 = "data:image/png;base64," + base64.b64encode(logo_bytes).decode('utf-8')
+                except Exception:
+                    pass
+
+            logo_html = f'<img src="cid:logo_img" alt="{store_settings.store_name} Logo" style="height: 52px; width: auto; max-width: 170px; display: block; margin: 0 auto 12px auto; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.3));" />' if actual_logo_path else (
+                f'<img src="{logo_base64}" alt="{store_settings.store_name} Logo" style="height: 52px; width: auto; max-width: 170px; display: block; margin: 0 auto 12px auto; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.3));" />' if logo_base64 else '<div style="font-size: 32px; margin-bottom: 8px;">🛒</div>'
+            )
+
+            otp_digits_list = [d for d in str(otp_code).zfill(6)]
+            otp_digits_tds = "".join([
+                f'<td align="center" valign="middle" style="padding: 0 3px; width: 36px; white-space: nowrap;">'
+                f'<table border="0" cellpadding="0" cellspacing="0" style="width: 36px; height: 48px; background-color: #1e293b; border: 2px solid #88BDF2; border-radius: 10px; border-collapse: separate; box-shadow: 0 4px 12px rgba(136, 189, 242, 0.25);">'
+                f'<tr><td align="center" valign="middle" style="font-family: \'JetBrains Mono\', \'Courier New\', monospace; font-size: 24px; font-weight: 900; color: #88BDF2; text-align: center; line-height: 48px;">{d}</td></tr>'
+                f'</table></td>'
+                for d in otp_digits_list
+            ])
+
+            subject = f"🛒 {store_settings.store_name} Security OTP Code: {otp_code}"
+            message_text = f"Hello {acc.full_name},\n\nYour 2-Factor Authentication OTP code for {store_settings.store_name} login is: {otp_code}\n\nThis code is valid for 10 minutes."
+            
+            html_message = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <style>
+                body {{ font-family: 'Plus Jakarta Sans', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; background-color: #0f172a; margin: 0; padding: 25px 10px; -webkit-font-smoothing: antialiased; }}
+                .card {{ max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 45px rgba(15, 23, 42, 0.4); border: 1px solid #1e293b; }}
+                .header {{ background: linear-gradient(135deg, #1e293b 0%, #384959 50%, #273440 100%); padding: 32px 24px; text-align: center; color: #ffffff; border-bottom: 3px solid #88BDF2; }}
+                .brand-badge {{ display: inline-block; background: rgba(136, 189, 242, 0.15); border: 1px solid rgba(136, 189, 242, 0.4); color: #88BDF2; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; padding: 4px 14px; border-radius: 50px; margin-bottom: 12px; }}
+                .title {{ font-size: 24px; font-weight: 900; margin: 0; color: #ffffff; letter-spacing: -0.5px; }}
+                .subtitle {{ font-size: 12px; color: #BDDDFC; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin-top: 6px; }}
+                .body {{ padding: 30px 24px; color: #334155; }}
+                .greeting {{ font-size: 17px; font-weight: 800; color: #384959; margin-bottom: 8px; }}
+                .intro {{ font-size: 14px; color: #64748b; line-height: 1.6; margin-bottom: 22px; }}
+                .otp-container {{ background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%); border-radius: 20px; padding: 24px 12px; text-align: center; margin: 24px 0; border: 1px solid #334155; box-shadow: inset 0 2px 4px rgba(255,255,255,0.05), 0 10px 25px rgba(15,23,42,0.25); border-top: 3px solid #88BDF2; }}
+                .otp-label {{ font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 800; color: #94a3b8; margin-bottom: 16px; }}
+                .badge {{ display: inline-block; margin-top: 18px; font-size: 12px; color: #88BDF2; background: rgba(136, 189, 242, 0.12); border: 1px solid rgba(136, 189, 242, 0.3); padding: 5px 16px; border-radius: 30px; font-weight: 700; }}
+                .notice {{ background: #f0f7ff; border-left: 4px solid #384959; padding: 14px 16px; border-radius: 12px; font-size: 12px; color: #384959; margin-top: 24px; line-height: 1.5; }}
+                .footer {{ background: #f8fafc; padding: 20px 24px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; }}
+              </style>
+            </head>
+            <body>
+              <div class="card">
+                <div class="header">
+                  {logo_html}
+                  <div class="brand-badge">🔒 2FA Verification</div>
+                  <div class="title">{store_settings.store_name}</div>
+                  <div class="subtitle">Supermarket & Grocery Management</div>
+                </div>
+                <div class="body">
+                  <div class="greeting">Hello {acc.full_name},</div>
+                  <div class="intro">A login verification request was received for your <strong>{store_settings.store_name}</strong> account. Use the 6-digit security code below to complete your sign-in:</div>
+                  
+                  <div class="otp-container">
+                    <div class="otp-label">Security Verification Code</div>
+                    
+                    <!-- Single Non-Wrapping Row 6-Digit PIN Table -->
+                    <table border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto; width: auto; border-collapse: separate; table-layout: fixed; white-space: nowrap;">
+                      <tr style="white-space: nowrap;">
+                        {otp_digits_tds}
+                      </tr>
+                    </table>
+
+                    <div class="badge">⏱️ Valid for 10 minutes</div>
+                  </div>
+
+                  <div class="notice">
+                    🛡️ <strong>Security Tip:</strong> Never share this OTP code with anyone. Tulsi Mart personnel will never ask for your 2FA verification code via phone or email.
+                  </div>
+                </div>
+                <div class="footer">
+                  &copy; 2026 {store_settings.store_name} Supermarket Software • Automated Security Notification
+                </div>
+              </div>
+            </body>
+            </html>
+            """
+
+            email_sent = False
+
+            # Attempt 1: Native Django SMTP (Strictly Primary)
+            sender_email = getattr(django_settings, 'EMAIL_HOST_USER', '') or getattr(django_settings, 'DEFAULT_FROM_EMAIL', '') or 'noreply@tulsimart.com'
+            if sender_email:
+                try:
+                    msg = EmailMultiAlternatives(subject, message_text, sender_email, [acc.email])
+                    msg.attach_alternative(html_message, "text/html")
+                    if logo_bytes:
+                        try:
+                            logo_mime = MIMEImage(logo_bytes)
+                            logo_mime.add_header('Content-ID', '<logo_img>')
+                            logo_mime.add_header('Content-Disposition', 'inline', filename='logo.png')
+                            msg.attach(logo_mime)
+                        except Exception as le:
+                            print(f"[Django Logo Attach Warning]: {le}")
+                    msg.send(fail_silently=False)
+                    email_sent = True
+                    print(f"[Django SMTP Single Dispatch Success] OTP {otp_code} delivered to {acc.email}")
+                except Exception as e:
+                    print(f"[Django SMTP Dispatch Exception]: {e} | Falling back to Nodemailer script...")
+
+            # Attempt 2: Nodemailer Script (ONLY executed if Django SMTP failed or is unconfigured)
+            if not email_sent:
+                script_path = os.path.join(django_settings.BASE_DIR, 'send_email.js')
+                if os.path.exists(script_path):
+                    try:
+                        res_proc = subprocess.run(
+                            ['node', script_path, acc.email, otp_code, acc.full_name],
+                            capture_output=True,
+                            text=True,
+                            timeout=15
+                        )
+                        if res_proc.returncode == 0:
+                            email_sent = True
+                            print(f"[Nodemailer Single Dispatch Success] Delivered single OTP email to {acc.email}")
+                        else:
+                            print(f"[Nodemailer Dispatch Failed]: {res_proc.stderr.strip() or res_proc.stdout.strip()}")
+                    except Exception as e:
+                        print(f"[Nodemailer Execution Error]: {e}")
+
+            email_parts = acc.email.split('@') if acc.email and '@' in acc.email else ['', '']
+            masked_email = (email_parts[0][:2] + '***@' + email_parts[1]) if email_parts[0] else acc.email
+
+            return Response({
+                'otp_required': True,
+                'username': acc.username,
+                'email': acc.email,
+                'masked_email': masked_email,
+                'dev_otp': otp_code,
+                'message': f"OTP sent to email {masked_email}"
+            }, status=status.HTTP_200_OK)
+
+        # Direct login without OTP
+        access_token, refresh_token = get_tokens_for_account(acc)
+        token_payload = {
+            'id': acc.id,
+            'username': acc.username,
+            'name': acc.full_name,
+            'email': acc.email,
+            'role': acc.role
         }
 
-        # Single Email Dispatcher (Primary: Django SMTP | Fallback: Nodemailer Node Script)
-        import subprocess
-        import base64
-        from django.conf import settings as django_settings
-        from django.core.mail import EmailMultiAlternatives
-        from email.mime.image import MIMEImage
-
-        logo_paths = [
-            os.path.join(django_settings.BASE_DIR, '../frontend/public/logo-transparent.png'),
-            os.path.join(django_settings.BASE_DIR, '../frontend/public/logo.png'),
-            os.path.join(django_settings.BASE_DIR, '../logo.png'),
-            os.path.join(django_settings.BASE_DIR, 'logo.png')
-        ]
-
-        actual_logo_path = None
-        for lp in logo_paths:
-            if os.path.exists(lp):
-                actual_logo_path = lp
-                break
-
-        logo_base64 = ""
-        logo_bytes = None
-        if actual_logo_path:
-            try:
-                with open(actual_logo_path, 'rb') as f:
-                    logo_bytes = f.read()
-                    logo_base64 = "data:image/png;base64," + base64.b64encode(logo_bytes).decode('utf-8')
-            except Exception:
-                pass
-
-        logo_html = f'<img src="cid:logo_img" alt="{store_settings.store_name} Logo" style="height: 52px; width: auto; max-width: 170px; display: block; margin: 0 auto 12px auto; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.3));" />' if actual_logo_path else (
-            f'<img src="{logo_base64}" alt="{store_settings.store_name} Logo" style="height: 52px; width: auto; max-width: 170px; display: block; margin: 0 auto 12px auto; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.3));" />' if logo_base64 else '<div style="font-size: 32px; margin-bottom: 8px;">🛒</div>'
-        )
-
-        otp_digits_list = [d for d in str(otp_code).zfill(6)]
-        otp_digits_tds = "".join([
-            f'<td align="center" valign="middle" style="padding: 0 3px; width: 36px; white-space: nowrap;">'
-            f'<table border="0" cellpadding="0" cellspacing="0" style="width: 36px; height: 48px; background-color: #1e293b; border: 2px solid #88BDF2; border-radius: 10px; border-collapse: separate; box-shadow: 0 4px 12px rgba(136, 189, 242, 0.25);">'
-            f'<tr><td align="center" valign="middle" style="font-family: \'JetBrains Mono\', \'Courier New\', monospace; font-size: 24px; font-weight: 900; color: #88BDF2; text-align: center; line-height: 48px;">{d}</td></tr>'
-            f'</table></td>'
-            for d in otp_digits_list
-        ])
-
-        subject = f"🛒 {store_settings.store_name} Security OTP Code: {otp_code}"
-        message_text = f"Hello {acc.full_name},\n\nYour 2-Factor Authentication OTP code for {store_settings.store_name} login is: {otp_code}\n\nThis code is valid for 10 minutes."
-        
-        html_message = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <style>
-            body {{ font-family: 'Plus Jakarta Sans', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; background-color: #0f172a; margin: 0; padding: 25px 10px; -webkit-font-smoothing: antialiased; }}
-            .card {{ max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 45px rgba(15, 23, 42, 0.4); border: 1px solid #1e293b; }}
-            .header {{ background: linear-gradient(135deg, #1e293b 0%, #384959 50%, #273440 100%); padding: 32px 24px; text-align: center; color: #ffffff; border-bottom: 3px solid #88BDF2; }}
-            .brand-badge {{ display: inline-block; background: rgba(136, 189, 242, 0.15); border: 1px solid rgba(136, 189, 242, 0.4); color: #88BDF2; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; padding: 4px 14px; border-radius: 50px; margin-bottom: 12px; }}
-            .title {{ font-size: 24px; font-weight: 900; margin: 0; color: #ffffff; letter-spacing: -0.5px; }}
-            .subtitle {{ font-size: 12px; color: #BDDDFC; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin-top: 6px; }}
-            .body {{ padding: 30px 24px; color: #334155; }}
-            .greeting {{ font-size: 17px; font-weight: 800; color: #384959; margin-bottom: 8px; }}
-            .intro {{ font-size: 14px; color: #64748b; line-height: 1.6; margin-bottom: 22px; }}
-            .otp-container {{ background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%); border-radius: 20px; padding: 24px 12px; text-align: center; margin: 24px 0; border: 1px solid #334155; box-shadow: inset 0 2px 4px rgba(255,255,255,0.05), 0 10px 25px rgba(15,23,42,0.25); border-top: 3px solid #88BDF2; }}
-            .otp-label {{ font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 800; color: #94a3b8; margin-bottom: 16px; }}
-            .badge {{ display: inline-block; margin-top: 18px; font-size: 12px; color: #88BDF2; background: rgba(136, 189, 242, 0.12); border: 1px solid rgba(136, 189, 242, 0.3); padding: 5px 16px; border-radius: 30px; font-weight: 700; }}
-            .notice {{ background: #f0f7ff; border-left: 4px solid #384959; padding: 14px 16px; border-radius: 12px; font-size: 12px; color: #384959; margin-top: 24px; line-height: 1.5; }}
-            .footer {{ background: #f8fafc; padding: 20px 24px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; }}
-          </style>
-        </head>
-        <body>
-          <div class="card">
-            <div class="header">
-              {logo_html}
-              <div class="brand-badge">🔒 2FA Verification</div>
-              <div class="title">{store_settings.store_name}</div>
-              <div class="subtitle">Supermarket & Grocery Management</div>
-            </div>
-            <div class="body">
-              <div class="greeting">Hello {acc.full_name},</div>
-              <div class="intro">A login verification request was received for your <strong>{store_settings.store_name}</strong> account. Use the 6-digit security code below to complete your sign-in:</div>
-              
-              <div class="otp-container">
-                <div class="otp-label">Security Verification Code</div>
-                
-                <!-- Single Non-Wrapping Row 6-Digit PIN Table -->
-                <table border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto; width: auto; border-collapse: separate; table-layout: fixed; white-space: nowrap;">
-                  <tr style="white-space: nowrap;">
-                    {otp_digits_tds}
-                  </tr>
-                </table>
-
-                <div class="badge">⏱️ Valid for 10 minutes</div>
-              </div>
-
-              <div class="notice">
-                🛡️ <strong>Security Tip:</strong> Never share this OTP code with anyone. Tulsi Mart personnel will never ask for your 2FA verification code via phone or email.
-              </div>
-            </div>
-            <div class="footer">
-              &copy; 2026 {store_settings.store_name} Supermarket Software • Automated Security Notification
-            </div>
-          </div>
-        </body>
-        </html>
-        """
-
-        email_sent = False
-
-        # Attempt 1: Native Django SMTP (Strictly Primary)
-        sender_email = getattr(django_settings, 'EMAIL_HOST_USER', '') or getattr(django_settings, 'DEFAULT_FROM_EMAIL', '') or 'noreply@tulsimart.com'
-        if sender_email:
-            try:
-                msg = EmailMultiAlternatives(subject, message_text, sender_email, [acc.email])
-                msg.attach_alternative(html_message, "text/html")
-                if logo_bytes:
-                    try:
-                        logo_mime = MIMEImage(logo_bytes)
-                        logo_mime.add_header('Content-ID', '<logo_img>')
-                        logo_mime.add_header('Content-Disposition', 'inline', filename='logo.png')
-                        msg.attach(logo_mime)
-                    except Exception as le:
-                        print(f"[Django Logo Attach Warning]: {le}")
-                msg.send(fail_silently=False)
-                email_sent = True
-                print(f"[Django SMTP Single Dispatch Success] OTP {otp_code} delivered to {acc.email}")
-            except Exception as e:
-                print(f"[Django SMTP Dispatch Exception]: {e} | Falling back to Nodemailer script...")
-
-        # Attempt 2: Nodemailer Script (ONLY executed if Django SMTP failed or is unconfigured)
-        if not email_sent:
-            script_path = os.path.join(django_settings.BASE_DIR, 'send_email.js')
-            if os.path.exists(script_path):
-                try:
-                    res_proc = subprocess.run(
-                        ['node', script_path, acc.email, otp_code, acc.full_name],
-                        capture_output=True,
-                        text=True,
-                        timeout=15
-                    )
-                    if res_proc.returncode == 0:
-                        email_sent = True
-                        print(f"[Nodemailer Single Dispatch Success] Delivered single OTP email to {acc.email}")
-                    else:
-                        print(f"[Nodemailer Dispatch Failed]: {res_proc.stderr.strip() or res_proc.stdout.strip()}")
-                except Exception as e:
-                    print(f"[Nodemailer Execution Error]: {e}")
-
-        email_parts = acc.email.split('@') if acc.email and '@' in acc.email else ['', '']
-        masked_email = (email_parts[0][:2] + '***@' + email_parts[1]) if email_parts[0] else acc.email
-
         return Response({
-            'otp_required': True,
-            'username': acc.username,
-            'email': acc.email,
-            'masked_email': masked_email,
-            'dev_otp': otp_code,
-            'message': f"OTP sent to email {masked_email}"
+            'otp_required': False,
+            'access': access_token,
+            'refresh': refresh_token,
+            'user': token_payload,
+            'store_settings': StoreSettingSerializer(store_settings).data
         }, status=status.HTTP_200_OK)
-
-    # Direct login without OTP
-    access_token, refresh_token = get_tokens_for_account(acc)
-    token_payload = {
-        'id': acc.id,
-        'username': acc.username,
-        'name': acc.full_name,
-        'email': acc.email,
-        'role': acc.role
-    }
-
-    return Response({
-        'otp_required': False,
-        'access': access_token,
-        'refresh': refresh_token,
-        'user': token_payload,
-        'store_settings': StoreSettingSerializer(store_settings).data
-    }, status=status.HTTP_200_OK)
+    except Exception as e:
+        import traceback
+        print(f"[Login API Error]: {e}")
+        traceback.print_exc()
+        return Response({
+            'detail': f'Login server error: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def verify_otp_auth_view(request):
-    username = request.data.get('username', '').strip()
-    otp = request.data.get('otp', '').strip()
+    try:
+        username = request.data.get('username', '').strip()
+        otp = request.data.get('otp', '').strip()
 
-    if not username or not otp:
-        return Response({'detail': 'Username and OTP code are required.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not username or not otp:
+            return Response({'detail': 'Username and OTP code are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    acc = LoginAccount.objects.filter(Q(username__iexact=username) | Q(email__iexact=username)).first()
-    if not acc:
-        return Response({'detail': 'User account not found.'}, status=status.HTTP_404_NOT_FOUND)
+        acc = LoginAccount.objects.filter(Q(username__iexact=username) | Q(email__iexact=username)).first()
+        if not acc:
+            return Response({'detail': 'User account not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-    record = OTP_STORAGE.get(acc.username)
-    if not record:
-        return Response({'detail': 'No active OTP found. Please request a new OTP.'}, status=status.HTTP_400_BAD_REQUEST)
+        record = OTP_STORAGE.get(acc.username)
+        if not record:
+            return Response({'detail': 'No active OTP found. Please request a new OTP.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    if datetime.now() > record['expires_at']:
+        if datetime.now() > record['expires_at']:
+            del OTP_STORAGE[acc.username]
+            return Response({'detail': 'OTP has expired. Please request a new OTP.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if record['otp'] != otp:
+            return Response({'detail': 'Invalid OTP code. Please check your email and try again.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Clear used OTP
         del OTP_STORAGE[acc.username]
-        return Response({'detail': 'OTP has expired. Please request a new OTP.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    if record['otp'] != otp:
-        return Response({'detail': 'Invalid OTP code. Please check your email and try again.'}, status=status.HTTP_400_BAD_REQUEST)
+        store_settings = StoreSetting.get_settings()
+        access_token, refresh_token = get_tokens_for_account(acc)
+        token_payload = {
+            'id': acc.id,
+            'username': acc.username,
+            'name': acc.full_name,
+            'email': acc.email,
+            'role': acc.role
+        }
 
-    # Clear used OTP
-    del OTP_STORAGE[acc.username]
-
-    store_settings = StoreSetting.get_settings()
-    access_token, refresh_token = get_tokens_for_account(acc)
-    token_payload = {
-        'id': acc.id,
-        'username': acc.username,
-        'name': acc.full_name,
-        'email': acc.email,
-        'role': acc.role
-    }
-
-    return Response({
-        'access': access_token,
-        'refresh': refresh_token,
-        'user': token_payload,
-        'store_settings': StoreSettingSerializer(store_settings).data
-    }, status=status.HTTP_200_OK)
+        return Response({
+            'access': access_token,
+            'refresh': refresh_token,
+            'user': token_payload,
+            'store_settings': StoreSettingSerializer(store_settings).data
+        }, status=status.HTTP_200_OK)
+    except Exception as e:
+        import traceback
+        print(f"[Verify OTP Error]: {e}")
+        traceback.print_exc()
+        return Response({
+            'detail': f'Verify OTP server error: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['GET'])
