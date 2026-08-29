@@ -61,8 +61,6 @@ export const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState('store');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [syncingMongo, setSyncingMongo] = useState(false);
-  const [mongoStatus, setMongoStatus] = useState(null);
 
   // Login Accounts Management State
   const [loginAccounts, setLoginAccounts] = useState([]);
@@ -153,15 +151,6 @@ export const SettingsPage = () => {
     }
   };
 
-  const fetchMongoStatus = async () => {
-    try {
-      const res = await authApi.getMongoStatus();
-      setMongoStatus(res.data);
-    } catch {
-      setMongoStatus({ status: 'offline', message: 'MongoDB not reachable' });
-    }
-  };
-
   const fetchLoginAccounts = async () => {
     setLoadingAccounts(true);
     try {
@@ -177,7 +166,6 @@ export const SettingsPage = () => {
 
   useEffect(() => {
     fetchSettings();
-    fetchMongoStatus();
     fetchLoginAccounts();
   }, []);
 
@@ -208,18 +196,6 @@ export const SettingsPage = () => {
     }
   };
 
-  const handleMongoSync = async () => {
-    setSyncingMongo(true);
-    try {
-      const res = await authApi.syncMongoDB();
-      showToast(res.data.message || 'MongoDB synchronized successfully!', 'success');
-      fetchMongoStatus();
-    } catch (err) {
-      showToast('MongoDB sync failed. Check database logs.', 'error');
-    } finally {
-      setSyncingMongo(false);
-    }
-  };
 
   // Login Account Actions
   const handleOpenCreateAccountModal = () => {
@@ -1178,40 +1154,6 @@ export const SettingsPage = () => {
                 </div>
               </Card>
 
-              <Card className="space-y-6">
-                <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
-                  <div className="p-2.5 bg-cyan-50 dark:bg-cyan-900/30 text-cyan-600 rounded-xl">
-                    <Database className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-800 dark:text-slate-100 text-base">Database Sync & Status</h3>
-                    <p className="text-xs text-slate-500">MongoDB analytics replication status</p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-200">MongoDB Status</span>
-                      <Badge variant={mongoStatus?.connected ? 'success' : 'warning'} size="sm">
-                        {mongoStatus?.connected ? 'Online' : 'Offline / Standby'}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-slate-500">{mongoStatus?.message || 'Checking status...'}</p>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      icon={RefreshCw}
-                      onClick={handleMongoSync}
-                      loading={syncingMongo}
-                      className="w-full justify-center mt-2"
-                    >
-                      Sync All Collections to MongoDB
-                    </Button>
-                  </div>
-                </div>
-              </Card>
             </div>
           )}
 

@@ -89,16 +89,13 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'tulsimart_backend.wsgi.application'
 
-# Database Configuration & MongoDB Connection Settings
+# Database Configuration (SQLite3 Primary Database)
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'tulsimart.sqlite3',
     }
 }
-
-MONGODB_URI = os.getenv('MONGODB_URI', '').strip().strip("'\"")
-MONGODB_DB_NAME = os.getenv('MONGODB_DB_NAME', 'tulsimart_db').strip().strip("'\"")
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [

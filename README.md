@@ -3,13 +3,13 @@
   
   # 🌿 Tulsi Mart (તુલસી માર્ટ) 🛒
   
-  **Next-Gen Retail POS, Live Gulla Drawer Currency Management, MongoDB Auto-Sync Engine & Supermarket ERP**
+  **Next-Gen Retail POS, Live Gulla Drawer Currency Management & Supermarket ERP**
   
   [![Python](https://img.shields.io/badge/Python-3.13-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
   [![Django](https://img.shields.io/badge/Django-5.0.2-092E20?style=for-the-badge&logo=django&logoColor=white)](https://www.djangoproject.com/)
+  [![MySQL](https://img.shields.io/badge/MySQL-Database-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com/)
   [![React](https://img.shields.io/badge/React-19.0-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
   [![Vite](https://img.shields.io/badge/Vite-6.1-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
-  [![MongoDB](https://img.shields.io/badge/MongoDB-Replication_Sync-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
   [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
 </div>
@@ -18,9 +18,9 @@
 
 ## 📖 Overview
 
-**Tulsi Mart** is a state-of-the-art, enterprise-grade **Supermarket Management & Point of Sale (POS) Ecosystem** specifically engineered for high-speed retail operations, physical currency note tracking, live cash register audits, and automated multi-database replication.
+**Tulsi Mart** is a state-of-the-art, enterprise-grade **Supermarket Management & Point of Sale (POS) Ecosystem** specifically engineered for high-speed retail operations, physical currency note tracking, live cash register audits, and reliable SQL database integration (MySQL / SQLite).
 
-Built using **Django REST Framework** on the backend and **React 19 + Vite** on the frontend, Tulsi Mart solves critical real-world retail challenges like missing cash float denominations, unrecorded cashier drawer withdrawals, complex change calculations, and real-time MongoDB database synchronization.
+Built using **Django REST Framework** on the backend and **React 19 + Vite** on the frontend, Tulsi Mart solves critical real-world retail challenges like missing cash float denominations, unrecorded cashier drawer withdrawals, complex change calculations, and real-time inventory management.
 
 ---
 
@@ -30,7 +30,7 @@ Built using **Django REST Framework** on the backend and **React 19 + Vite** on 
 - **Ultra-Fast Barcode Scanning & Search**: Instant product lookup via barcode or name keywords with real-time price & MRP savings indicators.
 - **Multi-Cart Hold/Resume**: Support for active customer cart tabs (`Cart 1`, `Cart 2`, `Cart 3`) allowing cashiers to hold pending bills seamlessly.
 - **Greedy Currency Denominations Algorithm**:
-  - Automatically calculates optimal physical note/coin breakdown (`₹500`, `₹200`, `₹100`, `₹50`, `₹20`, `₹10`, `₹5`, `₹2`, `₹1`) for t化ndered cash and change.
+  - Automatically calculates optimal physical note/coin breakdown (`₹500`, `₹200`, `₹100`, `₹50`, `₹20`, `₹10`, `₹5`, `₹2`, `₹1`) for tendered cash and change.
   - **Gulla Live Drawer Note Availability Check**: Skips 0-count drawer notes automatically when calculating customer change.
   - **Change Note Amount & Fit Validation**: Automatically disables note buttons larger than the remaining change needed to prevent cashier error.
   - **Out-of-Stock Note Warning**: Displays red `⚠️ Out of Stock (નોટ નથી)` badges and triggers `GullaAlertModal` alerts.
@@ -47,26 +47,21 @@ Built using **Django REST Framework** on the backend and **React 19 + Vite** on 
 - **Manual Deposits & Withdrawals**: Modals with physical note counters (`₹500`, `₹200`, `₹100`, `₹50`, `₹20`, `₹10`, `₹5`, `₹1`).
 - **Complete Audit History Ledger**: Comprehensive transaction log displaying Date, Entry Type (`DEPOSIT`, `WITHDRAWAL`, `SWEEP`), Note Breakdown (`2×₹500 + 5×₹200`), Balance After, User Name, and Reference Notes.
 
-### 🍃 4. MongoDB 2-Way Real-time Auto-Sync Engine
-- **Automated Replication**: Django ORM `post_save` & `post_delete` signals automatically sync every model modification (Products, Orders, Customers, Suppliers, Expenses, Staff, Gulla, Home Cash) to `tulsimart_db` MongoDB collections.
-- **Data Integrity**: Guaranteeing 100% data visibility across SQL & MongoDB databases.
-- **Sync Status Dashboard**: MongoDB connection health status monitoring and one-click manual synchronization trigger in Admin Settings.
-
-### 📦 5. Inventory & Barcode Management
+### 📦 4. Inventory & Barcode Management
 - **Catalog Control**: Full management of Products, Categories, Brands, and Measuring Units.
 - **Stock Audit Trail**: Stock movement tracking (Inward, Outward, Adjustment, Damage).
 - **Low Stock Badging**: Automatic visual alerts when inventory drops below reorder thresholds.
 
-### 🚚 6. Supplier & Procurement ERP
+### 🚚 5. Supplier & Procurement ERP
 - **Purchase Orders (PO)**: PO creation, status workflows (`DRAFT`, `ORDERED`, `RECEIVED`, `CANCELLED`).
 - **Goods Receive Notes (GRN)**: Automated stock level increments upon GRN verification.
 - **Supplier Payment Ledger**: Cash and UPI payment tracking with automatic Gulla drawer deduction.
 
-### 👥 7. Khata Customers & Staff Management
+### 👥 6. Khata Customers & Staff Management
 - **Customer Khata Credit**: Credit balance tracking, partial payments, and purchase history.
 - **Staff & Access Control**: Role-based permissions (`ADMIN`, `STORE_MANAGER`, `CASHIER`) and attendance tracking.
 
-### 🔐 8. Dual-Layer OTP Email Authentication
+### 🔐 7. Dual-Layer OTP Email Authentication
 - Secure JWT authentication coupled with OTP verification sent directly to user email accounts.
 
 ---
@@ -83,8 +78,6 @@ Tulsi Mart features a custom-crafted, modern color palette and dynamic UI layout
 | **TM Slate** | `#6A89A7` | Secondary Buttons, Subtitles, Borders |
 | **Dark Slate** | `#0F172A` / `#1E293B` | Dark Mode Surfaces |
 
-- **Custom Brand Scrollbars**: High-visibility styled Webkit & W3C Firefox scrollbars (`.custom-scrollbar`, `.table-scroll-container`) with sticky `<thead>` headers across all heavy data tables.
-
 ---
 
 ## 📁 Repository Directory Structure
@@ -92,13 +85,12 @@ Tulsi Mart features a custom-crafted, modern color palette and dynamic UI layout
 ```text
 TulsiMart/
 ├── backend/                        # Django 5.0 REST Framework Backend
-│   ├── core/                       # Models, Services, Views, Signals & Gulla Logic
+│   ├── core/                       # Models, Services, Views & Gulla Logic
 │   │   ├── gulla_services.py       # Gulla Cash Register & EOD Sweep Engine
-│   │   ├── signals.py              # MongoDB 2-Way Auto-Sync Signals
 │   │   ├── models.py               # Database Models (StoreSetting, HomeCash, Gulla, etc.)
 │   │   ├── views.py                # REST API Viewsets & Controllers
 │   │   └── urls.py                 # API Routing Endpoints
-│   ├── seed_tulsimart_mongodb.py   # Seed Data Script for MongoDB
+│   ├── seed_tulsimart.py           # Database Seed Data Script
 │   ├── send_email.js               # Node.js Email Delivery Service
 │   ├── render.yaml                 # Backend Cloud Deployment Config
 │   ├── requirements.txt            # Python Dependencies
@@ -131,7 +123,7 @@ TulsiMart/
 ### Prerequisites
 - **Python**: `3.10+` (Python 3.13 recommended)
 - **Node.js**: `18+`
-- **MongoDB**: Local (`mongodb://localhost:27017/`) or MongoDB Atlas
+- **Database**: MySQL or SQLite
 
 ---
 
@@ -164,9 +156,9 @@ TulsiMart/
    python manage.py migrate
    ```
 
-5. (Optional) Seed initial data & sync to MongoDB:
+5. (Optional) Seed initial data:
    ```bash
-   python seed_tulsimart_mongodb.py
+   python seed_tulsimart.py
    ```
 
 6. Start the Django development server:
@@ -211,12 +203,6 @@ TulsiMart/
 | `GET` / `POST` | `/api/orders/orders/` | Create POS Orders & Invoice Details |
 | `GET` / `POST` | `/api/suppliers/suppliers/` | Supplier Directory & Procurement Payments |
 | `GET` / `POST` | `/api/expenses/expenses/` | Store Operating Expenses Ledger |
-
----
-
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome! Feel free to check the issues page or submit pull requests.
 
 ---
 

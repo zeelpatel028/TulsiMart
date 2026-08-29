@@ -59,46 +59,37 @@ class StoreSettingView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        from .mongodb import get_mongo_store_settings
-        mongo_doc = get_mongo_store_settings()
-        if mongo_doc:
-            return Response(mongo_doc, status=status.HTTP_200_OK)
-
         settings_obj = StoreSetting.get_settings()
         serializer = StoreSettingSerializer(settings_obj)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def put(self, request):
-        from .mongodb import save_mongo_store_settings
         settings_obj = StoreSetting.get_settings()
         serializer = StoreSettingSerializer(settings_obj, data=request.data, partial=False)
         if serializer.is_valid():
-            saved_instance = serializer.save()
-            save_mongo_store_settings(serializer.data)
+            serializer.save()
             user_name = request.user.username if request.user and request.user.is_authenticated else 'Admin'
             ActivityLog.objects.create(
                 user_name=user_name,
                 action='UPDATE_SETTINGS',
                 module='Settings',
-                details='Updated store settings in MongoDB and main database'
+                details='Updated store settings in main database'
             )
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request):
-        from .mongodb import save_mongo_store_settings
         settings_obj = StoreSetting.get_settings()
         serializer = StoreSettingSerializer(settings_obj, data=request.data, partial=True)
         if serializer.is_valid():
             saved_instance = serializer.save()
             full_data = StoreSettingSerializer(saved_instance).data
-            save_mongo_store_settings(full_data)
             user_name = request.user.username if request.user and request.user.is_authenticated else 'Admin'
             ActivityLog.objects.create(
                 user_name=user_name,
                 action='PATCH_SETTINGS',
                 module='Settings',
-                details='Partially updated store settings in MongoDB and main database'
+                details='Partially updated store settings in main database'
             )
             return Response(full_data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -154,69 +145,6 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = ActivityLog.objects.all()
     serializer_class = ActivityLogSerializer
     permission_classes = [permissions.AllowAny]
-
-
-@api_view(['GET'])
-@permission_classes([permissions.AllowAny])
-def mongodb_status_view(request):
-    """
-    Checks MongoDB server connection and returns database status.
-    """
-    from .mongodb import get_mongo_client, get_mongo_db, get_mongo_db_name, get_mongo_uri
-    client = get_mongo_client()
-    raw_uri = get_mongo_uri()
-    masked_uri = raw_uri
-    if '@' in raw_uri:
-        try:
-            prefix, rest = raw_uri.split('@', 1)
-            scheme = prefix.split('://')[0] + '://' if '://' in prefix else 'mongodb://'
-            masked_uri = f"{scheme}*****:*****@{rest}"
-        except Exception:
-            masked_uri = "mongodb+srv://*****:*****@..."
-
-    if client is None:
-        return Response({
-            'status': 'offline',
-            'connected': False,
-            'message': 'Cannot connect to MongoDB server. Please check MONGODB_URI configuration in .env or Render dashboard.',
-            'uri': masked_uri,
-            'db_name': get_mongo_db_name()
-        }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-
-    try:
-        db = get_mongo_db()
-        collections = db.list_collection_names()
-        stats = {}
-        for c in collections:
-            stats[c] = db[c].count_documents({})
-        return Response({
-            'status': 'online',
-            'connected': True,
-            'database': get_mongo_db_name(),
-            'collections_count': len(collections),
-            'collections': collections,
-            'stats': stats,
-            'message': 'MongoDB is active and connected.'
-        })
-    except Exception as e:
-        return Response({
-            'status': 'error',
-            'connected': False,
-            'message': str(e)
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-@api_view(['POST'])
-@permission_classes([permissions.AllowAny])
-def mongodb_sync_view(request):
-    """
-    Triggers complete synchronization of all Tulsi Mart data into MongoDB collections.
-    """
-    from .mongodb import sync_all_data_to_mongodb
-    res = sync_all_data_to_mongodb()
-    if res.get('status') == 'success':
-        return Response(res, status=status.HTTP_200_OK)
-    return Response(res, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['GET'])
@@ -562,35 +490,6 @@ def login_auth_view(request):
                 break
 
     if not acc:
-        try:
-            from .mongodb import get_collection
-            col = get_collection('login_accounts')
-            if col is not None:
-                docs = list(col.find({
-                    '$or': [
-                        {'username': {'$regex': f'^{user_identifier}$', '$options': 'i'}},
-                        {'email': {'$regex': f'^{user_identifier}$', '$options': 'i'}}
-                    ]
-                }))
-                for doc in docs:
-                    doc_pw = doc.get('password', '')
-                    if doc_pw == password or check_password(password, doc_pw):
-                        acc, _ = LoginAccount.objects.update_or_create(
-                            username=doc.get('username', user_identifier),
-                            defaults={
-                                'password': doc_pw,
-                                'full_name': doc.get('full_name', user_identifier.capitalize()),
-                                'email': doc.get('email', 'contact@tulsimart.com'),
-                                'role': doc.get('role', 'ADMIN'),
-                                'is_active': doc.get('is_active', True),
-                                'require_otp': doc.get('require_otp', False),
-                            }
-                        )
-                        break
-        except Exception as mongo_err:
-            print("MongoDB user lookup fallback warning:", mongo_err)
-
-    if not acc:
         return Response({'detail': 'Invalid username/email or password.'}, status=status.HTTP_400_BAD_REQUEST)
 
     if not acc.is_active:
@@ -836,26 +735,6 @@ def get_me_auth_view(request):
     acc = None
     if request.user and request.user.is_authenticated:
         acc = LoginAccount.objects.filter(username__iexact=request.user.username).first()
-        if not acc:
-            try:
-                from .mongodb import get_collection
-                col = get_collection('login_accounts')
-                if col is not None:
-                    doc = col.find_one({'username': {'$regex': f'^{request.user.username}$', '$options': 'i'}})
-                    if doc:
-                        acc, _ = LoginAccount.objects.update_or_create(
-                            username=doc.get('username', request.user.username),
-                            defaults={
-                                'password': doc.get('password', 'password123'),
-                                'full_name': doc.get('full_name', request.user.username.capitalize()),
-                                'email': doc.get('email', request.user.email or 'contact@tulsimart.com'),
-                                'role': doc.get('role', 'ADMIN' if request.user.is_superuser else 'CASHIER'),
-                                'is_active': doc.get('is_active', True),
-                                'require_otp': doc.get('require_otp', False),
-                            }
-                        )
-            except Exception:
-                pass
 
     if not acc and request.user and request.user.is_authenticated:
         user_role = 'ADMIN' if request.user.is_superuser else 'CASHIER'

@@ -34,8 +34,6 @@ export const authApi = {
   toggleStaffStatus: (id) => apiClient.post(`/core/staff/${id}/toggle_status/`),
   updateStaffAttendance: (id, attendance_data) => apiClient.post(`/core/staff/${id}/update_attendance/`, { attendance_data }),
   getActivityLogs: (params) => apiClient.get('/core/logs/', { params }),
-  getMongoStatus: () => apiClient.get('/core/mongodb/status/'),
-  syncMongoDB: () => apiClient.post('/core/mongodb/sync/'),
 };
 
 

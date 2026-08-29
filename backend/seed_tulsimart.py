@@ -15,10 +15,9 @@ from customers.models import Customer, CustomerFeedback
 from suppliers.models import Supplier, PurchaseOrder
 from expenses.models import ExpenseCategory, Expense
 from offers.models import Coupon, FestivalOffer
-from core.mongodb import get_mongo_db, sync_all_data_to_mongodb
 
 def seed_data():
-    print("[Starting] Tulsi Mart MongoDB & Database Data Seeding...")
+    print("[Starting] Tulsi Mart Database Data Seeding...")
 
     # Disable foreign key checks for clean seeding
     with connection.cursor() as cursor:
@@ -342,9 +341,7 @@ def seed_data():
         'transaction_id': 'UPI-HDFC-99882211'
     })
 
-    # 13. Synchronize All Data To MongoDB
-    res = sync_all_data_to_mongodb()
-    print("[SUCCESS] MongoDB Seeding Complete Result:", res)
+    print("[SUCCESS] Tulsi Mart Database Seeding Complete!")
 
 if __name__ == '__main__':
     seed_data()

@@ -6,8 +6,6 @@ from .views import (
     BankTransactionViewSet,
     StoreSettingView,
     LoginAccountViewSet,
-    mongodb_status_view,
-    mongodb_sync_view,
     gulla_summary_view,
     gulla_entry_create_view,
     calculate_denomination_api,
@@ -36,8 +34,6 @@ urlpatterns = [
     path('gulla/entry/', gulla_entry_create_view, name='gulla-entry'),
     path('gulla/eod-sweep/', eod_cash_sweep_api, name='gulla-eod-sweep'),
     path('gulla/calculate-notes/', calculate_denomination_api, name='gulla-calc-notes'),
-    path('mongodb/status/', mongodb_status_view, name='mongodb-status'),
-    path('mongodb/sync/', mongodb_sync_view, name='mongodb-sync'),
     path('', include(router.urls)),
 ]
 
