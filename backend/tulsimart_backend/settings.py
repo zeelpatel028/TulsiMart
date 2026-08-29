@@ -97,8 +97,8 @@ DATABASES = {
     }
 }
 
-MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/')
-MONGODB_DB_NAME = os.getenv('MONGODB_DB_NAME', 'tulsimart_db')
+MONGODB_URI = os.getenv('MONGODB_URI', '').strip()
+MONGODB_DB_NAME = os.getenv('MONGODB_DB_NAME', 'tulsimart_db').strip()
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [

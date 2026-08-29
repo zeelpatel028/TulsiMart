@@ -1,70 +1,149 @@
 """
 MongoDB Database Connector & Synchronization Service for Tulsi Mart
-Uses PyMongo to connect directly to MongoDB (Local MongoDB Community / MongoDB Atlas).
+Uses PyMongo to connect directly to MongoDB Atlas / Remote MongoDB servers.
 """
 
 import os
 import logging
+from dotenv import load_dotenv
 from django.conf import settings
 from decimal import Decimal
 from datetime import date, datetime
 
+# Ensure environment variables are loaded via dotenv
+load_dotenv()
+
 logger = logging.getLogger(__name__)
 
-_mongo_client = None
+
+class MongoDBManager:
+    """
+    Singleton connection manager for MongoDB.
+    Reuses MongoClient instance across requests to prevent unnecessary connection creation.
+    """
+    _client = None
+    _connection_logged = False
+
+    @classmethod
+    def get_uri(cls):
+        """
+        Retrieves MONGODB_URI from environment variables.
+        Does NOT default to localhost:27017 to avoid connection refused errors on Render.
+        """
+        uri = os.getenv('MONGODB_URI', '').strip()
+        if not uri and hasattr(settings, 'MONGODB_URI'):
+            uri = getattr(settings, 'MONGODB_URI', '').strip()
+        return uri
+
+    @classmethod
+    def get_db_name(cls):
+        """
+        Retrieves MONGODB_DB_NAME from environment variables with sensible default 'tulsimart_db'.
+        """
+        db_name = os.getenv('MONGODB_DB_NAME', '').strip()
+        if not db_name and hasattr(settings, 'MONGODB_DB_NAME'):
+            db_name = getattr(settings, 'MONGODB_DB_NAME', '').strip()
+        return db_name if db_name else 'tulsimart_db'
+
+    @classmethod
+    def get_client(cls):
+        """
+        Returns a singleton MongoClient instance.
+        If MONGODB_URI is missing or connection fails, logs warning/error and returns None gracefully.
+        """
+        uri = cls.get_uri()
+        if not uri:
+            if not cls._connection_logged:
+                logger.warning("MONGODB_URI environment variable is missing or empty. MongoDB features are disabled.")
+                cls._connection_logged = True
+            return None
+
+        if cls._client is None:
+            try:
+                import pymongo
+                kwargs = {'serverSelectionTimeoutMS': 5000}
+
+                # Cloud TLS/SSL certificate handling for MongoDB Atlas (mongodb+srv:// or ssl/tls flags)
+                if uri.startswith('mongodb+srv://') or 'ssl=true' in uri.lower() or 'tls=true' in uri.lower():
+                    try:
+                        import certifi
+                        kwargs['tlsCAFile'] = certifi.where()
+                    except ImportError:
+                        logger.warning("certifi module not found. TLS certificate verification may fail for MongoDB Atlas.")
+
+                cls._client = pymongo.MongoClient(uri, **kwargs)
+                # Test connection using admin command ping
+                cls._client.admin.command('ping')
+                
+                masked_uri = uri
+                if '@' in uri:
+                    try:
+                        prefix, rest = uri.split('@', 1)
+                        scheme = prefix.split('://')[0] + '://' if '://' in prefix else 'mongodb://'
+                        masked_uri = f"{scheme}*****:*****@{rest}"
+                    except Exception:
+                        masked_uri = "mongodb+srv://*****:*****@..."
+
+                logger.info(f"Successfully connected to MongoDB server at {masked_uri}")
+                cls._connection_logged = True
+            except Exception as e:
+                logger.error(f"MongoDB connection error: {e}")
+                cls._client = None
+                return None
+
+        return cls._client
+
+    @classmethod
+    def get_db(cls):
+        """
+        Returns the MongoDB database object for configured MONGODB_DB_NAME.
+        """
+        client = cls.get_client()
+        if client is not None:
+            try:
+                return client[cls.get_db_name()]
+            except Exception as e:
+                logger.error(f"Error accessing MongoDB database '{cls.get_db_name()}': {e}")
+        return None
+
+    @classmethod
+    def get_collection(cls, collection_name):
+        """
+        Returns a specific MongoDB collection.
+        """
+        db = cls.get_db()
+        if db is not None:
+            return db[collection_name]
+        return None
+
+    @classmethod
+    def reset_connection(cls):
+        """
+        Resets cached MongoClient connection.
+        """
+        if cls._client is not None:
+            try:
+                cls._client.close()
+            except Exception:
+                pass
+        cls._client = None
+        cls._connection_logged = False
+
 
 def get_mongo_uri():
-    return os.getenv('MONGODB_URI', 'mongodb://localhost:27017/')
+    return MongoDBManager.get_uri()
 
 def get_mongo_db_name():
-    return os.getenv('MONGODB_DB_NAME', 'tulsimart_db')
+    return MongoDBManager.get_db_name()
 
 def get_mongo_client():
-    """
-    Returns a singleton MongoClient instance (supports local MongoDB and MongoDB Atlas on Render).
-    """
-    global _mongo_client
-    if _mongo_client is None:
-        try:
-            import pymongo
-            uri = get_mongo_uri()
-            kwargs = {'serverSelectionTimeoutMS': 5000}
-            
-            # Only use certifi TLS/SSL CA bundle for cloud/TLS connections (e.g. mongodb+srv:// or ssl=true/tls=true)
-            if uri.startswith('mongodb+srv://') or 'ssl=true' in uri.lower() or 'tls=true' in uri.lower():
-                try:
-                    import certifi
-                    kwargs['tlsCAFile'] = certifi.where()
-                except ImportError:
-                    pass
-
-            _mongo_client = pymongo.MongoClient(uri, **kwargs)
-            # Test connection
-            _mongo_client.server_info()
-            logger.info("Successfully connected to MongoDB server.")
-        except Exception as e:
-            logger.warning(f"MongoDB connection warning: {e}")
-            _mongo_client = None
-            return None
-    return _mongo_client
+    return MongoDBManager.get_client()
 
 def get_mongo_db():
-    """
-    Returns the MongoDB database object.
-    """
-    client = get_mongo_client()
-    if client:
-        return client[get_mongo_db_name()]
-    return None
+    return MongoDBManager.get_db()
 
 def get_collection(collection_name):
-    """
-    Helper to get a specific MongoDB collection.
-    """
-    db = get_mongo_db()
-    if db is not None:
-        return db[collection_name]
-    return None
+    return MongoDBManager.get_collection(collection_name)
 
 from django.db.models import Model
 
