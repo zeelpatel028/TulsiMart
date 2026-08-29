@@ -67,20 +67,26 @@ class MongoDBManager:
         if cls._client is None:
             try:
                 import pymongo
-                kwargs = {'serverSelectionTimeoutMS': 5000}
+                kwargs = {
+                    'serverSelectionTimeoutMS': 10000,
+                    'connectTimeoutMS': 10000,
+                    'socketTimeoutMS': 20000,
+                    'retryWrites': True,
+                }
 
-                # Cloud TLS/SSL certificate handling for MongoDB Atlas (mongodb+srv:// or ssl/tls flags)
+                # Production TLS/SSL certificate handling for MongoDB Atlas (mongodb+srv:// or ssl/tls flags)
                 if uri.startswith('mongodb+srv://') or 'ssl=true' in uri.lower() or 'tls=true' in uri.lower():
+                    kwargs['tls'] = True
                     try:
                         import certifi
                         kwargs['tlsCAFile'] = certifi.where()
                     except ImportError:
-                        logger.warning("certifi module not found. TLS certificate verification may fail for MongoDB Atlas.")
+                        logger.warning("certifi module not found. TLS certificate verification may fail for MongoDB Atlas on Linux/Render.")
 
                 cls._client = pymongo.MongoClient(uri, **kwargs)
-                # Test connection using admin command ping
+                # Test connection using admin ping command
                 cls._client.admin.command('ping')
-                
+
                 masked_uri = uri
                 if '@' in uri:
                     try:
@@ -90,7 +96,7 @@ class MongoDBManager:
                     except Exception:
                         masked_uri = "mongodb+srv://*****:*****@..."
 
-                logger.info(f"Successfully connected to MongoDB server at {masked_uri}")
+                logger.info(f"MongoDB connected successfully to {masked_uri}")
                 cls._connection_logged = True
             except Exception as e:
                 logger.error(f"MongoDB connection error: {e}")

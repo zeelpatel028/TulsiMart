@@ -8,7 +8,6 @@ from offers.models import Coupon, FestivalOffer
 from orders.models import Order, OrderItem, PaymentTransaction
 from core.mongodb import get_mongo_db, sync_all_data_to_mongodb
 
-User = get_user_model()
 
 class Command(BaseCommand):
     help = 'Removes all records from database tables and resets to clean state with default Admin'
@@ -68,7 +67,7 @@ class Command(BaseCommand):
             if db is not None:
                 for col_name in db.list_collection_names():
                     db[col_name].delete_many({})
-                self.stdout.write(self.style.SUCCESS("[CLEARED] MongoDB collections in tulsimart_db"))
+                self.stdout.write(self.style.SUCCESS(f"[CLEARED] MongoDB collections in {db.name}"))
                 sync_all_data_to_mongodb()
                 self.stdout.write(self.style.SUCCESS("[SYNCED] Clean admin state synced to MongoDB"))
         except Exception as e:
