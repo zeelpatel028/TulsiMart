@@ -232,12 +232,15 @@ export const LoginPage = () => {
             
             {/* Username Input */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-slate-300">
+              <label htmlFor="username" className="block text-xs font-semibold text-slate-300">
                 Username
               </label>
               <div className="relative">
                 <input
+                  id="username"
+                  name="username"
                   type="text"
+                  autoComplete="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
@@ -250,12 +253,15 @@ export const LoginPage = () => {
 
             {/* Password Input */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-slate-300">
+              <label htmlFor="password" className="block text-xs font-semibold text-slate-300">
                 Password
               </label>
               <div className="relative">
                 <input
+                  id="password"
+                  name="password"
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -267,6 +273,7 @@ export const LoginPage = () => {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3.5 top-3.5 text-slate-500 hover:text-slate-300 transition-colors"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -317,6 +324,10 @@ export const LoginPage = () => {
               {otpDigits.map((digit, index) => (
                 <input
                   key={index}
+                  id={`otp-digit-${index}`}
+                  name={`otp_digit_${index}`}
+                  aria-label={`OTP Digit ${index + 1}`}
+                  autoComplete={index === 0 ? 'one-time-code' : 'off'}
                   ref={otpInputRefs[index]}
                   type="text"
                   inputMode="numeric"
