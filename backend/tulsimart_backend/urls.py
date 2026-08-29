@@ -4,7 +4,16 @@ from django.conf import settings
 from django.conf.urls.static import static
 from core.views import StoreSettingView
 
+from django.http import JsonResponse
+
+def root_health_check(request):
+    return JsonResponse({
+        "status": "success",
+        "message": "Tulsi Mart API is running"
+    })
+
 urlpatterns = [
+    path('', root_health_check, name='api-root'),
     path('admin/', admin.site.urls),
     path('api/settings/', StoreSettingView.as_view(), name='api-settings'),
     path('api/core/', include('core.urls')),

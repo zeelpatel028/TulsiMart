@@ -16,6 +16,62 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 
+def sanitize_mongo_uri(raw_uri):
+    """
+    Sanitizes and normalizes MongoDB URIs to prevent PyMongo InvalidURI errors.
+    Strips surrounding whitespace, quotes, and fixes query options so options are key=value pairs.
+    """
+    if not raw_uri or not isinstance(raw_uri, str):
+        return ""
+    
+    uri = raw_uri.strip().strip("'\"")
+    if not uri:
+        return ""
+
+    if not (uri.startswith("mongodb://") or uri.startswith("mongodb+srv://")):
+        return uri
+
+    if "?" in uri:
+        base, query = uri.split("?", 1)
+        query = query.strip()
+        if query:
+            query = query.lstrip("?").lstrip("&")
+            pairs = []
+            for item in query.split("&"):
+                item = item.strip()
+                if not item:
+                    continue
+                if "=" in item:
+                    k, v = item.split("=", 1)
+                    k = k.strip()
+                    v = v.strip()
+                    if k:
+                        pairs.append(f"{k}={v}")
+                else:
+                    k = item.strip()
+                    if k:
+                        pairs.append(f"{k}=true")
+            if pairs:
+                uri = f"{base}?{'&'.join(pairs)}"
+            else:
+                uri = base
+    return uri
+
+
+def mask_mongodb_uri(uri):
+    """
+    Masks credentials in MongoDB connection string for safe logging.
+    """
+    if not uri or '@' not in uri:
+        return "mongodb+srv://*****:*****@..."
+    try:
+        prefix, rest = uri.split('@', 1)
+        scheme = prefix.split('://')[0] + '://' if '://' in prefix else 'mongodb://'
+        return f"{scheme}*****:*****@{rest}"
+    except Exception:
+        return "mongodb+srv://*****:*****@..."
+
+
 class MongoDBManager:
     """
     Singleton connection manager for MongoDB.
@@ -27,13 +83,13 @@ class MongoDBManager:
     @classmethod
     def get_uri(cls):
         """
-        Retrieves MONGODB_URI from environment variables.
+        Retrieves MONGODB_URI from environment variables or Django settings and sanitizes it.
         Does NOT default to localhost:27017 to avoid connection refused errors on Render.
         """
-        uri = os.getenv('MONGODB_URI', '').strip()
-        if not uri and hasattr(settings, 'MONGODB_URI'):
-            uri = getattr(settings, 'MONGODB_URI', '').strip()
-        return uri
+        raw_uri = os.getenv('MONGODB_URI', '')
+        if not raw_uri and hasattr(settings, 'MONGODB_URI'):
+            raw_uri = getattr(settings, 'MONGODB_URI', '')
+        return sanitize_mongo_uri(raw_uri)
 
     @classmethod
     def get_db_name(cls):
@@ -54,24 +110,30 @@ class MongoDBManager:
         uri = cls.get_uri()
         if not uri:
             if not cls._connection_logged:
-                logger.warning("MONGODB_URI environment variable is missing or empty. MongoDB features are disabled.")
+                logger.warning("MONGODB_URI environment variable is missing or empty. Please set MONGODB_URI in Render environment variables.")
                 cls._connection_logged = True
             return None
 
-        if '<password>' in uri.lower() or '<db_password>' in uri.lower():
+        if '<password>' in uri.lower() or '<db_password>' in uri.lower() or 'username:password' in uri.lower():
             if not cls._connection_logged:
-                logger.warning("MONGODB_URI contains unreplaced password placeholder. Replace '<db_password>' with your actual database password.")
+                logger.warning("MONGODB_URI contains unreplaced placeholder credentials. Please set your actual MongoDB Atlas connection string in Render environment variables.")
+                cls._connection_logged = True
+            return None
+
+        if not (uri.startswith('mongodb://') or uri.startswith('mongodb+srv://')):
+            if not cls._connection_logged:
+                logger.error(f"Invalid MONGODB_URI format. Must start with 'mongodb://' or 'mongodb+srv://'. Got: {uri[:15]!r}")
                 cls._connection_logged = True
             return None
 
         if cls._client is None:
             try:
                 import pymongo
+
                 kwargs = {
                     'serverSelectionTimeoutMS': 10000,
                     'connectTimeoutMS': 10000,
                     'socketTimeoutMS': 20000,
-                    'retryWrites': True,
                 }
 
                 # Production TLS/SSL certificate handling for MongoDB Atlas (mongodb+srv:// or ssl/tls flags)
@@ -87,19 +149,19 @@ class MongoDBManager:
                 # Test connection using admin ping command
                 cls._client.admin.command('ping')
 
-                masked_uri = uri
-                if '@' in uri:
-                    try:
-                        prefix, rest = uri.split('@', 1)
-                        scheme = prefix.split('://')[0] + '://' if '://' in prefix else 'mongodb://'
-                        masked_uri = f"{scheme}*****:*****@{rest}"
-                    except Exception:
-                        masked_uri = "mongodb+srv://*****:*****@..."
-
+                masked_uri = mask_mongodb_uri(uri)
                 logger.info(f"MongoDB connected successfully to {masked_uri}")
                 cls._connection_logged = True
-            except Exception as e:
+            except pymongo.errors.InvalidURI as e:
+                logger.error(f"MongoDB URI error: {e}. Ensure MONGODB_URI is formatted as: mongodb+srv://USERNAME:PASSWORD@CLUSTER.mongodb.net/DATABASE_NAME?retryWrites=true&w=majority")
+                cls._client = None
+                return None
+            except pymongo.errors.PyMongoError as e:
                 logger.error(f"MongoDB connection error: {e}")
+                cls._client = None
+                return None
+            except Exception as e:
+                logger.error(f"Unexpected error connecting to MongoDB: {e}")
                 cls._client = None
                 return None
 
