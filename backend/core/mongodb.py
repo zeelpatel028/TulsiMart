@@ -131,9 +131,9 @@ class MongoDBManager:
                 import pymongo
 
                 kwargs = {
-                    'serverSelectionTimeoutMS': 10000,
-                    'connectTimeoutMS': 10000,
-                    'socketTimeoutMS': 20000,
+                    'serverSelectionTimeoutMS': 3000,
+                    'connectTimeoutMS': 3000,
+                    'socketTimeoutMS': 5000,
                 }
 
                 # Production TLS/SSL certificate handling for MongoDB Atlas (mongodb+srv:// or ssl/tls flags)
@@ -154,7 +154,10 @@ class MongoDBManager:
                     cls._client = client_attempt
                 except pymongo.errors.PyMongoError as ping_err:
                     err_msg = str(ping_err)
-                    # If TLS/SSL error happens, attempt retry with tlsAllowInvalidCertificates=True if not already set
+                    # If TLSV1_ALERT_INTERNAL_ERROR occurs, it's an IP whitelist block — skip redundant fallback
+                    if 'TLSV1_ALERT_INTERNAL_ERROR' in err_msg:
+                        raise ping_err
+                    # If general TLS/SSL error happens, attempt fallback connection with tlsAllowInvalidCertificates=True if not already set
                     if ('SSL' in err_msg or 'TLS' in err_msg) and not kwargs.get('tlsAllowInvalidCertificates'):
                         logger.warning("Standard TLS verification failed. Attempting fallback connection with tlsAllowInvalidCertificates=True...")
                         kwargs['tlsAllowInvalidCertificates'] = True
@@ -172,14 +175,14 @@ class MongoDBManager:
                 cls._connection_logged = True
             except pymongo.errors.InvalidURI as e:
                 logger.error(f"MongoDB URI error: {e}. Ensure MONGODB_URI is formatted as: mongodb+srv://USERNAME:PASSWORD@CLUSTER.mongodb.net/DATABASE_NAME?retryWrites=true&w=majority")
-                cls._client = None
+                cls._client = False  # Mark as failed attempt
                 return None
             except pymongo.errors.PyMongoError as e:
                 err_str = str(e)
                 if 'TLSV1_ALERT_INTERNAL_ERROR' in err_str or 'SSL handshake failed' in err_str:
                     logger.error(
                         f"MongoDB Atlas SSL handshake failed: {e}\n"
-                        "[SOLUTION] This error occurs because MongoDB Atlas Network Access is blocking your IP address.\n"
+                        "[SOLUTION / ઉકેલ] This error occurs because MongoDB Atlas Network Access is blocking your IP address.\n"
                         "1. Go to MongoDB Atlas (https://cloud.mongodb.net)\n"
                         "2. Click 'Network Access' under Security in the left sidebar\n"
                         "3. Click '+ Add IP Address'\n"
@@ -187,12 +190,15 @@ class MongoDBManager:
                     )
                 else:
                     logger.error(f"MongoDB connection error: {e}")
-                cls._client = None
+                cls._client = False  # Mark as failed attempt
                 return None
             except Exception as e:
                 logger.error(f"Unexpected error connecting to MongoDB: {e}")
-                cls._client = None
+                cls._client = False  # Mark as failed attempt
                 return None
+
+        if cls._client is False:
+            return None
 
         return cls._client
 
