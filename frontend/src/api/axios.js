@@ -3,11 +3,11 @@ import axios from 'axios';
 const rawApiUrl = import.meta.env.VITE_API_BASE_URL;
 let API_BASE_URL;
 
-if (rawApiUrl) {
+if (import.meta.env.DEV && (!rawApiUrl || rawApiUrl.includes('onrender.com') || rawApiUrl.includes('localhost') || rawApiUrl.includes('127.0.0.1'))) {
+  API_BASE_URL = 'http://127.0.0.1:8000/api';
+} else if (rawApiUrl) {
   const cleanUrl = rawApiUrl.trim().replace(/\/+$/, '');
   API_BASE_URL = cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
-} else if (import.meta.env.DEV) {
-  API_BASE_URL = 'http://127.0.0.1:8000/api';
 } else {
   API_BASE_URL = 'https://tulsimart.onrender.com/api';
 }

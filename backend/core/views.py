@@ -1,4 +1,5 @@
 import os
+import random
 from decimal import Decimal
 from django.db import models
 from rest_framework import viewsets, status, permissions
@@ -161,12 +162,22 @@ def mongodb_status_view(request):
     """
     from .mongodb import get_mongo_client, get_mongo_db, get_mongo_db_name, get_mongo_uri
     client = get_mongo_client()
+    raw_uri = get_mongo_uri()
+    masked_uri = raw_uri
+    if '@' in raw_uri:
+        try:
+            prefix, rest = raw_uri.split('@', 1)
+            scheme = prefix.split('://')[0] + '://' if '://' in prefix else 'mongodb://'
+            masked_uri = f"{scheme}*****:*****@{rest}"
+        except Exception:
+            masked_uri = "mongodb+srv://*****:*****@..."
+
     if client is None:
         return Response({
             'status': 'offline',
             'connected': False,
-            'message': 'Cannot connect to MongoDB server. Ensure MongoDB is running on localhost:27017 or check MONGODB_URI.',
-            'uri': get_mongo_uri(),
+            'message': 'Cannot connect to MongoDB server. Please check MONGODB_URI configuration in .env or Render dashboard.',
+            'uri': masked_uri,
             'db_name': get_mongo_db_name()
         }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 

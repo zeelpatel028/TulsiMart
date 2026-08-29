@@ -8,7 +8,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.NOTICE("Testing connection to MongoDB..."))
         client = get_mongo_client()
         if not client:
-            self.stdout.write(self.style.ERROR("Could not connect to MongoDB server. Please ensure MongoDB is running (e.g. mongodb://localhost:27017/)."))
+            self.stdout.write(self.style.ERROR("Could not connect to MongoDB server. Please check MONGODB_URI in your .env file or Render environment variables."))
             return
 
         db_name = get_mongo_db_name()

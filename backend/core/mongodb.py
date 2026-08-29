@@ -21,19 +21,30 @@ def get_mongo_db_name():
 
 def get_mongo_client():
     """
-    Returns a singleton MongoClient instance.
+    Returns a singleton MongoClient instance (supports local MongoDB and MongoDB Atlas on Render).
     """
     global _mongo_client
     if _mongo_client is None:
         try:
             import pymongo
             uri = get_mongo_uri()
-            _mongo_client = pymongo.MongoClient(uri, serverSelectionTimeoutMS=3000)
+            kwargs = {'serverSelectionTimeoutMS': 5000}
+            
+            # Only use certifi TLS/SSL CA bundle for cloud/TLS connections (e.g. mongodb+srv:// or ssl=true/tls=true)
+            if uri.startswith('mongodb+srv://') or 'ssl=true' in uri.lower() or 'tls=true' in uri.lower():
+                try:
+                    import certifi
+                    kwargs['tlsCAFile'] = certifi.where()
+                except ImportError:
+                    pass
+
+            _mongo_client = pymongo.MongoClient(uri, **kwargs)
             # Test connection
             _mongo_client.server_info()
             logger.info("Successfully connected to MongoDB server.")
         except Exception as e:
             logger.warning(f"MongoDB connection warning: {e}")
+            _mongo_client = None
             return None
     return _mongo_client
 
@@ -129,7 +140,7 @@ def sync_all_data_to_mongodb():
     if db is None:
         return {
             'status': 'error',
-            'message': 'Cannot connect to MongoDB. Ensure MongoDB is running on localhost:27017 or check MONGODB_URI.'
+            'message': 'Cannot connect to MongoDB. Please ensure MONGODB_URI is configured correctly in .env or Render Environment Variables.'
         }
 
     try:
