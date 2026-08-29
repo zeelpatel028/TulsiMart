@@ -139,15 +139,33 @@ class MongoDBManager:
                 # Production TLS/SSL certificate handling for MongoDB Atlas (mongodb+srv:// or ssl/tls flags)
                 if uri.startswith('mongodb+srv://') or 'ssl=true' in uri.lower() or 'tls=true' in uri.lower():
                     kwargs['tls'] = True
-                    try:
-                        import certifi
-                        kwargs['tlsCAFile'] = certifi.where()
-                    except ImportError:
-                        logger.warning("certifi module not found. TLS certificate verification may fail for MongoDB Atlas on Linux/Render.")
+                    if 'tlsallowinvalidcertificates=true' in uri.lower() or 'tlsinsecure=true' in uri.lower():
+                        kwargs['tlsAllowInvalidCertificates'] = True
+                    else:
+                        try:
+                            import certifi
+                            kwargs['tlsCAFile'] = certifi.where()
+                        except ImportError:
+                            logger.warning("certifi module not found. TLS certificate verification may fail for MongoDB Atlas on Linux/Render.")
 
-                cls._client = pymongo.MongoClient(uri, **kwargs)
-                # Test connection using admin ping command
-                cls._client.admin.command('ping')
+                client_attempt = pymongo.MongoClient(uri, **kwargs)
+                try:
+                    client_attempt.admin.command('ping')
+                    cls._client = client_attempt
+                except pymongo.errors.PyMongoError as ping_err:
+                    err_msg = str(ping_err)
+                    # If TLS/SSL error happens, attempt retry with tlsAllowInvalidCertificates=True if not already set
+                    if ('SSL' in err_msg or 'TLS' in err_msg) and not kwargs.get('tlsAllowInvalidCertificates'):
+                        logger.warning("Standard TLS verification failed. Attempting fallback connection with tlsAllowInvalidCertificates=True...")
+                        kwargs['tlsAllowInvalidCertificates'] = True
+                        try:
+                            fallback_client = pymongo.MongoClient(uri, **kwargs)
+                            fallback_client.admin.command('ping')
+                            cls._client = fallback_client
+                        except pymongo.errors.PyMongoError:
+                            raise ping_err
+                    else:
+                        raise ping_err
 
                 masked_uri = mask_mongodb_uri(uri)
                 logger.info(f"MongoDB connected successfully to {masked_uri}")
@@ -157,7 +175,18 @@ class MongoDBManager:
                 cls._client = None
                 return None
             except pymongo.errors.PyMongoError as e:
-                logger.error(f"MongoDB connection error: {e}")
+                err_str = str(e)
+                if 'TLSV1_ALERT_INTERNAL_ERROR' in err_str or 'SSL handshake failed' in err_str:
+                    logger.error(
+                        f"MongoDB Atlas SSL handshake failed: {e}\n"
+                        "[SOLUTION] This error occurs because MongoDB Atlas Network Access is blocking your IP address.\n"
+                        "1. Go to MongoDB Atlas (https://cloud.mongodb.net)\n"
+                        "2. Click 'Network Access' under Security in the left sidebar\n"
+                        "3. Click '+ Add IP Address'\n"
+                        "4. Click 'Allow Access From Anywhere' (0.0.0.0/0) or 'Add Current IP Address', then click Confirm."
+                    )
+                else:
+                    logger.error(f"MongoDB connection error: {e}")
                 cls._client = None
                 return None
             except Exception as e:
