@@ -58,6 +58,12 @@ class MongoDBManager:
                 cls._connection_logged = True
             return None
 
+        if '<password>' in uri.lower() or '<db_password>' in uri.lower():
+            if not cls._connection_logged:
+                logger.warning("MONGODB_URI contains unreplaced password placeholder. Replace '<db_password>' with your actual database password.")
+                cls._connection_logged = True
+            return None
+
         if cls._client is None:
             try:
                 import pymongo

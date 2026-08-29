@@ -8,13 +8,15 @@ from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from django.db.models import Q
 
+from django.contrib.auth.hashers import check_password
 from .models import ActivityLog, BankTransaction, Staff, StoreSetting, LoginAccount
 from .serializers import (
     StaffSerializer,
     ActivityLogSerializer,
     BankTransactionSerializer,
     StoreSettingSerializer,
-    LoginAccountSerializer
+    LoginAccountSerializer,
+    LoginRequestSerializer
 )
 
 
@@ -504,45 +506,95 @@ def get_tokens_for_account(acc):
     return str(refresh.access_token), str(refresh)
 
 
+def ensure_default_accounts():
+    """Ensure at least default admin and cashier accounts exist in LoginAccount table."""
+    try:
+        if LoginAccount.objects.count() == 0:
+            LoginAccount.objects.create(
+                id=1,
+                username='admin',
+                password='admin123',
+                full_name='Zeel Patel (Admin)',
+                email='zeelptl028@gmail.com',
+                role='ADMIN',
+                require_otp=False,
+                is_active=True
+            )
+            LoginAccount.objects.create(
+                id=2,
+                username='cashier',
+                password='cashier123',
+                full_name='Rahul Sharma (Cashier)',
+                email='cashier@tulsimart.com',
+                role='CASHIER',
+                require_otp=False,
+                is_active=True
+            )
+    except Exception as e:
+        print("Default accounts seed warning:", e)
+
+
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def login_auth_view(request):
-    username = request.data.get('username', '').strip()
-    password = request.data.get('password', '').strip()
+    ensure_default_accounts()
 
-    if not username or not password:
-        return Response({'detail': 'Username and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
+    serializer = LoginRequestSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    acc = LoginAccount.objects.filter(username__iexact=username).first()
+    user_identifier = serializer.validated_data['user_identifier']
+    password = serializer.validated_data['password']
+
+    candidate_accounts = list(LoginAccount.objects.filter(
+        Q(username__iexact=user_identifier) | Q(email__iexact=user_identifier)
+    ))
+
+    acc = None
+    for candidate in candidate_accounts:
+        if candidate.password.startswith('pbkdf2_') or candidate.password.startswith('argon2') or candidate.password.startswith('bcrypt'):
+            if check_password(password, candidate.password):
+                acc = candidate
+                break
+        else:
+            if candidate.password == password or check_password(password, candidate.password):
+                acc = candidate
+                break
+
     if not acc:
         try:
             from .mongodb import get_collection
             col = get_collection('login_accounts')
             if col is not None:
-                doc = col.find_one({'username': {'$regex': f'^{username}$', '$options': 'i'}})
-                if doc:
-                    acc, _ = LoginAccount.objects.update_or_create(
-                        username=doc.get('username', username),
-                        defaults={
-                            'password': doc.get('password', password),
-                            'full_name': doc.get('full_name', username.capitalize()),
-                            'email': doc.get('email', 'contact@tulsimart.com'),
-                            'role': doc.get('role', 'ADMIN'),
-                            'is_active': doc.get('is_active', True),
-                            'require_otp': doc.get('require_otp', False),
-                        }
-                    )
+                docs = list(col.find({
+                    '$or': [
+                        {'username': {'$regex': f'^{user_identifier}$', '$options': 'i'}},
+                        {'email': {'$regex': f'^{user_identifier}$', '$options': 'i'}}
+                    ]
+                }))
+                for doc in docs:
+                    doc_pw = doc.get('password', '')
+                    if doc_pw == password or check_password(password, doc_pw):
+                        acc, _ = LoginAccount.objects.update_or_create(
+                            username=doc.get('username', user_identifier),
+                            defaults={
+                                'password': doc_pw,
+                                'full_name': doc.get('full_name', user_identifier.capitalize()),
+                                'email': doc.get('email', 'contact@tulsimart.com'),
+                                'role': doc.get('role', 'ADMIN'),
+                                'is_active': doc.get('is_active', True),
+                                'require_otp': doc.get('require_otp', False),
+                            }
+                        )
+                        break
         except Exception as mongo_err:
             print("MongoDB user lookup fallback warning:", mongo_err)
 
     if not acc:
-        return Response({'detail': 'Invalid username or password.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'detail': 'Invalid username/email or password.'}, status=status.HTTP_400_BAD_REQUEST)
 
     if not acc.is_active:
         return Response({'detail': 'This account has been disabled by store admin.'}, status=status.HTTP_400_BAD_REQUEST)
-
-    if acc.password != password:
-        return Response({'detail': 'Invalid username or password.'}, status=status.HTTP_400_BAD_REQUEST)
 
     # Check if 2FA OTP is required based on LoginAccount settings in DB
     store_settings = StoreSetting.get_settings()
@@ -742,9 +794,8 @@ def verify_otp_auth_view(request):
     if not username or not otp:
         return Response({'detail': 'Username and OTP code are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    try:
-        acc = LoginAccount.objects.get(username__iexact=username)
-    except LoginAccount.DoesNotExist:
+    acc = LoginAccount.objects.filter(Q(username__iexact=username) | Q(email__iexact=username)).first()
+    if not acc:
         return Response({'detail': 'User account not found.'}, status=status.HTTP_404_NOT_FOUND)
 
     record = OTP_STORAGE.get(acc.username)

@@ -15,6 +15,37 @@ class LoginAccountSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class LoginRequestSerializer(serializers.Serializer):
+    username = serializers.CharField(required=False, allow_blank=True)
+    email = serializers.CharField(required=False, allow_blank=True)
+    user = serializers.CharField(required=False, allow_blank=True)
+    password = serializers.CharField(
+        required=True,
+        allow_blank=False,
+        error_messages={
+            'required': 'Password is required.',
+            'blank': 'Password cannot be empty.'
+        }
+    )
+
+    def validate(self, attrs):
+        user_identifier = (
+            attrs.get('username') or
+            attrs.get('email') or
+            attrs.get('user') or
+            ''
+        ).strip()
+        
+        if not user_identifier:
+            raise serializers.ValidationError({
+                'username': 'Username or Email address is required.'
+            })
+        
+        attrs['user_identifier'] = user_identifier
+        return attrs
+
+
+
 class StaffSerializer(serializers.ModelSerializer):
     class Meta:
         model = Staff

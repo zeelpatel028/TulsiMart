@@ -164,6 +164,7 @@ CORS_ALLOWED_ORIGINS = [
     'https://tulsimart.onrender.com',
     'https://tulsi-mart.vercel.app',
     'https://tulsimart.vercel.app',
+    'https://tulsi-mart-4amuymdqt-zeel-dobariyas-projects.vercel.app',
     'http://localhost:5173',
     'http://127.0.0.1:5173',
     'http://localhost:3000',
@@ -193,6 +194,7 @@ CORS_ALLOW_HEADERS = [
 CSRF_TRUSTED_ORIGINS = [
     'https://tulsi-mart.vercel.app',
     'https://tulsimart.vercel.app',
+    'https://tulsi-mart-4amuymdqt-zeel-dobariyas-projects.vercel.app',
     'http://localhost:5173',
     'http://127.0.0.1:5173',
     'https://*.onrender.com',

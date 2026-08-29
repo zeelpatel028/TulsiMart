@@ -3,6 +3,17 @@ import { authApi, settingsApi } from '../api';
 
 const AuthContext = createContext(null);
 
+const extractErrorMessage = (err, defaultMsg) => {
+  if (!err.response?.data) return defaultMsg;
+  const data = err.response.data;
+  if (typeof data === 'string') return data;
+  if (data.detail) return data.detail;
+  if (data.username) return Array.isArray(data.username) ? data.username[0] : data.username;
+  if (data.password) return Array.isArray(data.password) ? data.password[0] : data.password;
+  if (data.non_field_errors) return Array.isArray(data.non_field_errors) ? data.non_field_errors[0] : data.non_field_errors;
+  return defaultMsg;
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('tm_user');
@@ -85,7 +96,7 @@ export const AuthProvider = ({ children }) => {
       }
       return { success: true, data: res.data };
     } catch (err) {
-      const msg = err.response?.data?.detail || 'Invalid username or password';
+      const msg = extractErrorMessage(err, 'Invalid username or password');
       return { success: false, error: msg };
     }
   };
@@ -111,7 +122,7 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true, user: userData };
     } catch (err) {
-      const msg = err.response?.data?.detail || 'Invalid OTP code';
+      const msg = extractErrorMessage(err, 'Invalid OTP code');
       return { success: false, error: msg };
     }
   };
@@ -136,7 +147,7 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true, user: userData };
     } catch (err) {
-      const msg = err.response?.data?.detail || 'Invalid username or password';
+      const msg = extractErrorMessage(err, 'Invalid username or password');
       return { success: false, error: msg };
     }
   };
