@@ -16,9 +16,9 @@ class LoginAccountSerializer(serializers.ModelSerializer):
 
 
 class LoginRequestSerializer(serializers.Serializer):
-    username = serializers.CharField(required=False, allow_blank=True)
-    email = serializers.CharField(required=False, allow_blank=True)
-    user = serializers.CharField(required=False, allow_blank=True)
+    username = serializers.CharField(required=False, allow_blank=True, trim_whitespace=True)
+    email = serializers.CharField(required=False, allow_blank=True, trim_whitespace=True)
+    user = serializers.CharField(required=False, allow_blank=True, trim_whitespace=True)
     password = serializers.CharField(
         required=True,
         allow_blank=False,

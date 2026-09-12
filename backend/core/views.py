@@ -436,13 +436,13 @@ def get_tokens_for_account(acc):
 
 
 def ensure_default_accounts():
-    """Ensure at least default admin and cashier accounts exist in LoginAccount table."""
+    """Ensure at least default admin, cashier, and manager accounts exist in LoginAccount table."""
     try:
         if LoginAccount.objects.count() == 0:
             LoginAccount.objects.create(
                 id=1,
                 username='admin',
-                password='admin123',
+                password='password123',
                 full_name='Zeel Patel (Admin)',
                 email='zeelptl028@gmail.com',
                 role='ADMIN',
@@ -452,10 +452,20 @@ def ensure_default_accounts():
             LoginAccount.objects.create(
                 id=2,
                 username='cashier',
-                password='cashier123',
+                password='password123',
                 full_name='Rahul Sharma (Cashier)',
                 email='cashier@tulsimart.com',
                 role='CASHIER',
+                require_otp=False,
+                is_active=True
+            )
+            LoginAccount.objects.create(
+                id=3,
+                username='manager',
+                password='password123',
+                full_name='Priya Sharma (Store Manager)',
+                email='manager@tulsimart.com',
+                role='STORE_MANAGER',
                 require_otp=False,
                 is_active=True
             )
@@ -473,8 +483,8 @@ def login_auth_view(request):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        user_identifier = serializer.validated_data['user_identifier']
-        password = serializer.validated_data['password']
+        user_identifier = serializer.validated_data['user_identifier'].strip()
+        password = serializer.validated_data['password'].strip()
 
         candidate_accounts = list(LoginAccount.objects.filter(
             Q(username__iexact=user_identifier) | Q(email__iexact=user_identifier)

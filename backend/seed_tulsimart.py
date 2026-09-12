@@ -20,7 +20,13 @@ from offers.models import Coupon, FestivalOffer
 def clear_all_demo_data():
     print("[Cleaning] Removing all existing data from tables...")
     with connection.cursor() as cursor:
-        cursor.execute('PRAGMA foreign_keys = OFF;')
+        if connection.vendor == 'mysql':
+            cursor.execute('SET FOREIGN_KEY_CHECKS = 0;')
+        else:
+            try:
+                cursor.execute('PRAGMA foreign_keys = OFF;')
+            except Exception:
+                pass
 
     models_to_clear = [
         OrderItem, PaymentTransaction, Order,
@@ -36,6 +42,15 @@ def clear_all_demo_data():
             m.objects.all().delete()
         except Exception:
             pass
+
+    with connection.cursor() as cursor:
+        if connection.vendor == 'mysql':
+            cursor.execute('SET FOREIGN_KEY_CHECKS = 1;')
+        else:
+            try:
+                cursor.execute('PRAGMA foreign_keys = ON;')
+            except Exception:
+                pass
 
 def seed_data():
     print("[Starting] Tulsi Mart Database Data Seeding...")

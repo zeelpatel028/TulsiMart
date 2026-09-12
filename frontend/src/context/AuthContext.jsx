@@ -8,9 +8,18 @@ const extractErrorMessage = (err, defaultMsg) => {
   const data = err.response.data;
   if (typeof data === 'string') return data;
   if (data.detail) return data.detail;
+  if (data.message) return data.message;
   if (data.username) return Array.isArray(data.username) ? data.username[0] : data.username;
   if (data.password) return Array.isArray(data.password) ? data.password[0] : data.password;
   if (data.non_field_errors) return Array.isArray(data.non_field_errors) ? data.non_field_errors[0] : data.non_field_errors;
+  if (data.errors) {
+    if (typeof data.errors === 'string') return data.errors;
+    if (typeof data.errors === 'object') {
+      const firstKey = Object.keys(data.errors)[0];
+      const val = data.errors[firstKey];
+      return Array.isArray(val) ? val[0] : val;
+    }
+  }
   return defaultMsg;
 };
 

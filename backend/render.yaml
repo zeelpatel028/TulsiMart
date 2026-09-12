@@ -14,3 +14,14 @@ services:
         generateValue: true
       - key: CORS_ALLOW_ALL_ORIGINS
         value: "True"
+      - key: DB_NAME
+        value: tulsimart
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "3306"
+

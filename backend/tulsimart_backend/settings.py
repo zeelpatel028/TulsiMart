@@ -89,13 +89,46 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'tulsimart_backend.wsgi.application'
 
-# Database Configuration (SQLite3 Primary Database)
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'tulsimart.sqlite3',
+# Database Configuration (MySQL Primary with phpMyAdmin & Render environment variable support)
+import urllib.parse
+
+db_url = os.getenv('MYSQL_URL') or os.getenv('DATABASE_URL')
+if db_url and (db_url.startswith('mysql://') or db_url.startswith('mysql2://')):
+    url = urllib.parse.urlparse(db_url)
+    DB_NAME = url.path.lstrip('/')
+    DB_USER = url.username or 'root'
+    DB_PASSWORD = urllib.parse.unquote(url.password or '')
+    DB_HOST = url.hostname or '127.0.0.1'
+    DB_PORT = str(url.port or 3306)
+else:
+    DB_NAME = os.getenv('DB_NAME', os.getenv('MYSQL_DATABASE', 'tulsimart'))
+    DB_USER = os.getenv('DB_USER', os.getenv('MYSQL_USER', 'root'))
+    DB_PASSWORD = os.getenv('DB_PASSWORD', os.getenv('MYSQL_PASSWORD', ''))
+    DB_HOST = os.getenv('DB_HOST', os.getenv('MYSQL_HOST', '127.0.0.1'))
+    DB_PORT = os.getenv('DB_PORT', os.getenv('MYSQL_PORT', '3306'))
+
+if os.getenv('USE_SQLITE', 'False').lower() in ('true', '1'):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'tulsimart.sqlite3',
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': DB_NAME,
+            'USER': DB_USER,
+            'PASSWORD': DB_PASSWORD,
+            'HOST': DB_HOST,
+            'PORT': DB_PORT,
+            'OPTIONS': {
+                'charset': 'utf8mb4',
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            },
+        }
+    }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
