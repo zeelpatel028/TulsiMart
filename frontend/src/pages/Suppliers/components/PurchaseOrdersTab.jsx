@@ -71,7 +71,7 @@ export const PurchaseOrdersTab = ({
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      <p className="font-bold text-[#384959] dark:text-slate-100">{po.supplier_name}</p>
+                      <p className="font-bold text-[#263238] dark:text-slate-100">{po.supplier_name}</p>
                       <p className="text-[10px] text-slate-400">{po.supplier_company}</p>
                     </td>
                     <td className="py-3 px-4 text-center">
@@ -79,8 +79,8 @@ export const PurchaseOrdersTab = ({
                         {po.items?.length || 1} items
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-right font-extrabold text-[#384959] dark:text-[#88BDF2]">
-                      ₹{total.toFixed(2)}
+                    <td className="py-3 px-4 text-right font-extrabold text-[#00695C] dark:text-[#4DB6AC]">
+                      ₹{Number(po.total_amount).toLocaleString('en-IN')}
                     </td>
                     <td className="py-3 px-4 text-right">
                       <p className="text-emerald-700 dark:text-emerald-400 font-bold">
@@ -107,7 +107,7 @@ export const PurchaseOrdersTab = ({
                             size="sm"
                             icon={CreditCard}
                             onClick={() => onPayPO(po)}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                            className="bg-[#00695C] hover:bg-[#004D40] text-white font-bold"
                           >
                             Pay Order
                           </Button>

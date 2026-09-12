@@ -17,14 +17,14 @@ export const GoodsReceiveModal = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Manual Goods Receipt & Restock (માલ ચકાસણી પત્રક)`}
+      title={`Manual Goods Receipt & Restock`}
       subtitle={`Verify physical goods received & stock quantity for PO #${selectedPOForReceive?.po_number}`}
       maxWidth="max-w-2xl"
       footer={
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 w-full font-sans">
           <div className="text-xs text-left">
             <span className="text-slate-500 font-semibold">Total Verified Stock Value: </span>
-            <span className="font-extrabold text-[#384959] dark:text-[#88BDF2]">
+            <span className="font-extrabold text-[#00695C] dark:text-[#4DB6AC]">
               ₹{receiveItems.reduce((acc, i) => acc + (parseFloat(i.unit_cost || 0) * parseInt(i.received_quantity || 0, 10)), 0).toLocaleString('en-IN')}
             </span>
           </div>
@@ -37,7 +37,7 @@ export const GoodsReceiveModal = ({
               size="md"
               icon={CheckCircle2}
               onClick={onConfirmManualReceive}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+              className="bg-[#00695C] hover:bg-[#004D40] text-white font-bold"
             >
               Confirm Restock Stock
             </Button>
@@ -72,7 +72,7 @@ export const GoodsReceiveModal = ({
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
               {receiveItems.map((item, idx) => (
                 <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
-                  <td className="py-2.5 px-3 font-bold text-[#384959] dark:text-slate-100">
+                  <td className="py-2.5 px-3 font-bold text-[#263238] dark:text-slate-100">
                     {item.product_name}
                   </td>
                   <td className="py-2.5 px-3 text-center">

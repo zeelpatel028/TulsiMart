@@ -30,10 +30,10 @@ export const PaymentsLedgerTab = ({ paymentsList }) => {
               paymentsList.map((p) => (
                 <tr key={p.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/60">
                   <td className="py-3 px-4">
-                    <p className="font-mono font-bold text-[#384959] dark:text-slate-100">{p.payment_date}</p>
+                    <p className="font-mono font-bold text-[#00695C] dark:text-[#4DB6AC]">{p.payment_date}</p>
                     <p className="text-[10px] font-mono text-slate-400">{p.reference_number || 'REF-N/A'}</p>
                   </td>
-                  <td className="py-3 px-4 font-bold text-[#384959] dark:text-slate-100">{p.supplier_name || 'Supplier'}</td>
+                  <td className="py-3 px-4 font-bold text-[#263238] dark:text-slate-100">{p.supplier_name || 'Supplier'}</td>
                   <td className="py-3 px-4 font-semibold text-slate-600 dark:text-slate-300">{p.payment_method}</td>
                   <td className="py-3 px-4 text-right font-extrabold text-emerald-600 dark:text-emerald-400">
                     ₹{Number(p.amount).toFixed(2)}

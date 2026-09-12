@@ -223,15 +223,15 @@ export const QuickOrderModal = ({ isOpen, onClose, onOrderCreated }) => {
       subtitle="Point of Sale counter terminal for fast grocery billing"
       maxWidth="max-w-6xl"
     >
-      {/* Mobile Tab Switcher (Visible only on mobile/tablet < lg) */}
-      <div className="flex lg:hidden items-center bg-slate-100 p-1 rounded-xl mb-4 text-xs font-bold">
+      {/* Mobile Tab Switcher */}
+      <div className="flex lg:hidden items-center bg-[#E0F2F1] p-1 rounded-xl mb-4 text-xs font-bold">
         <button
           type="button"
           onClick={() => setMobileTab('catalog')}
           className={`flex-1 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
             mobileTab === 'catalog'
-              ? 'bg-[#384959] text-white shadow-xs'
-              : 'text-slate-600 hover:text-[#384959]'
+              ? 'bg-[#00695C] text-white shadow-xs'
+              : 'text-[#607D8B] hover:text-[#00695C]'
           }`}
         >
           <span>Catalog ({filteredProducts.length})</span>
@@ -241,14 +241,14 @@ export const QuickOrderModal = ({ isOpen, onClose, onOrderCreated }) => {
           onClick={() => setMobileTab('cart')}
           className={`flex-1 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
             mobileTab === 'cart'
-              ? 'bg-[#384959] text-white shadow-xs'
-              : 'text-slate-600 hover:text-[#384959]'
+              ? 'bg-[#00695C] text-white shadow-xs'
+              : 'text-[#607D8B] hover:text-[#00695C]'
           }`}
         >
           <ShoppingCart className="w-3.5 h-3.5" />
           <span>Cart ({cart.reduce((s, i) => s + i.quantity, 0)})</span>
           {cart.length > 0 && (
-            <span className="bg-[#88BDF2] text-[#384959] text-[10px] px-1.5 py-0.2 rounded-full font-black">
+            <span className="bg-[#4DB6AC] text-[#00695C] text-[10px] px-1.5 py-0.2 rounded-full font-black">
               ₹{grandTotal.toFixed(0)}
             </span>
           )}
@@ -272,8 +272,8 @@ export const QuickOrderModal = ({ isOpen, onClose, onOrderCreated }) => {
                 onClick={() => setSelectedCategory('ALL')}
                 className={`px-3 py-1.5 rounded-xl font-bold shrink-0 transition-colors ${
                   selectedCategory === 'ALL'
-                    ? 'bg-[#384959] text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    ? 'bg-[#00695C] text-white'
+                    : 'bg-[#E0F2F1] text-[#263238] hover:bg-[#B2DFDB]'
                 }`}
               >
                 All Categories
@@ -284,8 +284,8 @@ export const QuickOrderModal = ({ isOpen, onClose, onOrderCreated }) => {
                   onClick={() => setSelectedCategory(c.id)}
                   className={`px-3 py-1.5 rounded-xl font-bold shrink-0 transition-colors ${
                     selectedCategory === c.id
-                      ? 'bg-[#384959] text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      ? 'bg-[#00695C] text-white'
+                      : 'bg-[#E0F2F1] text-[#263238] hover:bg-[#B2DFDB]'
                   }`}
                 >
                   {c.name}
@@ -306,51 +306,50 @@ export const QuickOrderModal = ({ isOpen, onClose, onOrderCreated }) => {
                   onClick={() => !isOutOfStock && addToCart(p)}
                   className={`relative p-2.5 sm:p-3 rounded-2xl border transition-all duration-200 flex flex-col justify-between ${
                     isOutOfStock
-                      ? 'opacity-50 bg-slate-50 border-slate-200 cursor-not-allowed'
+                      ? 'opacity-50 bg-[#F0FAF9] border-[#B2DFDB] cursor-not-allowed'
                       : inCartItem
-                      ? 'bg-[#BDDDFC]/20 border-[#88BDF2] shadow-xs cursor-pointer'
-                      : 'bg-white border-slate-200/80 hover:border-[#88BDF2] hover:shadow-md cursor-pointer'
+                      ? 'bg-[#E0F2F1] border-[#009688] shadow-xs cursor-pointer'
+                      : 'bg-white border-[#B2DFDB]/80 hover:border-[#009688] hover:shadow-md cursor-pointer'
                   }`}
                 >
                   {inCartItem && (
-                    <span className="absolute top-2 right-2 w-5 h-5 bg-[#384959] text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-xs">
+                    <span className="absolute top-2 right-2 w-5 h-5 bg-[#00695C] text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-xs">
                       {inCartItem.quantity}
                     </span>
                   )}
 
                   <div>
                     <div className="flex items-center justify-between gap-1 mb-1">
-                      <span className="text-[10px] font-bold text-[#6A89A7] uppercase truncate">
+                      <span className="text-[10px] font-bold text-[#009688] uppercase truncate">
                         {p.category_name || 'Grocery'}
                       </span>
                     </div>
-                    <p className="text-[11px] sm:text-xs font-bold text-[#384959] line-clamp-2 leading-snug">
+                    <p className="text-[11px] sm:text-xs font-bold text-[#263238] line-clamp-2 leading-snug font-heading">
                       {p.name}
                     </p>
-                    <p className="text-[9px] sm:text-[10px] text-slate-400 font-mono mt-0.5">{p.sku || p.unit || '1 Unit'}</p>
+                    <p className="text-[9px] sm:text-[10px] text-[#607D8B] font-mono mt-0.5">{p.sku || p.unit || '1 Unit'}</p>
                   </div>
 
-                  <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between">
+                  <div className="mt-2 pt-2 border-t border-[#B2DFDB]/60 flex items-center justify-between">
                     <div>
-                      <span className="text-xs font-extrabold text-[#384959]">₹{p.selling_price}</span>
+                      <span className="text-xs font-extrabold text-[#00695C]">₹{p.selling_price}</span>
                       {Number(p.mrp) > Number(p.selling_price) && (
-                        <span className="text-[10px] text-slate-400 line-through ml-1">₹{p.mrp}</span>
+                        <span className="text-[10px] text-[#607D8B] line-through ml-1">₹{p.mrp}</span>
                       )}
                     </div>
                     <span
                       className={`text-[9px] font-bold px-1.5 py-0.5 rounded-sm ${
                         isOutOfStock
-                          ? 'bg-rose-100 text-rose-700'
+                          ? 'bg-[#FFEBEE] text-[#E53935]'
                           : p.stock_quantity <= p.min_stock_alert
-                          ? 'bg-amber-100 text-amber-700'
-                          : 'bg-emerald-50 text-emerald-700'
+                          ? 'bg-[#FFF8E1] text-[#263238]'
+                          : 'bg-[#E0F2F1] text-[#00695C]'
                       }`}
                     >
                       {isOutOfStock ? '0' : `${p.stock_quantity} left`}
                     </span>
                   </div>
                 </div>
-
               );
             })}
           </div>
@@ -360,14 +359,14 @@ export const QuickOrderModal = ({ isOpen, onClose, onOrderCreated }) => {
             <div className="block lg:hidden pt-2">
               <button
                 onClick={() => setMobileTab('cart')}
-                className="w-full py-2.5 px-4 bg-[#384959] text-white rounded-xl font-bold text-xs flex items-center justify-between shadow-md cursor-pointer"
+                className="w-full py-2.5 px-4 bg-[#00695C] text-white rounded-xl font-bold text-xs flex items-center justify-between shadow-md cursor-pointer"
               >
                 <div className="flex items-center gap-2">
-                  <ShoppingCart className="w-4 h-4 text-[#88BDF2]" />
+                  <ShoppingCart className="w-4 h-4 text-[#4DB6AC]" />
                   <span>{cart.reduce((s, i) => s + i.quantity, 0)} Items Added</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-extrabold text-[#88BDF2]">₹{grandTotal.toFixed(2)}</span>
+                  <span className="text-sm font-extrabold text-[#4DB6AC]">₹{grandTotal.toFixed(2)}</span>
                   <span>View Bill →</span>
                 </div>
               </button>
@@ -376,12 +375,12 @@ export const QuickOrderModal = ({ isOpen, onClose, onOrderCreated }) => {
         </div>
 
         {/* Right Column: Live Bill / Checkout (5 cols) */}
-        <div className={`lg:col-span-5 bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-200 flex flex-col justify-between min-h-[460px] ${mobileTab === 'catalog' ? 'hidden lg:flex' : 'flex'}`}>
+        <div className={`lg:col-span-5 bg-[#F0FAF9] p-4 sm:p-5 rounded-2xl border border-[#B2DFDB] flex flex-col justify-between min-h-[460px] ${mobileTab === 'catalog' ? 'hidden lg:flex' : 'flex'}`}>
           <div>
             {/* Customer Inputs */}
-            <div className="pb-3 border-b border-slate-200/80 space-y-2">
-              <div className="flex items-center gap-2 text-xs font-bold text-[#384959]">
-                <User className="w-3.5 h-3.5 text-[#6A89A7]" /> Customer Information
+            <div className="pb-3 border-b border-[#B2DFDB]/80 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-bold text-[#263238] font-heading">
+                <User className="w-3.5 h-3.5 text-[#009688]" /> Customer Information
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <input
@@ -389,20 +388,20 @@ export const QuickOrderModal = ({ isOpen, onClose, onOrderCreated }) => {
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   placeholder="Customer Name"
-                  className="px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg outline-hidden focus:border-[#88BDF2]"
+                  className="px-3 py-1.5 text-xs bg-white border border-[#B2DFDB] rounded-lg outline-hidden focus:border-[#009688]"
                 />
                 <input
                   type="text"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
                   placeholder="Phone Number"
-                  className="px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg outline-hidden focus:border-[#88BDF2]"
+                  className="px-3 py-1.5 text-xs bg-white border border-[#B2DFDB] rounded-lg outline-hidden focus:border-[#009688]"
                 />
               </div>
             </div>
 
             {/* Cart Items List */}
-            <div className="py-2 max-h-52 overflow-y-auto divide-y divide-slate-200/60 touch-pan">
+            <div className="py-2 max-h-52 overflow-y-auto divide-y divide-[#B2DFDB]/60 touch-pan">
               {cart.length === 0 ? (
                 <EmptyState
                   variant="compact"
@@ -411,37 +410,36 @@ export const QuickOrderModal = ({ isOpen, onClose, onOrderCreated }) => {
                   description="Tap products on the catalog to add to bill."
                 />
               ) : (
-
                 cart.map((item) => (
                   <div key={item.id} className="py-2 flex items-center justify-between gap-2 text-xs">
                     <div className="flex-1 min-w-0 pr-1 truncate">
-                      <p className="font-bold text-[#384959] truncate">{item.name}</p>
-                      <p className="text-[10px] text-slate-400">₹{item.selling_price} × {item.quantity}</p>
+                      <p className="font-bold text-[#263238] truncate font-heading">{item.name}</p>
+                      <p className="text-[10px] text-[#607D8B]">₹{item.selling_price} × {item.quantity}</p>
                     </div>
 
                     <div className="flex items-center gap-1 shrink-0">
                       <button
                         onClick={() => updateQty(item.id, -1)}
-                        className="w-6 h-6 rounded-md bg-white border border-slate-200 text-[#384959] flex items-center justify-center hover:bg-slate-100"
+                        className="w-6 h-6 rounded-md bg-white border border-[#B2DFDB] text-[#263238] flex items-center justify-center hover:bg-[#E0F2F1]"
                       >
                         <Minus className="w-3 h-3" />
                       </button>
                       <span className="w-5 text-center font-extrabold text-xs">{item.quantity}</span>
                       <button
                         onClick={() => updateQty(item.id, 1)}
-                        className="w-6 h-6 rounded-md bg-white border border-slate-200 text-[#384959] flex items-center justify-center hover:bg-slate-100"
+                        className="w-6 h-6 rounded-md bg-white border border-[#B2DFDB] text-[#263238] flex items-center justify-center hover:bg-[#E0F2F1]"
                       >
                         <Plus className="w-3 h-3" />
                       </button>
                     </div>
 
-                    <span className="font-extrabold text-[#384959] w-14 text-right shrink-0">
+                    <span className="font-extrabold text-[#00695C] w-14 text-right shrink-0">
                       ₹{(item.selling_price * item.quantity).toFixed(2)}
                     </span>
 
                     <button
                       onClick={() => removeFromCart(item.id)}
-                      className="text-slate-400 hover:text-rose-600 p-1 shrink-0"
+                      className="text-[#607D8B] hover:text-[#E53935] p-1 shrink-0"
                       title="Remove"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -452,30 +450,30 @@ export const QuickOrderModal = ({ isOpen, onClose, onOrderCreated }) => {
             </div>
 
             {/* Coupon Code Input */}
-            <div className="py-3 border-t border-slate-200 flex items-center gap-2">
+            <div className="py-3 border-t border-[#B2DFDB] flex items-center gap-2">
               <input
                 type="text"
                 value={couponCode}
                 onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                 placeholder="PROMO (e.g. TULSI10)"
-                className="flex-1 px-3 py-1.5 text-xs uppercase font-mono bg-white border border-slate-200 rounded-lg outline-hidden focus:border-[#88BDF2]"
+                className="flex-1 px-3 py-1.5 text-xs uppercase font-mono bg-white border border-[#B2DFDB] rounded-lg outline-hidden focus:border-[#009688]"
               />
               <Button variant="outline" size="sm" onClick={applyCoupon} loading={couponLoading}>
                 Apply
               </Button>
             </div>
             {appliedCoupon && (
-              <div className="mb-2 p-2 bg-emerald-50 text-emerald-800 rounded-lg text-xs font-semibold flex items-center justify-between">
+              <div className="mb-2 p-2 bg-[#E0F2F1] text-[#00695C] rounded-lg text-xs font-semibold flex items-center justify-between border border-[#B2DFDB]">
                 <span>✓ Applied '{appliedCoupon.code}' (-₹{appliedCoupon.discount_amount})</span>
-                <button onClick={() => setAppliedCoupon(null)} className="text-emerald-700 hover:underline cursor-pointer">
+                <button onClick={() => setAppliedCoupon(null)} className="text-[#00695C] hover:underline cursor-pointer">
                   Remove
                 </button>
               </div>
             )}
 
             {/* Payment Method Selector */}
-            <div className="py-2 border-t border-slate-200 space-y-1.5">
-              <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+            <div className="py-2 border-t border-[#B2DFDB] space-y-1.5">
+              <p className="text-[11px] font-bold text-[#607D8B] uppercase tracking-wider">
                 Payment Method
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-xs">
@@ -493,8 +491,8 @@ export const QuickOrderModal = ({ isOpen, onClose, onOrderCreated }) => {
                       onClick={() => setPaymentMethod(m.id)}
                       className={`p-2 rounded-xl border flex flex-col items-center gap-1 font-semibold transition-all cursor-pointer ${
                         paymentMethod === m.id
-                          ? 'bg-[#384959] text-white border-[#384959] shadow-xs'
-                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                          ? 'bg-[#009688] text-white border-[#009688] shadow-xs'
+                          : 'bg-white text-[#263238] border-[#B2DFDB] hover:bg-[#E0F2F1]'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
@@ -507,8 +505,8 @@ export const QuickOrderModal = ({ isOpen, onClose, onOrderCreated }) => {
           </div>
 
           {/* Bottom Total & Checkout Button */}
-          <div className="pt-3 border-t border-slate-200 space-y-3">
-            <div className="space-y-1 text-xs text-slate-600">
+          <div className="pt-3 border-t border-[#B2DFDB] space-y-3">
+            <div className="space-y-1 text-xs text-[#607D8B]">
               <div className="flex justify-between">
                 <span>Subtotal:</span>
                 <span>₹{subtotal.toFixed(2)}</span>
@@ -518,12 +516,12 @@ export const QuickOrderModal = ({ isOpen, onClose, onOrderCreated }) => {
                 <span>₹{taxAmount.toFixed(2)}</span>
               </div>
               {discountAmount > 0 && (
-                <div className="flex justify-between text-emerald-700 font-semibold">
+                <div className="flex justify-between text-[#00695C] font-semibold">
                   <span>Discount:</span>
                   <span>-₹{discountAmount.toFixed(2)}</span>
                 </div>
               )}
-              <div className="flex justify-between text-base font-extrabold text-[#384959] pt-2 border-t border-slate-200">
+              <div className="flex justify-between text-base font-extrabold text-[#00695C] pt-2 border-t border-[#B2DFDB]">
                 <span>Payable Amount:</span>
                 <span className="font-heading">₹{grandTotal.toFixed(2)}</span>
               </div>

@@ -10,18 +10,18 @@ export const SearchInput = ({
 }) => {
   return (
     <div className={`relative flex items-center ${className}`}>
-      <Search className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
+      <Search className="w-4 h-4 text-[#607D8B] absolute left-3.5 pointer-events-none" />
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full pl-10 pr-9 py-2 text-sm bg-slate-50 dark:bg-slate-800 hover:bg-slate-100/80 dark:hover:bg-slate-700/60 focus:bg-white dark:focus:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-[#88BDF2] rounded-xl outline-hidden transition-all text-[#384959] dark:text-slate-100 placeholder:text-slate-400 focus:ring-2 focus:ring-[#88BDF2]/20"
+        className="w-full pl-10 pr-9 py-2 text-sm bg-white dark:bg-slate-800 hover:bg-[#F0FAF9]/60 dark:hover:bg-slate-700/60 focus:bg-white dark:focus:bg-slate-800 border border-[#B2DFDB] dark:border-slate-700 focus:border-[#009688] rounded-xl outline-hidden transition-all text-[#263238] dark:text-slate-100 placeholder:text-[#607D8B]/70 focus:ring-2 focus:ring-[#009688]/20"
       />
       {value && (
         <button
           onClick={onClear || (() => onChange(''))}
-          className="absolute right-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5"
+          className="absolute right-3 text-[#607D8B] hover:text-[#00695C] dark:hover:text-slate-200 p-0.5"
         >
           <X className="w-3.5 h-3.5" />
         </button>
@@ -64,11 +64,11 @@ export const Pagination = ({
   }
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 py-4 px-2 text-xs text-slate-500 dark:text-slate-400 select-none">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 py-4 px-2 text-xs text-[#607D8B] dark:text-slate-400 select-none">
       <div className="text-center sm:text-left text-[11px] sm:text-xs font-medium">
-        Showing <span className="font-bold text-slate-700 dark:text-slate-200">{from}</span> to{' '}
-        <span className="font-bold text-slate-700 dark:text-slate-200">{to}</span> of{' '}
-        <span className="font-bold text-slate-700 dark:text-slate-200">{effectiveTotalItems}</span> entries
+        Showing <span className="font-bold text-[#263238] dark:text-slate-200">{from}</span> to{' '}
+        <span className="font-bold text-[#263238] dark:text-slate-200">{to}</span> of{' '}
+        <span className="font-bold text-[#263238] dark:text-slate-200">{effectiveTotalItems}</span> entries
       </div>
 
       <div className="flex items-center gap-1.5">
@@ -76,13 +76,13 @@ export const Pagination = ({
         <button
           disabled={safeCurrentPage <= 1}
           onClick={() => onPageChange && onPageChange(safeCurrentPage - 1)}
-          className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed font-bold text-slate-700 dark:text-slate-200 text-xs transition-all shadow-xs cursor-pointer active:scale-95"
+          className="px-3.5 py-1.5 rounded-xl border border-[#B2DFDB] dark:border-slate-700/80 bg-white dark:bg-slate-800 hover:bg-[#E0F2F1] dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed font-bold text-[#263238] dark:text-slate-200 text-xs transition-all shadow-xs cursor-pointer active:scale-95"
         >
           Previous
         </button>
 
         {/* Mobile Compact Page Number */}
-        <span className="inline-block sm:hidden px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-700 dark:text-slate-200 font-extrabold text-xs border border-slate-200 dark:border-slate-700">
+        <span className="inline-block sm:hidden px-2.5 py-1 bg-[#E0F2F1] dark:bg-slate-800 rounded-lg text-[#00695C] dark:text-slate-200 font-extrabold text-xs border border-[#B2DFDB] dark:border-slate-700">
           {safeCurrentPage} / {safeTotalPages}
         </span>
 
@@ -92,11 +92,11 @@ export const Pagination = ({
             <>
               <button
                 onClick={() => onPageChange && onPageChange(1)}
-                className="w-8 h-8 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all cursor-pointer"
+                className="w-8 h-8 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 border border-[#B2DFDB] dark:border-slate-700 text-[#263238] dark:text-slate-300 hover:bg-[#E0F2F1] dark:hover:bg-slate-700 transition-all cursor-pointer"
               >
                 1
               </button>
-              {startPage > 2 && <span className="text-slate-400 px-0.5 font-bold">...</span>}
+              {startPage > 2 && <span className="text-[#607D8B] px-0.5 font-bold">...</span>}
             </>
           )}
 
@@ -106,8 +106,8 @@ export const Pagination = ({
               onClick={() => onPageChange && onPageChange(pageNum)}
               className={`w-8 h-8 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
                 safeCurrentPage === pageNum
-                  ? 'bg-[#88BDF2] dark:bg-[#88BDF2] text-slate-900 shadow-md scale-105 border border-[#88BDF2]/50'
-                  : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/80'
+                  ? 'bg-[#009688] dark:bg-[#009688] text-white shadow-md scale-105 border border-[#009688]'
+                  : 'bg-white dark:bg-slate-800 border border-[#B2DFDB] dark:border-slate-700/80 text-[#263238] dark:text-slate-300 hover:bg-[#E0F2F1] dark:hover:bg-slate-700/80'
               }`}
             >
               {pageNum}
@@ -116,10 +116,10 @@ export const Pagination = ({
 
           {endPage < safeTotalPages && (
             <>
-              {endPage < safeTotalPages - 1 && <span className="text-slate-400 px-0.5 font-bold">...</span>}
+              {endPage < safeTotalPages - 1 && <span className="text-[#607D8B] px-0.5 font-bold">...</span>}
               <button
                 onClick={() => onPageChange && onPageChange(safeTotalPages)}
-                className="w-8 h-8 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all cursor-pointer"
+                className="w-8 h-8 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 border border-[#B2DFDB] dark:border-slate-700 text-[#263238] dark:text-slate-300 hover:bg-[#E0F2F1] dark:hover:bg-slate-700 transition-all cursor-pointer"
               >
                 {safeTotalPages}
               </button>
@@ -131,7 +131,7 @@ export const Pagination = ({
         <button
           disabled={safeCurrentPage >= safeTotalPages}
           onClick={() => onPageChange && onPageChange(safeCurrentPage + 1)}
-          className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed font-bold text-slate-700 dark:text-slate-200 text-xs transition-all shadow-xs cursor-pointer active:scale-95"
+          className="px-3.5 py-1.5 rounded-xl border border-[#B2DFDB] dark:border-slate-700/80 bg-white dark:bg-slate-800 hover:bg-[#E0F2F1] dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed font-bold text-[#263238] dark:text-slate-200 text-xs transition-all shadow-xs cursor-pointer active:scale-95"
         >
           Next
         </button>
@@ -154,15 +154,15 @@ export const ConfirmDialog = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#384959]/60 dark:bg-black/70 backdrop-blur-xs animate-in fade-in">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-800 animate-in zoom-in-95">
-        <h3 className="text-base sm:text-lg font-bold text-[#384959] dark:text-slate-100">{title}</h3>
-        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-2 leading-relaxed">{message}</p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#00695C]/40 dark:bg-black/70 backdrop-blur-xs animate-in fade-in">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl border border-[#B2DFDB] dark:border-slate-800 animate-in zoom-in-95">
+        <h3 className="text-base sm:text-lg font-bold text-[#263238] dark:text-slate-100 font-heading">{title}</h3>
+        <p className="text-xs sm:text-sm text-[#607D8B] dark:text-slate-300 mt-2 leading-relaxed">{message}</p>
         <div className="mt-5 sm:mt-6 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3">
           <button
             onClick={onClose}
             disabled={loading}
-            className="px-4 py-2 text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer text-center"
+            className="px-4 py-2 text-xs sm:text-sm font-semibold text-[#607D8B] dark:text-slate-300 hover:bg-[#E0F2F1] dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer text-center"
           >
             {cancelText}
           </button>
@@ -170,7 +170,7 @@ export const ConfirmDialog = ({
             onClick={onConfirm}
             disabled={loading}
             className={`px-4 py-2 text-xs sm:text-sm font-bold text-white rounded-xl shadow-xs transition-colors cursor-pointer text-center ${
-              isDanger ? 'bg-rose-600 hover:bg-rose-700' : 'bg-[#384959] hover:bg-[#273440] dark:bg-[#88BDF2] dark:hover:bg-[#BDDDFC] dark:text-[#384959]'
+              isDanger ? 'bg-[#E53935] hover:bg-[#c62828]' : 'bg-[#00695C] hover:bg-[#004D40]'
             }`}
           >
             {loading ? 'Processing...' : confirmText}
@@ -180,6 +180,5 @@ export const ConfirmDialog = ({
     </div>
   );
 };
-
 
 export { EmptyState } from './EmptyState';

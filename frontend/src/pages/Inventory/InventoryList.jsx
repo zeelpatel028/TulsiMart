@@ -433,7 +433,7 @@ export const InventoryList = () => {
                   type="button"
                   onClick={() => setAdjustType('ADD')}
                   className={`p-2.5 rounded-xl border text-center font-bold transition-all cursor-pointer ${
-                    adjustType === 'ADD' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700'
+                    adjustType === 'ADD' ? 'bg-[#00695C] text-white border-[#00695C]' : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700'
                   }`}
                 >
                   + Add Stock

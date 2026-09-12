@@ -94,11 +94,11 @@ export const SuppliersDirectoryTab = ({
                   {/* Header Row */}
                   <div className="flex items-start justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#384959] to-[#273440] dark:from-slate-800 dark:to-slate-900 text-white font-black flex items-center justify-center text-sm shadow-md shrink-0">
-                        {(s.company_name || s.name || 'S').charAt(0).toUpperCase()}
+                      <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#00695C] to-[#009688] dark:from-slate-800 dark:to-slate-900 text-white font-black flex items-center justify-center text-sm shadow-md shrink-0">
+                        {supName ? supName[0].toUpperCase() : 'S'}
                       </div>
-                      <div>
-                        <h3 className="font-extrabold text-sm text-[#384959] dark:text-slate-100 font-heading group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-extrabold text-sm text-[#263238] dark:text-slate-100 font-heading group-hover:text-[#009688] dark:group-hover:text-[#4DB6AC] transition-colors">
                           {s.company_name || s.name}
                         </h3>
                         <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold">Contact: {s.name}</p>
@@ -181,7 +181,7 @@ export const SuppliersDirectoryTab = ({
                     size="sm"
                     icon={CreditCard}
                     onClick={() => onPaySupplier(s)}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs"
+                    className="bg-[#00695C] hover:bg-[#004D40] text-white font-bold text-xs rounded-xl shadow-xs"
                   >
                     Pay Supplier
                   </Button>

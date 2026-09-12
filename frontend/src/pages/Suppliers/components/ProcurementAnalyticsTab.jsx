@@ -70,7 +70,7 @@ export const ProcurementAnalyticsTab = ({ suppliers, onShowToast }) => {
     <div className="space-y-6 font-sans">
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
         <div>
-          <h2 className="text-base font-extrabold text-[#384959] dark:text-slate-100">
+          <h2 className="text-base font-extrabold text-[#263238] dark:text-slate-100">
             Procurement Cost Analysis & Export
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -101,7 +101,7 @@ export const ProcurementAnalyticsTab = ({ suppliers, onShowToast }) => {
                   <XAxis dataKey="company_name" tick={{ fontSize: 10 }} interval={0} angle={-10} textAnchor="end" />
                   <YAxis tick={{ fontSize: 10 }} />
                   <Tooltip formatter={(val) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Total Purchased']} />
-                  <Bar dataKey="total_purchases" name="Purchases (₹)" fill="#384959" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="total_purchases" name="Purchases (₹)" fill="#00695C" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -114,15 +114,15 @@ export const ProcurementAnalyticsTab = ({ suppliers, onShowToast }) => {
               {suppliers.slice(0, 5).map((s, idx) => (
                 <div key={s.id} className="flex items-center justify-between text-xs border-b border-slate-100 dark:border-slate-800 pb-2">
                   <div className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-[#384959]/10 text-[#384959] dark:text-[#88BDF2] font-bold flex items-center justify-center text-[10px]">
+                    <span className="w-5 h-5 rounded-full bg-[#E0F2F1] text-[#00695C] dark:text-[#4DB6AC] font-bold flex items-center justify-center text-[10px]">
                       #{idx + 1}
                     </span>
                     <div>
-                      <p className="font-bold text-[#384959] dark:text-slate-100">{s.company_name || s.name}</p>
-                      <p className="text-[10px] text-slate-400">{s.category || 'Grocery'}</p>
+                      <p className="font-bold text-[#263238] dark:text-slate-100 font-heading">{s.company_name || s.name}</p>
+                      <p className="text-[10px] text-[#607D8B]">{s.category || 'Grocery'}</p>
                     </div>
                   </div>
-                  <span className="font-extrabold text-[#384959] dark:text-[#88BDF2]">
+                  <span className="font-extrabold text-[#00695C] dark:text-[#4DB6AC]">
                     ₹{Number(s.total_purchases || 0).toLocaleString('en-IN')}
                   </span>
                 </div>

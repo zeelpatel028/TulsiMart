@@ -1,5 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
     StaffViewSet, 
     ActivityLogViewSet,
@@ -27,6 +28,7 @@ router.register(r'bank-transactions', BankTransactionViewSet, basename='bank-tra
 urlpatterns = [
     path('auth/login/', login_auth_view, name='auth-login'),
     path('auth/verify-otp/', verify_otp_auth_view, name='auth-verify-otp'),
+    path('auth/refresh/', TokenRefreshView.as_view(), name='auth-refresh'),
     path('auth/me/', get_me_auth_view, name='auth-me'),
     path('settings/', StoreSettingView.as_view(), name='settings'),
     path('home-cash/', home_cash_vault_api, name='home-cash-vault'),

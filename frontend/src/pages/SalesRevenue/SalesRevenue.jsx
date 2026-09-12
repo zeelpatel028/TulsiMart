@@ -38,7 +38,7 @@ export const SalesRevenue = () => {
   const [loading, setLoading] = useState(true);
   const [timeframe, setTimeframe] = useState('month'); // 'day', 'week', 'month', 'year'
 
-  const PALETTE_COLORS = ['#384959', '#6A89A7', '#88BDF2', '#BDDDFC', '#2E3D4B', '#53708C'];
+  const PALETTE_COLORS = ['#00695C', '#009688', '#4DB6AC', '#80CBC4', '#E0F2F1', '#263238'];
 
   const periods = [
     { id: 'day', label: 'Day' },
@@ -67,8 +67,8 @@ export const SalesRevenue = () => {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center space-y-3">
-          <div className="w-12 h-12 rounded-2xl bg-[#384959]/10 dark:bg-[#88BDF2]/10 border-2 border-[#88BDF2] border-t-transparent animate-spin mx-auto" />
-          <p className="text-sm font-bold text-[#384959] dark:text-slate-200">Loading Sales & Revenue Analytics...</p>
+          <div className="w-12 h-12 rounded-2xl bg-[#00695C]/10 dark:bg-[#4DB6AC]/10 border-2 border-[#009688] border-t-transparent animate-spin mx-auto" />
+          <p className="text-sm font-bold text-[#263238] dark:text-slate-200">Loading Sales & Revenue Analytics...</p>
         </div>
       </div>
     );
@@ -91,15 +91,15 @@ export const SalesRevenue = () => {
       const data = payload[0].payload;
       return (
         <div className="p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg text-xs space-y-1.5 font-sans min-w-[170px]">
-          <p className="font-bold text-[#384959] dark:text-slate-100 border-b border-slate-100 dark:border-slate-700/60 pb-1">
+          <p className="font-bold text-[#263238] dark:text-slate-100 border-b border-slate-100 dark:border-slate-700/60 pb-1">
             {label}
           </p>
           <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
             <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#384959] dark:bg-[#88BDF2]" />
+              <span className="w-2.5 h-2.5 rounded-full bg-[#00695C] dark:bg-[#4DB6AC]" />
               Total Revenue:
             </span>
-            <span className="font-bold text-[#384959] dark:text-slate-100">₹{Number(data.revenue || 0).toLocaleString('en-IN')}</span>
+            <span className="font-bold text-[#263238] dark:text-slate-100">₹{Number(data.revenue || 0).toLocaleString('en-IN')}</span>
           </div>
           <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
             <span className="flex items-center gap-1.5">
@@ -131,7 +131,7 @@ export const SalesRevenue = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-[#384959] dark:text-slate-100 tracking-tight font-heading">
+          <h1 className="text-xl sm:text-2xl font-black text-[#263238] dark:text-slate-100 tracking-tight font-heading">
             Sales & Revenue Analytics
           </h1>
           <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -147,8 +147,8 @@ export const SalesRevenue = () => {
               onClick={() => setTimeframe(p.id)}
               className={`px-3.5 sm:px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
                 timeframe === p.id 
-                  ? 'bg-[#384959] dark:bg-[#88BDF2] text-white dark:text-[#384959] shadow-sm' 
-                  : 'text-slate-600 dark:text-slate-400 hover:text-[#384959] dark:hover:text-white'
+                  ? 'bg-[#00695C] dark:bg-[#009688] text-white dark:text-white shadow-sm' 
+                  : 'text-slate-600 dark:text-slate-400 hover:text-[#00695C] dark:hover:text-white'
               }`}
             >
               {p.label}
@@ -221,14 +221,14 @@ export const SalesRevenue = () => {
               <Bar 
                 dataKey="revenue" 
                 name="Total Revenue (₹)" 
-                fill={isDark ? '#88BDF2' : '#384959'} 
+                fill={isDark ? '#4DB6AC' : '#00695C'} 
                 radius={[6, 6, 0, 0]} 
                 maxBarSize={40}
               />
               <Bar 
                 dataKey="profit" 
                 name="Net Profit (₹)" 
-                fill="#10B981" 
+                fill="#009688" 
                 radius={[6, 6, 0, 0]} 
                 maxBarSize={40}
               />
@@ -279,10 +279,10 @@ export const SalesRevenue = () => {
                       className="w-3 h-3 rounded-full shrink-0"
                       style={{ backgroundColor: PALETTE_COLORS[i % PALETTE_COLORS.length] }}
                     />
-                    <span className="font-bold text-[#384959] dark:text-slate-200">{pm.method}</span>
+                    <span className="font-bold text-[#263238] dark:text-slate-200">{pm.method}</span>
                     <span className="text-[10px] text-slate-400">({pm.count} txns)</span>
                   </div>
-                  <span className="font-extrabold text-[#384959] dark:text-[#88BDF2]">₹{Number(pm.amount || 0).toFixed(2)}</span>
+                  <span className="font-extrabold text-[#00695C] dark:text-[#4DB6AC]">₹{Number(pm.amount || 0).toFixed(2)}</span>
                 </div>
               ))}
             </div>
@@ -321,7 +321,7 @@ export const SalesRevenue = () => {
                       color: isDark ? '#f8fafc' : '#1e293b'
                     }}
                   />
-                  <Bar dataKey="revenue" name="Revenue (₹)" fill={isDark ? '#88BDF2' : '#384959'} radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="revenue" name="Revenue (₹)" fill={isDark ? '#4DB6AC' : '#00695C'} radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

@@ -3,49 +3,80 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-tm-navy: #384959;
-  --color-tm-slate: #6A89A7;
-  --color-tm-sky: #88BDF2;
-  --color-tm-light: #BDDDFC;
-  --color-tm-bg: #F4F7FB;
+  /* Brand Teal & Mint System Colors */
+  --color-deep-teal: #00695C;
+  --color-teal-primary: #009688;
+  --color-mint-accent: #4DB6AC;
+  --color-mint-light: #E0F2F1;
+  --color-mint-very-light: #F0FAF9;
+  --color-dark-charcoal: #263238;
+  --color-slate-gray: #607D8B;
+  --color-gold-accent: #FBC02D;
+  --color-error-red: #E53935;
+  --color-mint-border: #B2DFDB;
+
+  /* Aliases for tm- Theme Tokens */
+  --color-tm-navy: #00695C;       /* Primary Brand Color: Deep Teal */
+  --color-tm-navy-dark: #004D40;  /* Darker Deep Teal */
+  --color-tm-slate: #009688;      /* Primary Action Color: Teal */
+  --color-tm-sky: #4DB6AC;        /* Mint Green Accent */
+  --color-tm-sky-hover: #00695C;  /* Hover Deep Teal */
+  --color-tm-light: #E0F2F1;      /* Light Mint Background */
+  --color-tm-bg: #F0FAF9;         /* Very Light Mint Page BG */
   --color-tm-surface: #FFFFFF;
   --color-tm-card: #FFFFFF;
-  --color-tm-border: #E2E8F0;
-  --color-tm-navy-dark: #273440;
-  --color-tm-sky-hover: #71adf0;
-  --color-tm-accent: #88BDF2;
-  
-  --color-slate-750: #243247;
-  --color-slate-850: #131d2e;
-  
+  --color-tm-border: #B2DFDB;
+  --color-tm-accent: #4DB6AC;
+
+  --color-slate-750: #1e2a38;
+  --color-slate-850: #111a2e;
+
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-heading: 'Outfit', 'Plus Jakarta Sans', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
 
 :root {
-  --tm-navy: #384959;
-  --tm-slate: #6A89A7;
-  --tm-sky: #88BDF2;
-  --tm-light: #BDDDFC;
-  --tm-bg: #F4F7FB;
+  --tm-primary: #009688;
+  --tm-primary-hover: #00695C;
+  --tm-navy: #00695C;
+  --tm-slate: #009688;
+  --tm-sky: #4DB6AC;
+  --tm-light: #E0F2F1;
+  --tm-bg: #F0FAF9;
+  --tm-border: #B2DFDB;
+  --tm-charcoal: #263238;
+  --tm-gold: #FBC02D;
+  --tm-error: #E53935;
+}
+
+/* Color Theme Presets */
+[data-color-theme="teal_mint"],
+[data-color-theme="emerald"] {
+  --tm-primary: #009688;
+  --tm-primary-hover: #00695C;
+  --tm-navy: #00695C;
+  --tm-slate: #009688;
+  --tm-sky: #4DB6AC;
+  --tm-light: #E0F2F1;
+  --tm-bg: #F0FAF9;
 }
 
 .dark {
-  --tm-bg: #0F172A;
+  --tm-bg: #0B1320;
   color-scheme: dark;
 }
 
 body {
   font-family: var(--font-sans);
   background-color: var(--tm-bg);
-  color: #1E293B;
+  color: #263238;
   overflow-x: hidden;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .dark body {
-  background-color: #0F172A;
+  background-color: #0B1320;
   color: #F8FAFC;
 }
 
@@ -66,7 +97,7 @@ body {
 .dark input:focus,
 .dark textarea:focus,
 .dark select:focus {
-  border-color: #88BDF2 !important;
+  border-color: #009688 !important;
   background-color: #1E293B !important;
   outline: none !important;
 }
@@ -108,47 +139,46 @@ body {
   color: #CBD5E1;
 }
 
-
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
 }
 
-/* Custom modern scrollbars - Tulsi Mart Brand Colors */
+/* Custom modern scrollbars - Teal & Mint Brand Colors */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #E2E8F0;
+  background: #E0F2F1;
   border-radius: 8px;
 }
 
 .dark ::-webkit-scrollbar-track {
-  background: #0F172A;
+  background: #0B1320;
   border-radius: 8px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #6A89A7;
+  background: #009688;
   border-radius: 8px;
-  border: 1px solid #E2E8F0;
+  border: 1px solid #E0F2F1;
   transition: background-color 0.2s ease;
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: #384959;
+  background: #00695C;
   border-radius: 8px;
-  border: 1px solid #0F172A;
+  border: 1px solid #0B1320;
   transition: background-color 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #384959;
+  background: #00695C;
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #88BDF2;
+  background: #4DB6AC;
 }
 
 ::-webkit-scrollbar-corner {
@@ -158,23 +188,23 @@ h1, h2, h3, h4, h5, h6 {
 /* W3C Standard Firefox Scrollbar Rules */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #6A89A7 #E2E8F0;
+  scrollbar-color: #009688 #E0F2F1;
 }
 
 .dark * {
   scrollbar-width: thin;
-  scrollbar-color: #384959 #0F172A;
+  scrollbar-color: #00695C #0B1320;
 }
 
 /* Explicit Utility Classes for Scrollbars */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: #6A89A7 #E2E8F0;
+  scrollbar-color: #009688 #E0F2F1;
 }
 
 .dark .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: #88BDF2 #1E293B;
+  scrollbar-color: #4DB6AC #1E293B;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -183,7 +213,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #F1F5F9;
+  background: #F0FAF9;
   border-radius: 8px;
 }
 
@@ -193,21 +223,21 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #6A89A7;
+  background: #009688;
   border-radius: 8px;
 }
 
 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #475569;
+  background: #00695C;
   border-radius: 8px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #384959;
+  background: #00695C;
 }
 
 .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #88BDF2;
+  background: #4DB6AC;
 }
 
 /* Compact Thin Scrollbar for Cart, Modals & Dropdowns */
@@ -221,21 +251,21 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .custom-scrollbar-thin::-webkit-scrollbar-thumb {
-  background: #6A89A7;
+  background: #009688;
   border-radius: 9999px;
 }
 
 .dark .custom-scrollbar-thin::-webkit-scrollbar-thumb {
-  background: #475569;
+  background: #00695C;
   border-radius: 9999px;
 }
 
 .custom-scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: #384959;
+  background: #00695C;
 }
 
 .dark .custom-scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: #88BDF2;
+  background: #4DB6AC;
 }
 
 /* Scrollable Container with Sticky Table Headers */
@@ -337,7 +367,54 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .animated-mesh-bg {
-  background: linear-gradient(-45deg, #0f172a, #1e293b, #1e3a8a, #0f2b48, #111827);
+  background: linear-gradient(-45deg, #003731, #00695C, #009688, #004D40, #002520);
   background-size: 400% 400%;
   animation: gradientShift 15s ease infinite;
 }
+
+/* Mobile App Specific Utilities & Touch Ergonomics */
+.touch-active {
+  transition: transform 0.1s ease, opacity 0.1s ease;
+}
+.touch-active:active {
+  transform: scale(0.96);
+}
+
+.glass-nav {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.dark .glass-nav {
+  background: rgba(11, 19, 32, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Safe area inset support for mobile bottom navigation */
+.pb-safe-bottom {
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 1rem);
+}
+
+/* Responsive Table Wrapper with Smooth Touch Scroll */
+.table-responsive-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 1rem;
+}
+
+/* Grocery product card elevation */
+.grocery-card-shadow {
+  box-shadow: 0 4px 20px -2px rgba(0, 105, 92, 0.08);
+}
+.grocery-card-shadow:hover {
+  box-shadow: 0 8px 30px -4px rgba(0, 105, 92, 0.16);
+}
+
+

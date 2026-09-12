@@ -29,7 +29,7 @@ export const SupplierPaymentModal = ({
   const gullaCashAvailable = gullaSummary?.cash_in_hand ?? gullaSummary?.net_cash_in_gulla ?? 0;
   const targetAmount = parseFloat(paymentForm.amount || 0);
 
-  // Auto-fill greedy note calculation (અંદાજિત નોટો)
+  // Auto-fill greedy note calculation
   const handleAutoFillNotes = (amountToFill) => {
     let rem = Math.round(amountToFill);
     const newCounts = { 500: 0, 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, coins: 0 };
@@ -74,7 +74,7 @@ export const SupplierPaymentModal = ({
         <div className="flex items-center justify-between w-full font-sans">
           <div className="text-xs">
             <span className="text-slate-500 font-semibold">Net Payout Amount: </span>
-            <span className="font-extrabold text-[#384959] dark:text-[#88BDF2] text-sm">
+            <span className="font-extrabold text-[#00695C] dark:text-[#4DB6AC] text-sm">
               ₹{Number(paymentForm.amount || 0).toLocaleString('en-IN')}
             </span>
           </div>
@@ -92,8 +92,8 @@ export const SupplierPaymentModal = ({
       <form onSubmit={onSavePayment} className="space-y-4 text-xs font-sans">
         {/* Order-Wise Selection */}
         <div>
-          <label className="block font-bold text-[#384959] dark:text-slate-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-            <FileText className="w-3.5 h-3.5 text-sky-600" /> Order-Wise Specific PO Payment (Optional)
+          <label className="block font-bold text-[#263238] dark:text-slate-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+            <FileText className="w-3.5 h-3.5 text-[#009688]" /> Order-Wise Specific PO Payment (Optional)
           </label>
           <select
             value={paymentForm.purchase_order || ''}
@@ -127,7 +127,7 @@ export const SupplierPaymentModal = ({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-300 uppercase tracking-wider mb-1">Amount Paid (₹) *</label>
+            <label className="block font-bold text-[#263238] dark:text-slate-300 uppercase tracking-wider mb-1">Amount Paid (₹) *</label>
             <input
               type="number"
               required
@@ -144,7 +144,7 @@ export const SupplierPaymentModal = ({
             />
           </div>
           <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-300 uppercase tracking-wider mb-1">Payment Method</label>
+            <label className="block font-bold text-[#263238] dark:text-slate-300 uppercase tracking-wider mb-1">Payment Method</label>
             <select
               value={paymentForm.payment_method}
               onChange={(e) => {
@@ -167,37 +167,37 @@ export const SupplierPaymentModal = ({
         {/* Live Gulla Register Status Card & Rupee Note Calculator (Only for CASH mode) */}
         {paymentForm.payment_method === 'CASH' && (
           <div className="space-y-3 pt-1">
-            <div className="p-3.5 bg-gradient-to-r from-emerald-900 via-slate-900 to-slate-900 text-white rounded-2xl shadow-sm flex items-center justify-between">
+            <div className="p-3.5 bg-gradient-to-r from-[#004D40] via-[#00695C] to-[#004D40] text-white rounded-2xl shadow-sm flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-black">
+                <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center text-[#4DB6AC] font-black">
                   <Wallet className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300">
-                    Gulla Register Cash (ગલ્લો બેલેન્સ)
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#E0F2F1]">
+                    Gulla Register Cash Balance
                   </p>
                   <p className="text-lg font-black text-white font-mono mt-0.5">
                     ₹{Number(gullaCashAvailable).toLocaleString('en-IN')}
                   </p>
                 </div>
               </div>
-              <span className="px-2.5 py-1 bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[10px] font-extrabold rounded-full flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Gulla Active
+              <span className="px-2.5 py-1 bg-white/10 border border-white/20 text-[#E0F2F1] text-[10px] font-extrabold rounded-full flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#4DB6AC] animate-pulse"></span> Gulla Active
               </span>
             </div>
 
             {/* Rupee Note Denomination Calculator */}
             <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
               <div className="flex items-center justify-between">
-                <label className="block text-[11px] font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-                  <Calculator className="w-4 h-4 text-emerald-600" /> Rupee Note Calculator (નોટ ગણતરી)
+                <label className="block text-[11px] font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                  <Calculator className="w-4 h-4 text-[#00695C]" /> Rupee Note Calculator
                 </label>
                 <button
                   type="button"
                   onClick={() => handleAutoFillNotes(targetAmount)}
-                  className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer flex items-center gap-1"
+                  className="text-[10px] font-bold text-[#00695C] dark:text-[#4DB6AC] hover:underline cursor-pointer flex items-center gap-1"
                 >
-                  <Zap className="w-3.5 h-3.5 fill-emerald-600 text-emerald-600" /> Auto-Fill Notes (અંદાજિત નોટો)
+                  <Zap className="w-3.5 h-3.5 fill-[#00695C] text-[#00695C]" /> Auto-Fill Notes
                 </button>
               </div>
 
@@ -265,7 +265,7 @@ export const SupplierPaymentModal = ({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-300 uppercase tracking-wider mb-1">Reference / UTR No.</label>
+            <label className="block font-bold text-[#263238] dark:text-slate-300 uppercase tracking-wider mb-1">Reference / UTR No.</label>
             <input
               type="text"
               value={paymentForm.reference_number}
@@ -275,7 +275,7 @@ export const SupplierPaymentModal = ({
             />
           </div>
           <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-300 uppercase tracking-wider mb-1">Payment Date</label>
+            <label className="block font-bold text-[#263238] dark:text-slate-300 uppercase tracking-wider mb-1">Payment Date</label>
             <input
               type="date"
               value={paymentForm.payment_date}

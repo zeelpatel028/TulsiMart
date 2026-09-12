@@ -196,11 +196,11 @@ export const LoginPage = () => {
   const logo = storeSettings?.store_logo || '/logo.png';
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 sm:p-6 font-sans text-slate-100 selection:bg-[#88BDF2] selection:text-[#384959]">
+    <div className="min-h-screen animated-mesh-bg flex items-center justify-center p-4 sm:p-6 font-sans text-slate-100 selection:bg-[#4DB6AC] selection:text-[#00695C]">
       
       {/* Background Radial Glow */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-tr from-[#384959]/30 to-[#88BDF2]/15 rounded-full blur-[140px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-tr from-[#00695C]/40 to-[#4DB6AC]/20 rounded-full blur-[140px]" />
       </div>
 
       {/* Sleek Centered Card */}
@@ -208,7 +208,7 @@ export const LoginPage = () => {
         
         {/* BRAND HEADER: LOGO & PROJECT NAME */}
         <div className="text-center space-y-3">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#384959] via-[#4A5D6E] to-[#88BDF2] p-3 shadow-lg border border-white/20">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#00695C] via-[#009688] to-[#4DB6AC] p-3 shadow-lg border border-white/20">
             <img 
               src={logo} 
               alt={storeName} 
@@ -245,7 +245,7 @@ export const LoginPage = () => {
                   onChange={(e) => setUsername(e.target.value)}
                   required
                   placeholder="Enter username"
-                  className="w-full pl-10 pr-4 py-3 bg-slate-950/80 border border-slate-800 rounded-xl focus:border-[#88BDF2] focus:ring-2 focus:ring-[#88BDF2]/20 outline-none text-sm text-white transition-all font-mono placeholder:text-slate-600"
+                  className="w-full pl-10 pr-4 py-3 bg-slate-950/80 border border-slate-800 rounded-xl focus:border-[#009688] focus:ring-2 focus:ring-[#009688]/20 outline-none text-sm text-white transition-all font-mono placeholder:text-slate-600"
                 />
                 <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5 pointer-events-none" />
               </div>
@@ -266,7 +266,7 @@ export const LoginPage = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   placeholder="Enter password"
-                  className="w-full pl-10 pr-10 py-3 bg-slate-950/80 border border-slate-800 rounded-xl focus:border-[#88BDF2] focus:ring-2 focus:ring-[#88BDF2]/20 outline-none text-sm text-white transition-all font-mono placeholder:text-slate-600"
+                  className="w-full pl-10 pr-10 py-3 bg-slate-950/80 border border-slate-800 rounded-xl focus:border-[#009688] focus:ring-2 focus:ring-[#009688]/20 outline-none text-sm text-white transition-all font-mono placeholder:text-slate-600"
                 />
                 <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5 pointer-events-none" />
                 <button
@@ -284,14 +284,14 @@ export const LoginPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 px-4 bg-gradient-to-r from-[#384959] via-[#4A5D6E] to-[#384959] hover:from-[#4A5D6E] hover:to-[#5B7185] text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50 cursor-pointer active:scale-[0.99] border border-[#88BDF2]/30 mt-2"
+              className="w-full py-3.5 px-4 bg-[#00695C] hover:bg-[#004D40] text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50 cursor-pointer active:scale-[0.99] border border-[#00695C] mt-2"
             >
               {loading ? (
                 <span>Signing In...</span>
               ) : (
                 <>
                   <span>Sign In</span>
-                  <ArrowRight className="w-4 h-4 text-[#88BDF2]" />
+                  <ArrowRight className="w-4 h-4 text-white" />
                 </>
               )}
             </button>
@@ -302,10 +302,10 @@ export const LoginPage = () => {
         {step === 'otp' && (
           <form onSubmit={handleOtpSubmit} className="space-y-5">
             <div className="text-center space-y-1">
-              <div className="inline-flex items-center justify-center p-3 rounded-full bg-[#88BDF2]/10 text-[#88BDF2] mb-2 border border-[#88BDF2]/20">
+              <div className="inline-flex items-center justify-center p-3 rounded-full bg-[#E0F2F1] text-[#00695C] mb-2 border border-[#B2DFDB]">
                 <ShieldCheck className="w-6 h-6" />
               </div>
-              <h2 className="text-base font-bold text-white">Security Verification</h2>
+              <h2 className="text-base font-bold text-white font-heading">Security Verification</h2>
               <p className="text-slate-400 text-xs">
                 Enter the 6-digit code sent to <strong className="text-slate-200">{maskedEmail}</strong>
               </p>
@@ -313,9 +313,9 @@ export const LoginPage = () => {
 
             {/* Dev Test Code Banner */}
             {devOtp && (
-              <div className="bg-amber-950/30 border border-amber-800/40 p-2 rounded-xl text-center backdrop-blur-md">
-                <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Dev Test OTP</span>
-                <span className="font-mono text-sm font-black text-amber-300 tracking-widest">{devOtp}</span>
+              <div className="bg-[#FFF8E1]/10 border border-[#FBC02D]/40 p-2 rounded-xl text-center backdrop-blur-md">
+                <span className="text-[10px] font-bold text-[#FBC02D] uppercase tracking-wider block">Dev Test OTP</span>
+                <span className="font-mono text-sm font-black text-[#FBC02D] tracking-widest">{devOtp}</span>
               </div>
             )}
 
@@ -337,8 +337,8 @@ export const LoginPage = () => {
                   onKeyDown={(e) => handleOtpKeyDown(index, e)}
                   className={`w-10 h-12 text-center font-mono font-bold text-lg rounded-xl bg-slate-950 border transition-all outline-none ${
                     digit
-                      ? 'border-[#88BDF2] text-[#88BDF2] ring-2 ring-[#88BDF2]/20 bg-slate-900'
-                      : 'border-slate-800 text-white focus:border-[#88BDF2] focus:ring-2 focus:ring-[#88BDF2]/20'
+                      ? 'border-[#009688] text-[#4DB6AC] ring-2 ring-[#009688]/20 bg-slate-900'
+                      : 'border-slate-800 text-white focus:border-[#009688] focus:ring-2 focus:ring-[#009688]/20'
                   }`}
                 />
               ))}
@@ -351,7 +351,7 @@ export const LoginPage = () => {
                 <button
                   type="button"
                   onClick={handleResendOtp}
-                  className="text-[#88BDF2] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+                  className="text-[#4DB6AC] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
                 >
                   <RefreshCw className="w-3 h-3" /> Resend
                 </button>
@@ -364,7 +364,7 @@ export const LoginPage = () => {
             <button
               type="submit"
               disabled={loading || otpDigits.join('').length < 6}
-              className="w-full py-3.5 px-4 bg-gradient-to-r from-[#384959] via-[#4A5D6E] to-[#88BDF2] text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50 cursor-pointer"
+              className="w-full py-3.5 px-4 bg-[#00695C] hover:bg-[#004D40] text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50 cursor-pointer border border-[#00695C]"
             >
               {loading ? (
                 <span>Verifying...</span>

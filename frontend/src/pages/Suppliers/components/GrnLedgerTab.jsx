@@ -35,8 +35,10 @@ export const GrnLedgerTab = ({ grnList }) => {
                     {grn.grn_number}
                     <p className="text-[10px] text-slate-400 font-normal">{grn.received_date}</p>
                   </td>
-                  <td className="py-3 px-4 font-mono text-slate-600 dark:text-slate-300">{grn.po_number}</td>
-                  <td className="py-3 px-4 font-bold text-[#384959] dark:text-slate-100">{grn.supplier_name}</td>
+                  <td className="py-3 px-4 font-mono font-bold text-[#00695C] dark:text-[#4DB6AC]">
+                    {grn.po_number}
+                  </td>
+                  <td className="py-3 px-4 font-bold text-[#263238] dark:text-slate-100">{grn.supplier_name}</td>
                   <td className="py-3 px-4 text-center font-bold">{grn.total_items} items verified</td>
                   <td className="py-3 px-4 text-right font-extrabold text-emerald-600 dark:text-emerald-400">
                     ₹{Number(grn.total_valuation).toFixed(2)}

@@ -8,16 +8,17 @@ export const Badge = ({ children, variant = 'default', size = 'sm', className = 
   };
 
   const variantStyles = {
-    default: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700',
-    primary: 'bg-[#384959] dark:bg-[#88BDF2] text-white dark:text-[#384959] border-[#384959] dark:border-[#88BDF2]',
-    sky: 'bg-[#BDDDFC]/70 dark:bg-[#88BDF2]/20 text-[#384959] dark:text-[#88BDF2] border-[#88BDF2]/40 dark:border-[#88BDF2]/30 font-semibold',
-    slate: 'bg-[#6A89A7]/15 dark:bg-[#6A89A7]/25 text-[#384959] dark:text-[#BDDDFC] border-[#6A89A7]/30 dark:border-[#6A89A7]/40',
-    success: 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60',
-    warning: 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/60',
-    danger: 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800/60',
-    info: 'bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-[#88BDF2] border-blue-200 dark:border-blue-800/60',
+    default: 'bg-[#E0F2F1] dark:bg-slate-800 text-[#263238] dark:text-slate-200 border-[#B2DFDB] dark:border-slate-700',
+    primary: 'bg-[#00695C] dark:bg-[#009688] text-white border-[#00695C] dark:border-[#009688]',
+    accent: 'bg-[#009688] dark:bg-[#4DB6AC] text-white dark:text-slate-900 border-[#009688] dark:border-[#4DB6AC]',
+    sky: 'bg-[#E0F2F1] dark:bg-[#00695C]/40 text-[#00695C] dark:text-[#4DB6AC] border-[#B2DFDB] dark:border-[#00695C]/60 font-bold',
+    slate: 'bg-[#F0FAF9] dark:bg-slate-800/80 text-[#607D8B] dark:text-slate-300 border-[#B2DFDB] dark:border-slate-700',
+    success: 'bg-[#E0F2F1] dark:bg-[#00695C]/35 text-[#00695C] dark:text-[#4DB6AC] border-[#4DB6AC] dark:border-[#00695C]/60 font-bold',
+    warning: 'bg-[#FFF8E1] dark:bg-amber-950/60 text-[#263238] dark:text-amber-300 border-[#FBC02D] dark:border-amber-700/60 font-bold',
+    gold: 'bg-[#FFF8E1] dark:bg-amber-950/60 text-[#263238] dark:text-amber-300 border-[#FBC02D] dark:border-amber-700/60 font-extrabold',
+    danger: 'bg-[#FFEBEE] dark:bg-rose-950/60 text-[#E53935] dark:text-rose-300 border-[#EF9A9A] dark:border-rose-800/60 font-bold',
+    info: 'bg-[#E0F2F1] dark:bg-[#00695C]/30 text-[#009688] dark:text-[#4DB6AC] border-[#B2DFDB] dark:border-[#00695C]/50',
   };
-
 
   // Helper mapping for statuses
   let computedVariant = variant;
@@ -26,7 +27,7 @@ export const Badge = ({ children, variant = 'default', size = 'sm', className = 
     if (['DELIVERED', 'PAID', 'ACTIVE', 'IN_STOCK', 'RECEIVED'].includes(lower)) computedVariant = 'success';
     else if (['PROCESSING', 'PACKED', 'OUT_FOR_DELIVERY', 'LOW_STOCK', 'ORDERED', 'PENDING'].includes(lower)) computedVariant = 'warning';
     else if (['CANCELLED', 'RETURNED', 'OUT_OF_STOCK', 'BLOCKED', 'FAILED'].includes(lower)) computedVariant = 'danger';
-    else if (['NEW', 'DRAFT'].includes(lower)) computedVariant = 'sky';
+    else if (['NEW', 'DRAFT', 'OFFER', 'DISCOUNT'].includes(lower)) computedVariant = 'gold';
   }
 
   return (

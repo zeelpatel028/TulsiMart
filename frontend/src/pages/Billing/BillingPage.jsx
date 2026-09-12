@@ -73,6 +73,9 @@ export const BillingPage = () => {
   const [barcodeInput, setBarcodeInput] = useState('');
   const [loadingCatalog, setLoadingCatalog] = useState(false);
 
+  // Mobile view switcher state ('catalog' | 'cart')
+  const [mobileTab, setMobileTab] = useState('catalog');
+
   // Customer Management
   const [customers, setCustomers] = useState([]);
   const [customerSearch, setCustomerSearch] = useState('');
@@ -949,94 +952,133 @@ export const BillingPage = () => {
 
   return (
     <div className="space-y-3 font-sans pb-12">
-      {/* 🌟 Compact & Modern POS Top Bar - Tulsi Mart Brand Palette */}
-      <div className="bg-linear-to-r from-[#384959] to-[#2B3844] text-white px-4 py-3 rounded-2xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 border border-white/10">
-        {/* Left: Terminal Identity */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white/10 border border-[#88BDF2]/40 flex items-center justify-center text-[#88BDF2]">
-            <Store className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-base font-black tracking-tight text-white font-heading">
-                POS Billing Terminal
-              </h1>
-              <span className="bg-[#88BDF2] text-[#384959] text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider">
-                Counter #1
-              </span>
+      {/* 🌟 Professional & Properly Aligned POS Top Header Card */}
+      <div className="bg-[#00695C] dark:bg-slate-900 text-white p-3.5 sm:p-4 rounded-2xl shadow-md border border-white/15 space-y-2.5">
+        {/* Top Row: Terminal Identity (Left) & Gulla Balance + Clock (Right) */}
+        <div className="flex items-center justify-between gap-3">
+          {/* Left: Terminal Identity */}
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/10 border border-[#4DB6AC]/40 flex items-center justify-center text-[#4DB6AC] shrink-0 shadow-inner">
+              <Store className="w-5 h-5" />
             </div>
-            <p className="text-[11px] text-[#BDDDFC]/80">
-              Cashier: <strong className="text-white">{user?.first_name ? `${user.first_name} ${user.last_name || ''}` : (user?.username || 'Super Admin')}</strong>
-            </p>
-          </div>
-        </div>
-
-        {/* Center: Held Multi-Bill Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar touch-pan py-0.5">
-          {carts.map((cart, idx) => (
-            <button
-              key={cart.id}
-              onClick={() => setActiveCartIndex(idx)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
-                activeCartIndex === idx
-                  ? 'bg-[#88BDF2] text-[#384959] border-[#88BDF2] shadow-xs font-extrabold'
-                  : 'bg-white/10 text-white/90 border-white/15 hover:bg-white/20'
-              }`}
-            >
-              <ShoppingBag className="w-3.5 h-3.5" />
-              <span>{cart.items.length > 0 ? `Bill #${idx + 1} (${cart.items.length})` : `Bill #${idx + 1}`}</span>
-              {carts.length > 1 && (
-                <span
-                  onClick={(e) => handleCloseCartTab(idx, e)}
-                  className="hover:text-rose-300 ml-0.5 p-0.5 rounded-full"
-                  title="Close Tab"
-                >
-                  ×
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-sm sm:text-base font-black tracking-tight text-white font-heading">
+                  POS Billing Terminal
+                </h1>
+                <span className="bg-[#E0F2F1] text-[#00695C] text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0 shadow-2xs">
+                  Counter #1
                 </span>
-              )}
+              </div>
+              <p className="text-[11px] text-[#E0F2F1]/90 truncate">
+                Cashier: <strong className="text-white font-semibold">{user?.first_name ? `${user.first_name} ${user.last_name || ''}` : (user?.username || 'Super Admin')}</strong>
+              </p>
+            </div>
+          </div>
+
+          {/* Right: Quick Gulla Status & Digital Clock */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Single Clean Gulla Drawer Status Button */}
+            <button
+              type="button"
+              onClick={() => navigate('/gulla')}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/25 active:scale-95 transition-all backdrop-blur-md rounded-xl border border-white/20 text-xs font-bold text-[#E0F2F1] cursor-pointer shadow-2xs"
+              title="Gulla Cash in Drawer • Click to open Gulla Management Page"
+            >
+              <Wallet className="w-3.5 h-3.5 text-[#4DB6AC]" />
+              <span>Gulla: ₹{gullaData.net_cash_in_gulla?.toFixed(0) || '0'}</span>
             </button>
-          ))}
-          <button
-            onClick={handleHoldCart}
-            className="flex items-center gap-1 px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-[#BDDDFC] hover:text-white border border-white/15 rounded-xl text-xs font-bold transition-colors cursor-pointer shrink-0"
-            title="Hold current cart & open new bill tab"
-          >
-            <Plus className="w-3.5 h-3.5 text-[#88BDF2]" /> Hold Bill
-          </button>
-        </div>
 
-        {/* Right: Quick Gulla Status & Digital Clock */}
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Single Clean Gulla Drawer Status Button */}
-          <button
-            type="button"
-            onClick={() => navigate('/gulla')}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl border border-white/15 text-xs font-bold text-[#88BDF2] transition-colors cursor-pointer"
-            title="Gulla Cash in Drawer • Click to open Gulla Management Page"
-          >
-            <Wallet className="w-3.5 h-3.5 text-[#88BDF2]" />
-            <span>Gulla: ₹{gullaData.net_cash_in_gulla?.toFixed(0) || '0'}</span>
-          </button>
-
-          {/* Live Digital Clock */}
-          <div className="hidden sm:flex items-center gap-1 bg-white/10 px-2.5 py-1.5 rounded-xl border border-white/15 text-xs font-mono font-bold text-[#BDDDFC]">
-            <Clock className="w-3.5 h-3.5 text-[#88BDF2]" />
-            <span>{currentTime.toLocaleTimeString('en-IN', { hour12: true })}</span>
+            {/* Live Digital Clock */}
+            <div className="hidden sm:flex items-center gap-1 bg-white/10 px-2.5 py-1.5 rounded-xl border border-white/15 text-xs font-mono font-bold text-[#E0F2F1]">
+              <Clock className="w-3.5 h-3.5 text-[#4DB6AC]" />
+              <span>{currentTime.toLocaleTimeString('en-IN', { hour12: true })}</span>
+            </div>
           </div>
         </div>
+
+        {/* Bottom Row: Multi-Bill Tabs */}
+        <div className="pt-2 border-t border-white/10 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar touch-pan py-0.5 flex-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#E0F2F1]/80 shrink-0 mr-1 hidden sm:inline">
+              Active Bills:
+            </span>
+            {carts.map((cart, idx) => (
+              <button
+                key={cart.id}
+                onClick={() => setActiveCartIndex(idx)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
+                  activeCartIndex === idx
+                    ? 'bg-[#009688] text-white border-[#4DB6AC] shadow-xs font-black'
+                    : 'bg-white/10 text-white/90 border-white/15 hover:bg-white/20'
+                }`}
+              >
+                <ShoppingBag className="w-3.5 h-3.5" />
+                <span>{cart.items.length > 0 ? `Bill #${idx + 1} (${cart.items.length})` : `Bill #${idx + 1}`}</span>
+                {carts.length > 1 && (
+                  <span
+                    onClick={(e) => handleCloseCartTab(idx, e)}
+                    className="hover:text-rose-300 ml-0.5 p-0.5 rounded-full hover:bg-white/20"
+                    title="Close Tab"
+                  >
+                    ×
+                  </span>
+                )}
+              </button>
+            ))}
+            <button
+              onClick={handleHoldCart}
+              className="flex items-center gap-1 px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-[#E0F2F1] hover:text-white border border-white/15 rounded-xl text-xs font-bold transition-colors cursor-pointer shrink-0"
+              title="Hold current cart & open new bill tab"
+            >
+              <Plus className="w-3.5 h-3.5 text-[#4DB6AC]" /> Hold Bill
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile View Switcher (Only visible on screens < lg) */}
+      <div className="flex lg:hidden items-center bg-[#E0F2F1] dark:bg-slate-800 p-1.5 rounded-2xl gap-1.5 border border-[#B2DFDB] dark:border-slate-700 shadow-2xs">
+        <button
+          onClick={() => setMobileTab('catalog')}
+          className={`flex-1 py-2 text-xs font-black rounded-xl transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer ${
+            mobileTab === 'catalog'
+              ? 'bg-[#00695C] text-white shadow-xs'
+              : 'text-[#00695C] dark:text-slate-300 hover:bg-white/60'
+          }`}
+        >
+          <Store className="w-3.5 h-3.5" />
+          Catalog ({filteredProducts.length})
+        </button>
+        <button
+          onClick={() => setMobileTab('cart')}
+          className={`flex-1 py-2 text-xs font-black rounded-xl transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer ${
+            mobileTab === 'cart'
+              ? 'bg-[#00695C] text-white shadow-xs'
+              : 'text-[#00695C] dark:text-slate-300 hover:bg-white/60'
+          }`}
+        >
+          <ShoppingBag className="w-3.5 h-3.5" />
+          Cart ({currentCart.items.length})
+          {grandTotal > 0 && (
+            <span className="bg-[#4DB6AC] text-slate-950 font-black text-[10px] px-2 py-0.5 rounded-full shadow-2xs">
+              ₹{grandTotal.toFixed(0)}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* 🚀 Main 2-Column POS Workspace */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
         {/* ================= LEFT COLUMN: CATALOG & BARCODE SCANNER (7 COLS) ================= */}
-        <div className="lg:col-span-7 space-y-3">
+        <div className={`lg:col-span-7 space-y-3 ${mobileTab === 'catalog' ? 'block' : 'hidden lg:block'}`}>
           {/* Barcode Scanner & Search Hub */}
-          <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
-            <div className="flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-[#B2DFDB] dark:border-slate-800 shadow-xs space-y-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               {/* Barcode Fast Scan Input */}
               <form onSubmit={handleBarcodeSubmit} className="relative flex-1">
                 <div className="absolute left-3 top-2.5 text-slate-400 flex items-center">
-                  <Barcode className="w-4 h-4 text-[#6A89A7] dark:text-[#88BDF2]" />
+                  <Barcode className="w-4 h-4 text-[#009688]" />
                 </div>
                 <input
                   ref={barcodeInputRef}
@@ -1044,11 +1086,11 @@ export const BillingPage = () => {
                   value={barcodeInput}
                   onChange={(e) => setBarcodeInput(e.target.value)}
                   placeholder="Scan barcode or SKU [F2]..."
-                  className="w-full pl-9 pr-16 py-2 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 focus:border-[#88BDF2] rounded-xl text-xs font-semibold outline-hidden focus:bg-white dark:focus:bg-slate-800 text-[#384959] dark:text-slate-100 placeholder:text-slate-400"
+                  className="w-full pl-9 pr-16 py-2 bg-[#F0FAF9] dark:bg-slate-800 border-2 border-[#B2DFDB] dark:border-slate-700 focus:border-[#009688] rounded-xl text-xs font-semibold outline-hidden focus:bg-white dark:focus:bg-slate-800 text-[#263238] dark:text-slate-100 placeholder:text-[#607D8B]"
                 />
                 <button
                   type="submit"
-                  className="absolute right-1.5 top-1.5 px-2.5 py-1 bg-[#384959] hover:bg-[#2B3844] text-white text-[11px] font-bold rounded-lg transition-colors cursor-pointer"
+                  className="absolute right-1.5 top-1.5 px-2.5 py-1 bg-[#00695C] hover:bg-[#004D40] text-white text-[11px] font-bold rounded-lg transition-colors cursor-pointer"
                 >
                   Scan
                 </button>
@@ -1056,20 +1098,20 @@ export const BillingPage = () => {
 
               {/* Keyword Search */}
               <div className="relative flex-1">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                <Search className="w-3.5 h-3.5 text-[#607D8B] absolute left-3 top-2.5" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search name, brand..."
-                  className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-[#88BDF2] rounded-xl text-xs outline-hidden text-[#384959] dark:text-slate-100 placeholder:text-slate-400"
+                  className="w-full pl-8 pr-3 py-2 bg-[#F0FAF9] dark:bg-slate-800 border border-[#B2DFDB] dark:border-slate-700 focus:border-[#009688] rounded-xl text-xs outline-hidden text-[#263238] dark:text-slate-100 placeholder:text-[#607D8B]"
                 />
               </div>
 
               {(searchQuery || selectedCategory !== 'ALL') && (
                 <button
                   onClick={() => { setSearchQuery(''); setSelectedCategory('ALL'); }}
-                  className="px-2.5 py-2 text-xs font-bold text-slate-500 hover:text-rose-500 bg-slate-100 dark:bg-slate-800 rounded-xl cursor-pointer shrink-0"
+                  className="px-2.5 py-2 text-xs font-bold text-[#E53935] hover:bg-[#FFEBEE] bg-[#E0F2F1] rounded-xl cursor-pointer shrink-0"
                   title="Clear search filters"
                 >
                   Clear
@@ -1083,8 +1125,8 @@ export const BillingPage = () => {
                 onClick={() => setSelectedCategory('ALL')}
                 className={`px-3 py-1 rounded-xl text-[11px] font-bold transition-colors shrink-0 cursor-pointer ${
                   selectedCategory === 'ALL'
-                    ? 'bg-[#384959] dark:bg-[#88BDF2] text-white dark:text-[#384959] shadow-2xs font-extrabold'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    ? 'bg-[#00695C] dark:bg-[#009688] text-white shadow-2xs font-extrabold'
+                    : 'bg-[#E0F2F1] dark:bg-slate-800 text-[#00695C] dark:text-slate-300 hover:bg-[#B2DFDB]'
                 }`}
               >
                 All ({products.length})
@@ -1095,8 +1137,8 @@ export const BillingPage = () => {
                   onClick={() => setSelectedCategory(c.name)}
                   className={`px-3 py-1 rounded-xl text-[11px] font-bold transition-colors shrink-0 cursor-pointer ${
                     selectedCategory === c.name
-                      ? 'bg-[#384959] dark:bg-[#88BDF2] text-white dark:text-[#384959] shadow-2xs font-extrabold'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                      ? 'bg-[#00695C] dark:bg-[#009688] text-white shadow-2xs font-extrabold'
+                      : 'bg-[#E0F2F1] dark:bg-slate-800 text-[#00695C] dark:text-slate-300 hover:bg-[#B2DFDB]'
                   }`}
                 >
                   {c.name}
@@ -1139,42 +1181,42 @@ export const BillingPage = () => {
                       onClick={() => handleAddToCart(product)}
                       className={`text-left p-3 rounded-xl border transition-all duration-150 flex flex-col justify-between group cursor-pointer relative ${
                         isOutOfStock
-                          ? 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 opacity-60 cursor-not-allowed'
-                          : 'bg-white dark:bg-slate-800/80 border-slate-200/90 dark:border-slate-700/80 hover:border-[#88BDF2] hover:shadow-sm hover:-translate-y-0.5 active:scale-95'
+                          ? 'bg-[#F0FAF9] dark:bg-slate-800/40 border-[#B2DFDB] dark:border-slate-800 opacity-60 cursor-not-allowed'
+                          : 'bg-white dark:bg-slate-800/80 border-[#B2DFDB] dark:border-slate-700/80 hover:border-[#009688] hover:shadow-md hover:-translate-y-0.5 active:scale-95'
                       }`}
                     >
                       <div>
                         {/* Top Category & Discount row */}
                         <div className="flex items-center justify-between gap-1 mb-1">
-                          <span className="text-[9px] font-bold text-[#6A89A7] dark:text-[#88BDF2] uppercase tracking-wider truncate">
+                          <span className="text-[9px] font-bold text-[#00695C] dark:text-[#4DB6AC] uppercase tracking-wider truncate">
                             {product.category_name || 'Grocery'}
                           </span>
                           {hasDiscount && (
-                            <span className="bg-[#BDDDFC]/30 dark:bg-[#384959] text-[#384959] dark:text-[#88BDF2] border border-[#88BDF2]/40 text-[9px] font-black px-1.5 py-0.2 rounded shrink-0">
+                            <span className="bg-[#FFF8E1] text-[#263238] border border-[#FBC02D] text-[9px] font-extrabold px-1.5 py-0.2 rounded shrink-0">
                               {Math.round(((mrp - price) / mrp) * 100)}% OFF
                             </span>
                           )}
                         </div>
 
                         {/* Product Title */}
-                        <h4 className="text-xs font-bold text-[#384959] dark:text-slate-100 line-clamp-2 leading-tight group-hover:text-[#6A89A7] dark:group-hover:text-[#88BDF2]">
+                        <h4 className="text-xs font-bold text-[#263238] dark:text-slate-100 line-clamp-2 leading-tight group-hover:text-[#00695C]">
                           {product.name}
                         </h4>
 
                         {/* Unit / Pack Size */}
-                        <div className="text-[10px] text-slate-400 font-medium mt-0.5">
+                        <div className="text-[10px] text-[#607D8B] font-medium mt-0.5">
                           {product.unit_name || product.unit || '1 Unit'}
                         </div>
                       </div>
 
                       {/* Price & Stock Row */}
-                      <div className="mt-2 pt-1.5 border-t border-slate-100 dark:border-slate-700/60 flex items-end justify-between">
+                      <div className="mt-2 pt-1.5 border-t border-[#E0F2F1] dark:border-slate-700/60 flex items-end justify-between">
                         <div>
-                          <div className="text-xs font-black text-[#384959] dark:text-slate-100 font-heading">
+                          <div className="text-xs font-black text-[#00695C] dark:text-[#4DB6AC] font-heading">
                             ₹{price.toFixed(2)}
                           </div>
                           {hasDiscount && (
-                            <div className="text-[9px] text-slate-400 line-through">
+                            <div className="text-[9px] text-[#607D8B] line-through">
                               ₹{mrp.toFixed(2)}
                             </div>
                           )}
@@ -1182,10 +1224,10 @@ export const BillingPage = () => {
 
                         <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
                           isOutOfStock
-                            ? 'bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400'
+                            ? 'bg-[#FFEBEE] dark:bg-rose-950/40 text-[#E53935]'
                             : isLowStock
-                            ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400'
-                            : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                            ? 'bg-[#FFF8E1] dark:bg-amber-950/40 text-[#263238] border border-[#FBC02D]'
+                            : 'bg-[#E0F2F1] dark:bg-slate-700 text-[#00695C]'
                         }`}>
                           {isOutOfStock ? 'Out' : `Qty ${product.stock_quantity}`}
                         </span>
@@ -1199,37 +1241,37 @@ export const BillingPage = () => {
         </div>
 
         {/* ================= RIGHT COLUMN: ACTIVE BILL CART & CHECKOUT (5 COLS) ================= */}
-        <div className="lg:col-span-5 space-y-3">
-          <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+        <div className={`lg:col-span-5 space-y-3 ${mobileTab === 'cart' ? 'block' : 'hidden lg:block'}`}>
+          <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-[#B2DFDB] dark:border-slate-800 shadow-sm space-y-3">
             {/* Customer Attachment Strip */}
-            <div className="p-2.5 bg-slate-50 dark:bg-slate-800/70 rounded-xl border border-slate-200/80 dark:border-slate-700 relative">
+            <div className="p-2.5 bg-[#F0FAF9] dark:bg-slate-800/70 rounded-xl border border-[#B2DFDB] dark:border-slate-700 relative">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                  <User className="w-3 h-3 text-[#6A89A7]" /> Customer Details
+                <span className="text-[10px] font-bold text-[#607D8B] uppercase tracking-wider flex items-center gap-1">
+                  <User className="w-3 h-3 text-[#009688]" /> Customer Details
                 </span>
                 <button
                   type="button"
                   onClick={() => setIsNewCustomerModalOpen(true)}
-                  className="text-[11px] font-bold text-[#384959] dark:text-[#88BDF2] hover:underline flex items-center gap-0.5 cursor-pointer"
+                  className="text-[11px] font-bold text-[#00695C] dark:text-[#4DB6AC] hover:underline flex items-center gap-0.5 cursor-pointer"
                 >
                   <Plus className="w-3 h-3" /> Add Customer
                 </button>
               </div>
 
               {currentCart.customer ? (
-                <div className="flex items-center justify-between bg-white dark:bg-slate-800 p-2 rounded-lg border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center justify-between bg-white dark:bg-slate-800 p-2 rounded-lg border border-[#B2DFDB] dark:border-slate-700">
                   <div className="min-w-0">
-                    <div className="text-xs font-bold text-[#384959] dark:text-slate-100 truncate">
+                    <div className="text-xs font-bold text-[#263238] dark:text-slate-100 truncate">
                       {currentCart.customer.name}
                     </div>
-                    <div className="text-[10px] text-slate-500 font-mono">
+                    <div className="text-[10px] text-[#607D8B] font-mono">
                       {currentCart.customer.phone || 'No phone'}
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={handleRemoveCustomer}
-                    className="text-xs font-bold text-slate-400 hover:text-rose-500 cursor-pointer px-1.5"
+                    className="text-xs font-bold text-[#607D8B] hover:text-[#E53935] cursor-pointer px-1.5"
                     title="Remove customer (Set to Walk-in)"
                   >
                     ✕
@@ -1246,10 +1288,10 @@ export const BillingPage = () => {
                     }}
                     onFocus={() => setIsCustomerDropdownOpen(true)}
                     placeholder="Walk-in Customer (Search name or phone)..."
-                    className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs outline-hidden focus:border-[#88BDF2] text-[#384959] dark:text-slate-100 placeholder:text-slate-400 font-medium"
+                    className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-[#B2DFDB] dark:border-slate-700 rounded-lg text-xs outline-hidden focus:border-[#009688] text-[#263238] dark:text-slate-100 placeholder:text-[#607D8B] font-medium"
                   />
                   {isCustomerDropdownOpen && customerSearch && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-20 max-h-44 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-[#B2DFDB] dark:border-slate-700 rounded-xl shadow-xl z-20 max-h-44 overflow-y-auto divide-y divide-[#E0F2F1] dark:divide-slate-800">
                       {customers
                         .filter((c) =>
                           c.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
@@ -1261,13 +1303,13 @@ export const BillingPage = () => {
                             key={c.id}
                             type="button"
                             onClick={() => handleSelectCustomer(c)}
-                            className="w-full text-left p-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs flex items-center justify-between cursor-pointer"
+                            className="w-full text-left p-2 hover:bg-[#E0F2F1] dark:hover:bg-slate-800 text-xs flex items-center justify-between cursor-pointer"
                           >
                             <div>
-                              <div className="font-bold text-[#384959] dark:text-slate-100">{c.name}</div>
-                              <div className="text-[10px] text-slate-400 font-mono">{c.phone}</div>
+                              <div className="font-bold text-[#263238] dark:text-slate-100">{c.name}</div>
+                              <div className="text-[10px] text-[#607D8B] font-mono">{c.phone}</div>
                             </div>
-                            <span className="text-[10px] font-bold text-[#384959] dark:text-[#88BDF2] bg-[#BDDDFC]/20 px-2 py-0.5 rounded">
+                            <span className="text-[10px] font-bold text-[#00695C] bg-[#E0F2F1] px-2 py-0.5 rounded border border-[#B2DFDB]">
                               Select
                             </span>
                           </button>
@@ -1280,12 +1322,12 @@ export const BillingPage = () => {
 
             {/* Bill Cart Items Section */}
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs font-bold text-[#384959] dark:text-slate-100">
+              <div className="flex items-center justify-between text-xs font-bold text-[#263238] dark:text-slate-100">
                 <span>Cart Items ({cartItems.length})</span>
                 {cartItems.length > 0 && (
                   <button
                     onClick={handleClearCart}
-                    className="text-[11px] font-bold text-rose-500 hover:text-rose-700 flex items-center gap-1 cursor-pointer"
+                    className="text-[11px] font-bold text-[#E53935] hover:underline flex items-center gap-1 cursor-pointer"
                   >
                     <Trash2 className="w-3 h-3" /> Clear [F4]
                   </button>
@@ -1293,26 +1335,26 @@ export const BillingPage = () => {
               </div>
 
               {cartItems.length === 0 ? (
-                <div className="py-8 text-center bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 text-slate-400 space-y-1">
-                  <ShoppingBag className="w-6 h-6 text-slate-300 dark:text-slate-600 mx-auto" />
+                <div className="py-8 text-center bg-[#F0FAF9] dark:bg-slate-800/60 rounded-xl border border-dashed border-[#B2DFDB] dark:border-slate-700 text-[#607D8B] space-y-1">
+                  <ShoppingBag className="w-6 h-6 text-[#4DB6AC] mx-auto" />
                   <p className="text-xs font-medium dark:text-slate-300">Cart is empty</p>
-                  <p className="text-[10px] text-slate-400">Scan barcodes or click products on the left</p>
+                  <p className="text-[10px] text-[#607D8B]">Scan barcodes or click products on the left</p>
                 </div>
               ) : (
                 <div className="max-h-64 overflow-y-auto custom-scrollbar-thin touch-pan space-y-1.5 pr-1">
                   {cartItems.map((item) => (
                     <div
                       key={item.product.id}
-                      className="p-2 bg-slate-50/80 dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl border border-slate-200/80 dark:border-slate-700 flex items-center justify-between gap-2"
+                      className="p-2 bg-[#F0FAF9] dark:bg-slate-800/80 hover:bg-[#E0F2F1]/50 dark:hover:bg-slate-800 rounded-xl border border-[#B2DFDB] dark:border-slate-700 flex items-center justify-between gap-2"
                     >
                       <div className="min-w-0 flex-1">
-                        <h5 className="text-xs font-bold text-[#384959] dark:text-slate-100 truncate">
+                        <h5 className="text-xs font-bold text-[#263238] dark:text-slate-100 truncate">
                           {item.product.name}
                         </h5>
                         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                           {/* Unit Price Modifier */}
-                          <div className="flex items-center gap-0.5 bg-white dark:bg-slate-900 px-1 py-0.5 rounded border border-slate-200 dark:border-slate-700 text-[11px]">
-                            <span className="text-slate-400 font-bold text-[10px]">₹</span>
+                          <div className="flex items-center gap-0.5 bg-white dark:bg-slate-900 px-1 py-0.5 rounded border border-[#B2DFDB] dark:border-slate-700 text-[11px]">
+                            <span className="text-[#607D8B] font-bold text-[10px]">₹</span>
                             <input
                               type="number"
                               step="0.01"
@@ -1320,33 +1362,33 @@ export const BillingPage = () => {
                               value={item.unitPrice === 0 ? '' : item.unitPrice}
                               onChange={(e) => handleUpdateUnitPrice(item.product.id, e.target.value)}
                               placeholder="0.00"
-                              className="w-12 text-[11px] font-black text-[#384959] dark:text-slate-100 bg-transparent outline-hidden"
+                              className="w-12 text-[11px] font-black text-[#00695C] dark:text-[#4DB6AC] bg-transparent outline-hidden"
                             />
-                            <span className="text-[9px] text-slate-400">/{item.product.unit_name || item.product.unit || 'unit'}</span>
+                            <span className="text-[9px] text-[#607D8B]">/{item.product.unit_name || item.product.unit || 'unit'}</span>
                           </div>
 
-                          <span className="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold px-1 rounded text-[9px]">
+                          <span className="bg-[#E0F2F1] dark:bg-slate-700 text-[#00695C] dark:text-slate-300 font-bold px-1 rounded text-[9px]">
                             GST {item.gstPercent}%
                           </span>
                         </div>
                       </div>
 
                       {/* Quantity Stepper */}
-                      <div className="flex items-center gap-1 bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 shadow-2xs">
+                      <div className="flex items-center gap-1 bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded-lg border border-[#B2DFDB] dark:border-slate-700 shadow-2xs">
                         <button
                           type="button"
                           onClick={() => handleUpdateQuantity(item.product.id, item.quantity - 1)}
-                          className="w-4 h-4 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-center font-bold text-[10px] cursor-pointer"
+                          className="w-4 h-4 rounded bg-[#E0F2F1] dark:bg-slate-800 text-[#00695C] dark:text-slate-200 flex items-center justify-center font-bold text-[10px] cursor-pointer"
                         >
                           -
                         </button>
-                        <span className="w-5 text-center text-xs font-bold text-[#384959] dark:text-slate-100">
+                        <span className="w-5 text-center text-xs font-bold text-[#263238] dark:text-slate-100">
                           {item.quantity}
                         </span>
                         <button
                           type="button"
                           onClick={() => handleUpdateQuantity(item.product.id, item.quantity + 1)}
-                          className="w-4 h-4 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-center font-bold text-[10px] cursor-pointer"
+                          className="w-4 h-4 rounded bg-[#E0F2F1] dark:bg-slate-800 text-[#00695C] dark:text-slate-200 flex items-center justify-center font-bold text-[10px] cursor-pointer"
                         >
                           +
                         </button>
@@ -1354,13 +1396,13 @@ export const BillingPage = () => {
 
                       {/* Line Total & Remove */}
                       <div className="text-right shrink-0">
-                        <div className="text-xs font-extrabold text-[#384959] dark:text-slate-100 font-mono">
+                        <div className="text-xs font-extrabold text-[#00695C] dark:text-[#4DB6AC] font-mono">
                           ₹{(item.unitPrice * item.quantity).toFixed(2)}
                         </div>
                         <button
                           type="button"
                           onClick={() => handleRemoveItem(item.product.id)}
-                          className="text-slate-400 hover:text-rose-500 p-0.5 cursor-pointer"
+                          className="text-[#607D8B] hover:text-[#E53935] p-0.5 cursor-pointer"
                           title="Remove item"
                         >
                           <Trash2 className="w-3 h-3" />
@@ -1373,35 +1415,35 @@ export const BillingPage = () => {
             </div>
 
             {/* Bill Summary & Net Total Card - Tulsi Mart Brand Colors */}
-            <div className="p-3 bg-linear-to-br from-[#384959] to-[#2B3844] text-white rounded-xl space-y-2 shadow-sm">
-              <div className="flex items-center justify-between text-xs text-[#BDDDFC]">
+            <div className="p-3 bg.00695C bg-[#00695C] text-white rounded-xl space-y-2 shadow-md">
+              <div className="flex items-center justify-between text-xs text-[#E0F2F1]">
                 <span>Subtotal ({cartItems.length} items): ₹{netSubtotal.toFixed(2)}</span>
                 <button
                   type="button"
                   onClick={() => setIsCouponModalOpen(true)}
-                  className="text-[11px] font-bold text-[#88BDF2] hover:underline flex items-center gap-1 cursor-pointer"
+                  className="text-[11px] font-bold text-[#4DB6AC] hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <Tag className="w-3 h-3" /> {currentCart.couponCode ? `Code: ${currentCart.couponCode}` : 'Promo [F8]'}
                 </button>
               </div>
 
               {taxAmount > 0 && (
-                <div className="flex items-center justify-between text-[11px] text-[#BDDDFC]/80">
+                <div className="flex items-center justify-between text-[11px] text-[#E0F2F1]/80">
                   <span>Taxable Base: ₹{taxableSubtotal.toFixed(2)}</span>
-                  <span className="font-mono text-[#88BDF2] font-semibold">Incl. GST: ₹{taxAmount.toFixed(2)}</span>
+                  <span className="font-mono text-[#4DB6AC] font-semibold">Incl. GST: ₹{taxAmount.toFixed(2)}</span>
                 </div>
               )}
 
               {couponDiscount > 0 && (
-                <div className="flex justify-between text-[#88BDF2] text-xs font-bold">
+                <div className="flex justify-between text-[#FBC02D] text-xs font-extrabold">
                   <span>Coupon Discount:</span>
                   <span>-₹{couponDiscount.toFixed(2)}</span>
                 </div>
               )}
 
               <div className="pt-2 border-t border-white/15 flex justify-between items-baseline">
-                <span className="text-xs font-bold text-[#BDDDFC] uppercase tracking-wider">Net Total:</span>
-                <span className="text-2xl font-black text-[#88BDF2] font-heading">
+                <span className="text-xs font-bold text-[#E0F2F1] uppercase tracking-wider">Net Total:</span>
+                <span className="text-2xl font-black text-white font-heading">
                   ₹{grandTotal.toFixed(2)}
                 </span>
               </div>
@@ -1409,7 +1451,7 @@ export const BillingPage = () => {
 
             {/* Payment Method Selector Grid */}
             <div className="space-y-1.5">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+              <span className="text-[10px] font-bold text-[#607D8B] uppercase tracking-wider block">
                 Payment Mode
               </span>
               <div className="grid grid-cols-4 gap-1.5 text-xs font-bold">
@@ -1428,8 +1470,8 @@ export const BillingPage = () => {
                       onClick={() => setPaymentMethod(item.id)}
                       className={`p-2 rounded-xl border flex flex-col items-center gap-1 transition-all cursor-pointer ${
                         isSelected
-                          ? 'bg-[#384959] text-white border-[#384959] shadow-2xs font-extrabold'
-                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750'
+                          ? 'bg-[#009688] text-white border-[#009688] shadow-2xs font-extrabold'
+                          : 'bg-white dark:bg-slate-800 text-[#263238] dark:text-slate-300 border-[#B2DFDB] dark:border-slate-700 hover:bg-[#F0FAF9]'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
@@ -1442,17 +1484,17 @@ export const BillingPage = () => {
 
             {/* Cash Tendered & Denominations Area (When CASH Mode is Selected) */}
             {paymentMethod === 'CASH' && (
-              <div className="p-3 bg-[#BDDDFC]/15 dark:bg-slate-800/80 rounded-xl border border-[#88BDF2]/40 space-y-2.5 shadow-2xs">
+              <div className="p-3 bg-[#E0F2F1]/40 dark:bg-slate-800/80 rounded-xl border border-[#B2DFDB] space-y-2.5 shadow-2xs">
                 {/* Cash Input & Exact / Denomination Buttons */}
                 <div className="flex items-center gap-1.5">
                   <div className="relative flex-1">
-                    <span className="absolute left-2.5 top-2 text-sm font-black text-[#384959] dark:text-[#88BDF2]">₹</span>
+                    <span className="absolute left-2.5 top-2 text-sm font-black text-[#00695C]">₹</span>
                     <input
                       type="number"
                       value={cashTendered}
                       onChange={(e) => handleCashTenderedInputChange(e.target.value)}
                       placeholder={`Amount (e.g. ${Math.ceil(grandTotal)})`}
-                      className="w-full pl-6 pr-2 py-1.5 text-sm font-black bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 focus:border-[#88BDF2] rounded-lg outline-hidden text-[#384959] dark:text-slate-100 font-mono"
+                      className="w-full pl-6 pr-2 py-1.5 text-sm font-black bg-white dark:bg-slate-900 border border-[#B2DFDB] dark:border-slate-700 focus:border-[#009688] rounded-lg outline-hidden text-[#263238] dark:text-slate-100 font-mono"
                     />
                   </div>
 
@@ -1460,7 +1502,7 @@ export const BillingPage = () => {
                     <button
                       type="button"
                       onClick={() => handleAutoSelectAndOpenNotes(grandTotal, false)}
-                      className="px-2.5 py-2 bg-[#384959] hover:bg-[#2B3844] text-white rounded-lg text-xs font-bold shrink-0 cursor-pointer shadow-2xs transition-colors"
+                      className="px-2.5 py-2 bg-[#00695C] hover:bg-[#004D40] text-white rounded-lg text-xs font-bold shrink-0 cursor-pointer shadow-2xs transition-colors"
                       title="Exact bill amount"
                     >
                       Exact (₹{Math.ceil(grandTotal)})
@@ -1470,7 +1512,7 @@ export const BillingPage = () => {
                   <button
                     type="button"
                     onClick={() => setIsDenominationModalOpen(true)}
-                    className="px-2.5 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-[#384959] dark:text-[#88BDF2] hover:bg-slate-50 rounded-lg text-xs font-bold shrink-0 cursor-pointer transition-colors flex items-center gap-1"
+                    className="px-2.5 py-2 bg-white dark:bg-slate-800 border border-[#B2DFDB] dark:border-slate-700 text-[#00695C] dark:text-[#4DB6AC] hover:bg-[#F0FAF9] rounded-lg text-xs font-bold shrink-0 cursor-pointer transition-colors flex items-center gap-1"
                     title="Open Denomination Notes Counter"
                   >
                     <Calculator className="w-3.5 h-3.5" /> Notes
@@ -1480,7 +1522,7 @@ export const BillingPage = () => {
                     <button
                       type="button"
                       onClick={handleClearNotes}
-                      className="p-1.5 text-slate-400 hover:text-rose-500 rounded cursor-pointer"
+                      className="p-1.5 text-[#607D8B] hover:text-[#E53935] rounded cursor-pointer"
                       title="Clear Cash Tendered"
                     >
                       ✕
@@ -1490,10 +1532,10 @@ export const BillingPage = () => {
 
                 {/* Quick Currency Note & Coin Chips With Live Count Badges and Increment/Decrement */}
                 <div className="space-y-1">
-                  <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400">
+                  <div className="flex items-center justify-between text-[10px] text-[#607D8B] dark:text-slate-400">
                     <span className="font-bold">Customer Notes Received (ગ્રાહકે આપેલ નોટ પર ક્લિક કરો):</span>
                     {parseFloat(cashTendered) > 0 && (
-                      <span className="font-mono font-bold text-[#384959] dark:text-[#88BDF2]">
+                      <span className="font-mono font-bold text-[#00695C] dark:text-[#4DB6AC]">
                         {getDenominationBreakdownSummary(noteCounts)}
                       </span>
                     )}
@@ -1509,13 +1551,13 @@ export const BillingPage = () => {
                           onClick={() => handleAddNoteQuick(amt)}
                           className={`py-1 px-1 rounded-lg text-[11px] font-extrabold border transition-all cursor-pointer relative flex flex-col items-center justify-center select-none ${
                             hasCount
-                              ? 'bg-[#384959] text-white border-[#384959] shadow-2xs ring-2 ring-[#88BDF2]/60'
-                              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-[#384959] dark:text-slate-200 hover:border-[#88BDF2]'
+                              ? 'bg-[#00695C] text-white border-[#00695C] shadow-2xs ring-2 ring-[#4DB6AC]/60'
+                              : 'bg-white dark:bg-slate-900 border-[#B2DFDB] dark:border-slate-700 text-[#263238] dark:text-slate-200 hover:border-[#009688]'
                           }`}
                           title={`Click to add +1 note/coin of ₹${amt}`}
                         >
                           {hasCount && (
-                            <span className="absolute -top-1.5 -right-1 bg-[#88BDF2] text-[#384959] text-[9px] font-black px-1 rounded-full shadow-2xs">
+                            <span className="absolute -top-1.5 -right-1 bg-[#4DB6AC] text-[#00695C] text-[9px] font-black px-1 rounded-full shadow-2xs">
                               {count}×
                             </span>
                           )}
@@ -1538,16 +1580,16 @@ export const BillingPage = () => {
 
                 {/* Return Change Banner & Change Notes Selector Prompt */}
                 {changeToReturn > 0 && (
-                  <div className="p-2.5 bg-amber-50 dark:bg-amber-950/40 rounded-xl border border-amber-300 dark:border-amber-700/80 space-y-1.5">
+                  <div className="p-2.5 bg-[#FFF8E1] dark:bg-amber-950/40 rounded-xl border border-[#FBC02D] space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-black text-amber-900 dark:text-amber-200 flex items-center gap-1">
-                        <Coins className="w-3.5 h-3.5 text-amber-600" />
-                        Change Due: <strong className="font-mono text-sm font-black text-amber-800 dark:text-amber-300 ml-1">₹{changeToReturn.toFixed(2)}</strong>
+                      <span className="text-xs font-black text-[#263238] flex items-center gap-1">
+                        <Coins className="w-3.5 h-3.5 text-[#FBC02D]" />
+                        Change Due: <strong className="font-mono text-sm font-black text-[#00695C] ml-1">₹{changeToReturn.toFixed(2)}</strong>
                       </span>
                       <button
                         type="button"
                         onClick={() => setIsChangeNoteModalOpen(true)}
-                        className="px-2 py-0.5 bg-amber-600 hover:bg-amber-700 text-white rounded-md text-[10px] font-bold cursor-pointer transition-colors"
+                        className="px-2 py-0.5 bg-[#009688] hover:bg-[#00695C] text-white rounded-md text-[10px] font-bold cursor-pointer transition-colors"
                         title="Customize change notes handed over"
                       >
                         Change Notes ({getDenominationBreakdownSummary(changeNotes)}) ✎
@@ -1560,22 +1602,22 @@ export const BillingPage = () => {
 
             {/* UPI Dynamic QR Preview */}
             {paymentMethod === 'UPI' && (
-              <div className="p-2.5 bg-[#BDDDFC]/20 border border-[#88BDF2]/40 rounded-xl flex items-center justify-between">
+              <div className="p-2.5 bg-[#E0F2F1] border border-[#B2DFDB] rounded-xl flex items-center justify-between">
                 <div>
-                  <h5 className="text-xs font-bold text-[#384959]">Scan & Pay via any UPI App</h5>
-                  <p className="text-[10px] text-slate-500">GPay, PhonePe, Paytm</p>
+                  <h5 className="text-xs font-bold text-[#263238]">Scan & Pay via any UPI App</h5>
+                  <p className="text-[10px] text-[#607D8B]">GPay, PhonePe, Paytm</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsUpiModalOpen(true)}
-                  className="px-2.5 py-1 bg-[#384959] text-white text-xs font-bold rounded-lg hover:bg-[#2B3844] cursor-pointer flex items-center gap-1"
+                  className="px-2.5 py-1 bg-[#00695C] text-white text-xs font-bold rounded-lg hover:bg-[#004D40] cursor-pointer flex items-center gap-1"
                 >
                   <QrCode className="w-3.5 h-3.5" /> Show QR
                 </button>
               </div>
             )}
 
-            {/* Complete & Print Checkout Button - High Contrast & High Visibility */}
+            {/* Complete & Print Checkout Button - Deep Teal Primary CTA */}
             <Button
               variant="primary"
               size="lg"
@@ -1585,11 +1627,11 @@ export const BillingPage = () => {
               className={`w-full py-3.5 text-sm font-black rounded-xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-[0.99] ${
                 cartItems.length === 0
                   ? 'bg-slate-200! dark:bg-slate-800! text-slate-500! dark:text-slate-400! border border-slate-300 dark:border-slate-700 cursor-not-allowed opacity-75'
-                  : 'bg-linear-to-r from-[#384959] via-[#2B3844] to-[#1E293B] hover:from-[#2B3844] hover:to-[#0F172A] text-white! dark:text-white! border border-[#88BDF2]/40 shadow-lg cursor-pointer'
+                  : 'bg-[#00695C] hover:bg-[#004D40] text-white! dark:text-white! border border-[#00695C] shadow-lg cursor-pointer font-extrabold'
               }`}
             >
-              <Printer className={`w-4 h-4 ${cartItems.length === 0 ? 'text-slate-400 dark:text-slate-500' : 'text-[#88BDF2]'}`} />
-              <span className={cartItems.length === 0 ? 'text-slate-500! dark:text-slate-400! font-bold' : 'text-white! dark:text-white! font-extrabold'}>
+              <Printer className={`w-4 h-4 ${cartItems.length === 0 ? 'text-slate-400' : 'text-[#4DB6AC]'}`} />
+              <span className={cartItems.length === 0 ? 'text-slate-500! font-bold' : 'text-white! font-extrabold'}>
                 Complete & Print Bill ({grandTotal > 0 ? `₹${grandTotal.toFixed(2)}` : 'Cart Empty'}) [Enter]
               </span>
             </Button>

@@ -56,7 +56,7 @@ import { useTheme } from '../../context/ThemeContext';
 export const SettingsPage = () => {
   const { storeSettings, updateStoreSettings, user, isRole } = useAuth();
   const { showToast } = useNotification();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, colorTheme, setColorTheme, colorPresets } = useTheme();
 
   const [activeTab, setActiveTab] = useState('store');
   const [loading, setLoading] = useState(true);
@@ -127,7 +127,7 @@ export const SettingsPage = () => {
     ifsc_code: '',
     upi_id: '',
     theme_mode: 'light',
-    primary_color: '#384959',
+    primary_color: '#00695C',
     security_require_otp: false,
     security_session_timeout: 30,
   });
@@ -372,19 +372,32 @@ export const SettingsPage = () => {
 
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-[#384959] via-[#4A5D6E] to-[#2B3A48] dark:from-slate-900 dark:to-slate-800 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-96 h-96 bg-white/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+      {/* Store & Profile Hero Header */}
+      <div className="bg-[#00695C] text-white p-5 sm:p-8 rounded-3xl shadow-xl relative overflow-hidden">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[#88BDF2] text-xs font-bold uppercase tracking-wider backdrop-blur-md">
-              <Database className="w-3.5 h-3.5" /> 100% Database Driven Module
+            {/* User Profile Card Badge */}
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-white text-lg font-black shrink-0">
+                {user?.first_name ? user.first_name[0] : (user?.username?.[0] || 'A')}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight font-heading text-white">
+                    {user?.first_name ? `${user.first_name} ${user.last_name || ''}` : (user?.username || 'Admin')}
+                  </h1>
+                  <span className="bg-[#4DB6AC] text-[#00695C] text-[10px] font-black px-2 py-0.5 rounded-md uppercase">
+                    {user?.role?.replace('_', ' ') || 'Admin'}
+                  </span>
+                </div>
+                <p className="text-xs text-[#E0F2F1]/80 font-medium">
+                  {user?.email || 'admin@tulsimart.com'} • Active Session
+                </p>
+              </div>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-heading">
-              Admin & Store Settings
-            </h1>
-            <p className="text-slate-300 text-xs sm:text-sm max-w-xl">
-              Configure store identity, user login credentials, OTP delivery emails, GST structures, and security settings stored in database.
+
+            <p className="text-slate-200 text-xs sm:text-sm max-w-xl pt-1">
+              Configure store identity, user login credentials, OTP delivery emails, GST structures, and security settings.
             </p>
           </div>
 
@@ -405,7 +418,7 @@ export const SettingsPage = () => {
               icon={Save}
               onClick={handleSubmit}
               loading={saving}
-              className="bg-[#88BDF2] text-[#384959] hover:bg-sky-300 font-extrabold shadow-lg"
+              className="bg-[#009688] hover:bg-[#00695C] text-white font-extrabold shadow-lg"
             >
               Save All Changes
             </Button>
@@ -424,11 +437,11 @@ export const SettingsPage = () => {
               onClick={() => setActiveTab(t.id)}
               className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all shrink-0 font-medium text-xs sm:text-sm ${
                 isActive
-                  ? 'bg-[#384959] text-white dark:bg-[#88BDF2] dark:text-[#384959] font-bold shadow-md'
+                  ? 'bg-[#00695C] text-white dark:bg-[#009688] dark:text-white font-bold shadow-md'
                   : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700'
               }`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-white dark:text-[#384959]' : 'text-slate-400'}`} />
+              <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
               <div className="text-left">
                 <div>{t.label}</div>
               </div>
@@ -443,12 +456,12 @@ export const SettingsPage = () => {
           <Card className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-blue-50 dark:bg-blue-900/30 text-[#384959] dark:text-[#88BDF2] rounded-xl">
+                <div className="p-2.5 bg-[#E0F2F1] dark:bg-[#00695C]/30 text-[#00695C] dark:text-[#4DB6AC] rounded-xl">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-800 dark:text-slate-100 text-base">User Login Credentials Directory</h3>
-                  <p className="text-xs text-slate-500">Manage user accounts, usernames, passwords & OTP delivery emails stored in database `login` table</p>
+                  <p className="text-slate-500 dark:text-slate-400 text-xs">Manage accounts, update emails for OTP delivery, and create new users.</p>
                 </div>
               </div>
 
@@ -457,7 +470,7 @@ export const SettingsPage = () => {
                 size="sm"
                 icon={UserPlus}
                 onClick={handleOpenCreateAccountModal}
-                className="bg-[#384959] text-white hover:bg-slate-700 font-bold self-start sm:self-auto"
+                className="bg-[#00695C] hover:bg-[#004D40] text-white font-bold self-start sm:self-auto"
               >
                 Add New Login Account
               </Button>
@@ -475,7 +488,7 @@ export const SettingsPage = () => {
               <div className="overflow-x-auto touch-pan">
                 <table className="w-full text-left text-xs border-collapse min-w-[640px]">
                   <thead>
-                    <tr className="border-b-2 border-[#384959] text-[#384959] dark:text-slate-200 font-bold uppercase tracking-wider text-[11px]">
+                    <tr className="border-b-2 border-[#00695C] text-[#263238] dark:text-slate-200 font-bold uppercase tracking-wider text-[11px]">
                       <th className="py-3 px-3">User / Full Name</th>
                       <th className="py-3 px-3">Username</th>
                       <th className="py-3 px-3">OTP Delivery Email</th>
@@ -495,7 +508,7 @@ export const SettingsPage = () => {
                             <p className="font-bold text-slate-800 dark:text-slate-100">{acc.full_name}</p>
                             <span className="text-[10px] text-slate-400">ID: #{acc.id}</span>
                           </td>
-                          <td className="py-3.5 px-3 font-mono font-bold text-[#384959] dark:text-[#88BDF2]">
+                          <td className="py-3.5 px-3 font-mono font-bold text-[#00695C] dark:text-[#4DB6AC]">
                             {acc.username}
                           </td>
                           <td className="py-3.5 px-3 text-slate-600 dark:text-slate-300 font-medium">
@@ -603,7 +616,7 @@ export const SettingsPage = () => {
                       value={formData.store_name}
                       onChange={handleChange}
                       required
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#88BDF2] outline-none transition-all dark:text-slate-100"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00695C] outline-none transition-all dark:text-slate-100"
                       placeholder="e.g. Tulsi Mart Supermarket"
                     />
                   </div>
@@ -617,7 +630,7 @@ export const SettingsPage = () => {
                       name="tagline"
                       value={formData.tagline}
                       onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#88BDF2] outline-none transition-all dark:text-slate-100"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00695C] outline-none transition-all dark:text-slate-100"
                       placeholder="e.g. Fresh Groceries & Daily Needs"
                     />
                   </div>
@@ -631,7 +644,7 @@ export const SettingsPage = () => {
                       name="store_logo"
                       value={formData.store_logo}
                       onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#88BDF2] outline-none transition-all dark:text-slate-100 font-mono text-xs"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00695C] outline-none transition-all dark:text-slate-100 font-mono text-xs"
                       placeholder="/logo.png or https://..."
                     />
                   </div>
@@ -646,7 +659,7 @@ export const SettingsPage = () => {
                       value={formData.address}
                       onChange={handleChange}
                       required
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#88BDF2] outline-none transition-all dark:text-slate-100"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00695C] outline-none transition-all dark:text-slate-100"
                       placeholder="Complete store location details..."
                     />
                   </div>
@@ -658,7 +671,7 @@ export const SettingsPage = () => {
                       name="city"
                       value={formData.city}
                       onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#88BDF2] outline-none transition-all dark:text-slate-100"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00695C] outline-none transition-all dark:text-slate-100"
                     />
                   </div>
 
@@ -669,7 +682,7 @@ export const SettingsPage = () => {
                       name="state"
                       value={formData.state}
                       onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#88BDF2] outline-none transition-all dark:text-slate-100"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00695C] outline-none transition-all dark:text-slate-100"
                     />
                   </div>
 
@@ -680,7 +693,7 @@ export const SettingsPage = () => {
                       name="country"
                       value={formData.country}
                       onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#88BDF2] outline-none transition-all dark:text-slate-100"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00695C] outline-none transition-all dark:text-slate-100"
                     />
                   </div>
 
@@ -691,7 +704,7 @@ export const SettingsPage = () => {
                       name="pincode"
                       value={formData.pincode}
                       onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#88BDF2] outline-none transition-all dark:text-slate-100 font-mono"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00695C] outline-none transition-all dark:text-slate-100 font-mono"
                     />
                   </div>
                 </div>
@@ -718,7 +731,7 @@ export const SettingsPage = () => {
                       value={formData.phone}
                       onChange={handleChange}
                       required
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#88BDF2] outline-none transition-all dark:text-slate-100 font-mono"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00695C] outline-none transition-all dark:text-slate-100 font-mono"
                     />
                   </div>
 
@@ -730,7 +743,7 @@ export const SettingsPage = () => {
                       value={formData.email}
                       onChange={handleChange}
                       required
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#88BDF2] outline-none transition-all dark:text-slate-100"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00695C] outline-none transition-all dark:text-slate-100"
                     />
                   </div>
                 </div>
@@ -776,7 +789,7 @@ export const SettingsPage = () => {
                       name="gst_number"
                       value={formData.gst_number}
                       onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#88BDF2] outline-none transition-all font-mono uppercase dark:text-slate-100"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00695C] outline-none transition-all font-mono uppercase dark:text-slate-100"
                       placeholder="27AABCT8899F1Z4"
                     />
                   </div>
@@ -790,7 +803,7 @@ export const SettingsPage = () => {
                       name="pan_number"
                       value={formData.pan_number}
                       onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#88BDF2] outline-none transition-all font-mono uppercase dark:text-slate-100"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00695C] outline-none transition-all font-mono uppercase dark:text-slate-100"
                       placeholder="AABCT8899F"
                     />
                   </div>
@@ -806,7 +819,7 @@ export const SettingsPage = () => {
                         name="default_gst_rate"
                         value={formData.default_gst_rate}
                         onChange={handleChange}
-                        className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#88BDF2] outline-none transition-all font-mono dark:text-slate-100"
+                        className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00695C] outline-none transition-all font-mono dark:text-slate-100"
                       />
                       <Percent className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
                     </div>
@@ -865,7 +878,7 @@ export const SettingsPage = () => {
                       name="invoice_prefix"
                       value={formData.invoice_prefix}
                       onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#88BDF2] outline-none transition-all font-mono uppercase dark:text-slate-100"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00695C] outline-none transition-all font-mono uppercase dark:text-slate-100"
                       placeholder="TM-INV-"
                     />
                     <p className="text-[11px] text-slate-400 mt-1">Example: {formData.invoice_prefix}10024</p>
@@ -880,7 +893,7 @@ export const SettingsPage = () => {
                       rows={3}
                       value={formData.invoice_terms}
                       onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#88BDF2] outline-none transition-all dark:text-slate-100"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00695C] outline-none transition-all dark:text-slate-100"
                     />
                   </div>
 
@@ -934,7 +947,7 @@ export const SettingsPage = () => {
                       name="bank_name"
                       value={formData.bank_name}
                       onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#88BDF2] outline-none transition-all dark:text-slate-100"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00695C] outline-none transition-all dark:text-slate-100"
                       placeholder="e.g. HDFC Bank"
                     />
                   </div>
@@ -946,7 +959,7 @@ export const SettingsPage = () => {
                       name="account_number"
                       value={formData.account_number}
                       onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#88BDF2] outline-none transition-all font-mono dark:text-slate-100"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00695C] outline-none transition-all font-mono dark:text-slate-100"
                       placeholder="e.g. 50200012345678"
                     />
                   </div>
@@ -958,7 +971,7 @@ export const SettingsPage = () => {
                       name="ifsc_code"
                       value={formData.ifsc_code}
                       onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#88BDF2] outline-none transition-all font-mono uppercase dark:text-slate-100"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00695C] outline-none transition-all font-mono uppercase dark:text-slate-100"
                       placeholder="e.g. HDFC0001234"
                     />
                   </div>
@@ -984,7 +997,7 @@ export const SettingsPage = () => {
                       name="upi_id"
                       value={formData.upi_id}
                       onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#88BDF2] outline-none transition-all font-mono text-xs dark:text-slate-100"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00695C] outline-none transition-all font-mono text-xs dark:text-slate-100"
                       placeholder="tulsimart@hdfcbank"
                     />
                   </div>
@@ -1050,7 +1063,7 @@ export const SettingsPage = () => {
                       name="currency_symbol"
                       value={formData.currency_symbol}
                       onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#88BDF2] outline-none transition-all font-mono dark:text-slate-100"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00695C] outline-none transition-all font-mono dark:text-slate-100"
                       placeholder="₹"
                     />
                   </div>
@@ -1062,7 +1075,7 @@ export const SettingsPage = () => {
                       name="currency_code"
                       value={formData.currency_code}
                       onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#88BDF2] outline-none transition-all font-mono uppercase dark:text-slate-100"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00695C] outline-none transition-all font-mono uppercase dark:text-slate-100"
                       placeholder="INR"
                     />
                   </div>
@@ -1071,29 +1084,77 @@ export const SettingsPage = () => {
 
               <Card className="space-y-6">
                 <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
-                  <div className="p-2.5 bg-[#384959]/10 text-[#384959] dark:text-[#88BDF2] rounded-xl">
+                  <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-xl">
                     <Palette className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-slate-800 dark:text-slate-100 text-base">Appearance & Theme Mode</h3>
-                    <p className="text-xs text-slate-500">Store management system theme preference</p>
+                    <h3 className="font-bold text-slate-800 dark:text-slate-100 text-base">Appearance & Color Theme</h3>
+                    <p className="text-xs text-slate-500">Select store management color scheme & display mode</p>
                   </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-5">
+                  {/* Light / Dark Mode Toggle */}
                   <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
                     <div className="flex items-center gap-3">
                       {theme === 'dark' ? <Moon className="w-5 h-5 text-indigo-400" /> : <Sun className="w-5 h-5 text-amber-500" />}
                       <div>
                         <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100">
-                          Current Mode: <span className="capitalize">{theme}</span>
+                          Display Mode: <span className="capitalize">{theme}</span>
                         </h4>
                         <p className="text-[11px] text-slate-500">Toggle dark / light mode interface</p>
                       </div>
                     </div>
                     <Button variant="outline" size="sm" onClick={toggleTheme}>
-                      Toggle Theme
+                      Toggle Mode
                     </Button>
+                  </div>
+
+                  {/* Simple Color Palette Options */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2.5">
+                      Simple Brand Color Theme
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {(colorPresets || []).map((preset) => {
+                        const isSelected = colorTheme === preset.id;
+                        return (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            onClick={() => {
+                              setColorTheme(preset.id);
+                              showToast(`Theme changed to ${preset.name}!`, 'info');
+                            }}
+                            className={`flex items-center gap-3 p-3.5 rounded-2xl border transition-all text-left ${
+                              isSelected
+                                ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/50 dark:bg-emerald-950/30'
+                                : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600'
+                            }`}
+                          >
+                            <div 
+                              className="w-8 h-8 rounded-xl shrink-0 flex items-center justify-center text-white shadow-xs font-bold text-xs"
+                              style={{ backgroundColor: preset.primaryColor }}
+                            >
+                              {isSelected ? <Check className="w-4 h-4 stroke-[3]" /> : null}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between gap-1">
+                                <span className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                                  {preset.name}
+                                </span>
+                                {isSelected && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-extrabold">
+                                    Active
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-slate-400 truncate">{preset.desc}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </Card>
@@ -1134,7 +1195,7 @@ export const SettingsPage = () => {
                       name="security_session_timeout"
                       value={formData.security_session_timeout}
                       onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#88BDF2] outline-none transition-all font-mono dark:text-slate-100"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00695C] outline-none transition-all font-mono dark:text-slate-100"
                     />
                   </div>
 
@@ -1205,7 +1266,7 @@ export const SettingsPage = () => {
               onChange={(e) => setAccountFormData({ ...accountFormData, full_name: e.target.value })}
               required
               placeholder="e.g. Zeel Patel"
-              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#88BDF2] outline-none font-medium dark:text-slate-100"
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00695C] outline-none font-medium dark:text-slate-100"
             />
           </div>
 
@@ -1217,7 +1278,7 @@ export const SettingsPage = () => {
               onChange={(e) => setAccountFormData({ ...accountFormData, username: e.target.value })}
               required
               placeholder="e.g. admin or cashier1"
-              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#88BDF2] outline-none font-mono font-bold dark:text-slate-100"
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00695C] outline-none font-mono font-bold dark:text-slate-100"
             />
           </div>
 
@@ -1229,7 +1290,7 @@ export const SettingsPage = () => {
               onChange={(e) => setAccountFormData({ ...accountFormData, password: e.target.value })}
               required
               placeholder="Enter secure password"
-              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#88BDF2] outline-none font-mono dark:text-slate-100"
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00695C] outline-none font-mono dark:text-slate-100"
             />
           </div>
 
@@ -1241,7 +1302,7 @@ export const SettingsPage = () => {
               onChange={(e) => setAccountFormData({ ...accountFormData, email: e.target.value })}
               required
               placeholder="user@tulsimart.com"
-              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#88BDF2] outline-none dark:text-slate-100"
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00695C] outline-none dark:text-slate-100"
             />
             <p className="text-[10px] text-slate-400 mt-1">OTP verification codes for this account will be sent to this email address.</p>
           </div>
@@ -1251,7 +1312,7 @@ export const SettingsPage = () => {
             <select
               value={accountFormData.role}
               onChange={(e) => setAccountFormData({ ...accountFormData, role: e.target.value })}
-              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#88BDF2] outline-none font-medium dark:text-slate-100"
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00695C] outline-none font-medium dark:text-slate-100"
             >
               <option value="ADMIN">Admin / Store Owner</option>
               <option value="STORE_MANAGER">Store Manager</option>
@@ -1285,8 +1346,8 @@ export const SettingsPage = () => {
             <Button variant="outline" size="sm" type="button" onClick={() => setIsAccountModalOpen(false)}>
               Cancel
             </Button>
-            <Button variant="primary" size="sm" type="submit" loading={submittingAccount} className="bg-[#384959] text-white font-bold">
-              {editingAccount ? 'Save Changes' : 'Create Account'}
+            <Button variant="primary" size="sm" type="submit" loading={submittingAccount} className="bg-[#00695C] hover:bg-[#004D40] text-white font-bold">
+              {editingAccount ? 'Update Account' : 'Create Account'}
             </Button>
           </div>
         </form>
@@ -1295,7 +1356,7 @@ export const SettingsPage = () => {
       {activeTab === 'home_cash' && (
         <div className="space-y-6">
           {/* Top Banner Card with Balance */}
-          <Card className="p-6 bg-gradient-to-r from-slate-900 via-[#384959] to-slate-900 text-white rounded-3xl shadow-xl relative overflow-hidden">
+          <Card className="p-6 bg-gradient-to-r from-[#004D40] via-[#00695C] to-[#004D40] text-white rounded-3xl shadow-xl relative overflow-hidden">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
               <div className="space-y-2">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold uppercase tracking-wider border border-emerald-500/30">
@@ -1314,7 +1375,7 @@ export const SettingsPage = () => {
                   variant="primary"
                   size="md"
                   onClick={() => handleOpenHomeCashModal('DEPOSIT')}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold shadow-lg border border-emerald-500 cursor-pointer"
+                  className="bg-[#00695C] hover:bg-[#004D40] text-white font-extrabold shadow-lg border border-[#00695C] cursor-pointer"
                 >
                   <PlusCircle className="w-4 h-4" /> Deposit Cash to Home
                 </Button>
@@ -1511,7 +1572,7 @@ export const SettingsPage = () => {
               size="md"
               onClick={handleSubmitHomeCashTransaction}
               loading={submittingHomeCash}
-              className={homeCashModalType === 'DEPOSIT' ? 'bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold cursor-pointer' : 'bg-amber-600 hover:bg-amber-700 text-white font-extrabold cursor-pointer'}
+              className={homeCashModalType === 'DEPOSIT' ? 'bg-[#00695C] hover:bg-[#004D40] text-white font-extrabold cursor-pointer' : 'bg-amber-600 hover:bg-amber-700 text-white font-extrabold cursor-pointer'}
             >
               Confirm {homeCashModalType === 'DEPOSIT' ? 'Deposit' : 'Withdrawal'} (₹{calculateHomeNoteTotal(homeNoteCounts).toFixed(2)})
             </Button>

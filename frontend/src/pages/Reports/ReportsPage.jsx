@@ -134,7 +134,7 @@ export const ReportsPage = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-[#384959] dark:text-slate-100 tracking-tight font-heading">
+          <h1 className="text-xl sm:text-2xl font-black text-[#263238] dark:text-slate-100 tracking-tight font-heading">
             Reports & Business Statements
           </h1>
           <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -162,7 +162,7 @@ export const ReportsPage = () => {
               onClick={() => setReportType(r.id)}
               className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl font-bold shrink-0 transition-all cursor-pointer ${
                 reportType === r.id
-                  ? 'bg-[#384959] dark:bg-[#88BDF2] text-white dark:text-[#384959] shadow-xs'
+                  ? 'bg-[#00695C] dark:bg-[#009688] text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
@@ -233,7 +233,7 @@ export const ReportsPage = () => {
       <Card className="p-0 overflow-hidden">
         {loading ? (
           <div className="p-12 text-center text-slate-400">
-            <div className="w-8 h-8 rounded-full border-2 border-[#88BDF2] border-t-transparent animate-spin mx-auto mb-2" />
+            <div className="w-8 h-8 rounded-full border-2 border-[#00695C] border-t-transparent animate-spin mx-auto mb-2" />
             <p className="text-xs font-bold">Compiling Financial Statement...</p>
           </div>
         ) : !reportData.data || reportData.data.length === 0 ? (

@@ -3,7 +3,15 @@ from rest_framework.views import exception_handler
 from rest_framework.response import Response
 from rest_framework import status
 
+from django.db import OperationalError, DatabaseError, connection
+
 def custom_exception_handler(exc, context):
+    if isinstance(exc, (OperationalError, DatabaseError)):
+        try:
+            connection.close()
+        except Exception:
+            pass
+
     response = exception_handler(exc, context)
 
     if response is None:

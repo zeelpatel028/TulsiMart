@@ -270,7 +270,7 @@ export const CustomerList = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-[#384959] dark:text-slate-100 tracking-tight font-heading">
+          <h1 className="text-xl sm:text-2xl font-black text-[#263238] dark:text-slate-100 tracking-tight font-heading">
             Customer CRM & Khata Ledger
           </h1>
           <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -298,7 +298,7 @@ export const CustomerList = () => {
             onClick={() => setStatusFilter('')}
             className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer shrink-0 ${
               statusFilter === '' 
-                ? 'bg-[#384959] dark:bg-[#88BDF2] text-white dark:text-[#384959]' 
+                ? 'bg-[#00695C] dark:bg-[#009688] text-white dark:text-white' 
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
             }`}
           >
@@ -308,8 +308,8 @@ export const CustomerList = () => {
             onClick={() => setStatusFilter('ACTIVE')}
             className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer shrink-0 ${
               statusFilter === 'ACTIVE' 
-                ? 'bg-emerald-600 text-white' 
-                : 'bg-slate-100 dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
+                ? 'bg-[#009688] text-white' 
+                : 'bg-slate-100 dark:bg-slate-800 text-[#00695C] dark:text-[#4DB6AC] hover:bg-[#E0F2F1] dark:hover:bg-slate-700'
             }`}
           >
             Active
@@ -364,11 +364,11 @@ export const CustomerList = () => {
                 <div>
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-2xl bg-[#384959]/10 dark:bg-[#88BDF2]/20 text-[#384959] dark:text-[#88BDF2] flex items-center justify-center font-bold text-sm">
+                      <div className="w-11 h-11 rounded-2xl bg-[#00695C]/10 dark:bg-[#4DB6AC]/20 text-[#00695C] dark:text-[#4DB6AC] flex items-center justify-center font-bold text-sm">
                         {c.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                       </div>
                       <div>
-                        <h3 className="text-sm font-bold text-[#384959] dark:text-slate-100 leading-tight">{c.name}</h3>
+                        <h3 className="text-sm font-bold text-[#263238] dark:text-slate-100 leading-tight">{c.name}</h3>
                         <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">{c.phone}</span>
                       </div>
                     </div>
@@ -390,7 +390,7 @@ export const CustomerList = () => {
                   <div className="grid grid-cols-3 gap-1.5 mt-4 p-3 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-100 dark:border-slate-700 text-xs">
                     <div>
                       <p className="text-[10px] font-bold text-slate-400 uppercase">Orders</p>
-                      <p className="text-xs font-black text-[#384959] dark:text-slate-100">{c.total_orders || 0}</p>
+                      <p className="text-xs font-black text-[#263238] dark:text-slate-100">{c.total_orders || 0}</p>
                     </div>
                     <div>
                       <p className="text-[10px] font-bold text-slate-400 uppercase">Spent</p>
@@ -423,7 +423,7 @@ export const CustomerList = () => {
                         size="sm" 
                         icon={Wallet} 
                         onClick={() => handleOpenKhataModal(c)}
-                        className="!bg-emerald-600 hover:!bg-emerald-700 !text-white text-xs py-1 px-2.5"
+                        className="!bg-[#00695C] hover:!bg-[#004D40] !text-white text-xs py-1 px-2.5"
                       >
                         Pay Khata
                       </Button>
@@ -481,7 +481,7 @@ export const CustomerList = () => {
                   size="sm"
                   icon={Wallet}
                   onClick={() => handleOpenKhataModal(selectedCustomer)}
-                  className="!bg-emerald-600 hover:!bg-emerald-700 !text-white text-xs self-start sm:self-auto"
+                  className="!bg-[#00695C] hover:!bg-[#004D40] !text-white text-xs self-start sm:self-auto"
                 >
                   Pay Khata Balance
                 </Button>
@@ -521,7 +521,7 @@ export const CustomerList = () => {
 
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase">Customer Loyalty Stats</p>
-                <p className="text-base font-black text-[#384959] dark:text-slate-100 font-heading mt-1">
+                <p className="text-base font-black text-[#00695C] dark:text-[#4DB6AC] font-heading mt-1">
                   ₹{Number(selectedCustomer.total_spent || 0).toFixed(2)}
                 </p>
                 <p className="text-slate-500 dark:text-slate-400">{selectedCustomer.total_orders || 0} lifetime orders</p>
@@ -532,7 +532,7 @@ export const CustomerList = () => {
             {selectedCustomer.recent_feedbacks?.length > 0 && (
               <div>
                 <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
-                  <MessageSquareQuote className="w-3.5 h-3.5 text-[#6A89A7]" /> Verified Customer Feedback
+                  <MessageSquareQuote className="w-3.5 h-3.5 text-[#009688]" /> Verified Customer Feedback
                 </p>
                 <div className="space-y-2">
                   {selectedCustomer.recent_feedbacks.map((f) => (
@@ -577,7 +577,7 @@ export const CustomerList = () => {
                         const isPending = o.payment_status === 'PENDING';
                         return (
                           <tr key={o.id} className={isPending ? 'bg-rose-50/40 dark:bg-rose-950/20' : ''}>
-                            <td className="py-2.5 px-3 font-mono font-bold text-[#384959] dark:text-slate-200">{o.order_number}</td>
+                            <td className="py-2.5 px-3 font-mono font-bold text-[#00695C] dark:text-[#4DB6AC]">{o.order_number}</td>
                             <td className="py-2.5 px-3 text-slate-500 dark:text-slate-400">
                               {new Date(o.created_at).toLocaleDateString('en-IN')}
                             </td>
@@ -587,7 +587,7 @@ export const CustomerList = () => {
                                 {o.payment_status}
                               </Badge>
                             </td>
-                            <td className="py-2.5 px-3 text-right font-extrabold text-[#384959] dark:text-slate-100">
+                            <td className="py-2.5 px-3 text-right font-extrabold text-[#263238] dark:text-slate-100">
                               ₹{Number(o.total_amount).toFixed(2)}
                             </td>
                             <td className="py-2.5 px-3 text-right">
@@ -657,7 +657,7 @@ export const CustomerList = () => {
                   icon={CheckCircle}
                   onClick={handleRecordKhataPayment} 
                   loading={submittingKhata}
-                  className="!bg-emerald-600 hover:!bg-emerald-700 !text-white"
+                  className="!bg-[#00695C] hover:!bg-[#004D40] !text-white"
                 >
                   Confirm Payment Receipt
                 </Button>
@@ -669,7 +669,7 @@ export const CustomerList = () => {
               <div className="p-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-between">
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase">Customer Account</p>
-                  <p className="text-sm font-bold text-[#384959] dark:text-slate-100">{khataCustomer.name}</p>
+                  <p className="text-sm font-bold text-[#263238] dark:text-slate-100">{khataCustomer.name}</p>
                   <p className="text-[11px] text-slate-500 font-mono">{khataCustomer.phone}</p>
                 </div>
                 <div className="text-right">
@@ -682,13 +682,13 @@ export const CustomerList = () => {
 
               {/* Payment Method Selector */}
               <div>
-                <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">
+                <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">
                   Payment Method * (ચુકવણી પદ્ધતિ)
                 </label>
                 <select
                   value={khataForm.payment_method}
                   onChange={(e) => setKhataForm({ ...khataForm, payment_method: e.target.value })}
-                  className="w-full px-3 py-2 text-sm font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[#384959] dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:border-[#88BDF2] outline-hidden"
+                  className="w-full px-3 py-2 text-sm font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[#263238] dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:border-[#009688] outline-hidden"
                 >
                   <option value="CASH">💵 Cash Counter (રોકડ ચુકવણી)</option>
                   <option value="UPI">📱 UPI / QR (Google Pay / PhonePe / Paytm)</option>
@@ -699,7 +699,7 @@ export const CustomerList = () => {
 
               {/* Payment Settlement Amount Input */}
               <div>
-                <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">
+                <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">
                   Khata Payment Amount (₹) * (ખાતા જમા રકમ)
                 </label>
                 <input
@@ -710,7 +710,7 @@ export const CustomerList = () => {
                   value={khataForm.amount}
                   onChange={(e) => setKhataForm({ ...khataForm, amount: e.target.value })}
                   placeholder="0.00"
-                  className="w-full px-3.5 py-2.5 text-base font-extrabold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-[#88BDF2] outline-hidden text-[#384959] dark:text-slate-100 font-heading"
+                  className="w-full px-3.5 py-2.5 text-base font-extrabold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-[#009688] outline-hidden text-[#263238] dark:text-slate-100 font-heading"
                 />
 
                 {/* Quick Amount Suggestion Chips */}
@@ -805,8 +805,8 @@ export const CustomerList = () => {
                   {/* Note Counter System for Cash Payments */}
                   <div className="p-3 bg-slate-50 dark:bg-slate-800/70 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-extrabold text-[#384959] dark:text-[#88BDF2] flex items-center gap-1.5">
-                        <Calculator className="w-3.5 h-3.5 text-[#88BDF2]" />
+                      <span className="text-[11px] font-extrabold text-[#263238] dark:text-[#4DB6AC] flex items-center gap-1.5">
+                        <Calculator className="w-3.5 h-3.5 text-[#009688]" />
                         Received Cash Note Breakdown (ચલણી નોટ ગણતરી)
                       </span>
                       <button
@@ -860,8 +860,8 @@ export const CustomerList = () => {
 
               {/* Non-Cash Information Badge */}
               {khataForm.payment_method !== 'CASH' && (
-                <div className="p-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-2xl text-blue-900 dark:text-blue-300 text-xs flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-blue-600 shrink-0" />
+                <div className="p-3 bg-[#E0F2F1] dark:bg-teal-950/40 border border-[#B2DFDB] dark:border-teal-800/40 rounded-2xl text-[#00695C] dark:text-[#4DB6AC] text-xs flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-[#009688] shrink-0" />
                   <span>
                     Direct digital payment will be recorded into account ledger via <strong>{khataForm.payment_method}</strong>. No physical cash change required.
                   </span>
@@ -906,69 +906,69 @@ export const CustomerList = () => {
       >
         <form onSubmit={handleCreateCustomer} className="space-y-3 text-xs">
           <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">Full Name *</label>
+            <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">Full Name *</label>
             <input
               type="text"
               required
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="e.g. Ramesh Patel"
-              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-[#88BDF2] outline-hidden text-[#384959] dark:text-slate-100"
+              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-[#009688] outline-hidden text-[#263238] dark:text-slate-100"
             />
           </div>
 
           <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">Phone Number *</label>
+            <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">Phone Number *</label>
             <input
               type="tel"
               required
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               placeholder="+91 98XXX XXXXX"
-              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-[#384959] dark:text-slate-100"
+              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-[#263238] dark:text-slate-100"
             />
           </div>
 
           <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">Email Address</label>
+            <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">Email Address</label>
             <input
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               placeholder="customer@email.com"
-              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[#384959] dark:text-slate-100"
+              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[#263238] dark:text-slate-100"
             />
           </div>
 
           <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">Delivery Address</label>
+            <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">Delivery Address</label>
             <textarea
               rows={2}
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               placeholder="Flat / Building, Street, Landmark..."
-              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[#384959] dark:text-slate-100"
+              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[#263238] dark:text-slate-100"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">City</label>
+              <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">City</label>
               <input
                 type="text"
                 value={formData.city}
                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[#384959] dark:text-slate-100"
+                className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[#263238] dark:text-slate-100"
               />
             </div>
             <div>
-              <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">Pincode</label>
+              <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">Pincode</label>
               <input
                 type="text"
                 value={formData.pincode}
                 onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
                 placeholder="400001"
-                className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-[#384959] dark:text-slate-100"
+                className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-[#263238] dark:text-slate-100"
               />
             </div>
           </div>

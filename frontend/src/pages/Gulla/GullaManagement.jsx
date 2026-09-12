@@ -296,7 +296,7 @@ export const GullaManagement = () => {
         if (requested > 0) {
           const avail = Math.max(0, parseInt(netNotesDict[d] || netNotesDict[String(d)] || 0, 10));
           if (requested > avail) {
-            showToast(`⚠️ GULLA ALERT: ગુલ્લામાં ₹${d} ની નોટ ઉપલબ્ધ નથી! (પ્રાપ્ય: ${avail}, જરૂરિયાત: ${requested}). કૃપા કરીને Opening Float અથવા Cash In વડે નોટો ઉમેરો.`, 'error');
+            showToast(`⚠️ GULLA ALERT: Insufficient ₹${d} notes in Gulla drawer! (Available: ${avail}, Required: ${requested}). Please add notes via Opening Float or Cash In.`, 'error');
             return;
           }
         }
@@ -362,15 +362,15 @@ export const GullaManagement = () => {
       {/* ================= PAGE HEADER ================= */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-[#384959] text-white flex items-center justify-center shadow-md shrink-0">
-            <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-[#88BDF2]" />
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-[#00695C] text-white flex items-center justify-center shadow-md shrink-0">
+            <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-[#E0F2F1]" />
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-lg sm:text-xl md:text-2xl font-black text-[#384959] dark:text-slate-100 tracking-tight">
-                Gulla Management (ગલ્લા મેનેજમેન્ટ)
+              <h1 className="text-lg sm:text-xl md:text-2xl font-black text-[#263238] dark:text-slate-100 tracking-tight">
+                Gulla Cash Register Management
               </h1>
-              <Badge variant="primary" className="bg-[#384959] text-white text-[10px] font-mono shrink-0">
+              <Badge variant="primary" className="bg-[#00695C] text-white text-[10px] font-mono shrink-0">
                 POS CASH REGISTER
               </Badge>
             </div>
@@ -380,46 +380,46 @@ export const GullaManagement = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 sm:flex sm:flex-row items-center gap-2 w-full lg:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
           <Button
             variant="outline"
             size="sm"
             onClick={fetchGullaData}
             loading={refreshing}
-            className="flex items-center justify-center gap-1.5 text-[11px] sm:text-xs border-slate-300 dark:border-slate-700 w-full sm:w-auto px-2 sm:px-3 py-1.5"
+            className="flex items-center justify-center gap-1.5 text-xs border-slate-300 dark:border-slate-700 px-3 py-2 flex-1 sm:flex-initial"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-            <span className="hidden xs:inline sm:inline">Refresh</span>
+            <span>Refresh</span>
           </Button>
 
           <Button
             variant="outline"
             size="sm"
             onClick={() => handleOpenEntryModal('CASH_IN')}
-            className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300 text-[11px] sm:text-xs flex items-center justify-center gap-1 w-full sm:w-auto px-2 sm:px-3 py-1.5"
+            className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300 text-xs flex items-center justify-center gap-1.5 px-3 py-2 flex-1 sm:flex-initial"
           >
             <Plus className="w-3.5 h-3.5 shrink-0" />
-            <span>+ Add Cash</span>
+            <span>Add Cash</span>
           </Button>
 
           <Button
             variant="outline"
             size="sm"
             onClick={() => handleOpenEntryModal('CASH_OUT')}
-            className="bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-300 text-[11px] sm:text-xs flex items-center justify-center gap-1 w-full sm:w-auto px-2 sm:px-3 py-1.5"
+            className="bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-300 text-xs flex items-center justify-center gap-1.5 px-3 py-2 flex-1 sm:flex-initial"
           >
             <Minus className="w-3.5 h-3.5 shrink-0" />
-            <span>- Withdraw</span>
+            <span>Withdraw</span>
           </Button>
 
           <Button
             variant="primary"
             size="sm"
             onClick={() => setIsEodModalOpen(true)}
-            className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] sm:text-xs flex items-center justify-center gap-1 w-full sm:w-auto px-2.5 sm:px-3.5 py-1.5 shadow-xs cursor-pointer"
+            className="bg-[#00695C] hover:bg-[#004D40] text-white font-bold text-xs flex items-center justify-center gap-1.5 px-3.5 py-2 shadow-sm cursor-pointer flex-1 sm:flex-initial"
           >
             <Store className="w-3.5 h-3.5 shrink-0" />
-            <span>🏠 Day-End Home Sweep</span>
+            <span>Day-End Home Sweep</span>
           </Button>
         </div>
       </div>
@@ -427,9 +427,9 @@ export const GullaManagement = () => {
       {/* ================= DATE FILTER BAR ================= */}
       <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-xs">
         <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200">
-          <Calendar className="w-4 h-4 text-[#384959] dark:text-[#88BDF2] shrink-0" />
+          <Calendar className="w-4 h-4 text-[#00695C] dark:text-[#4DB6AC] shrink-0" />
           <span>Gulla Register Date:</span>
-          <span className="bg-[#384959] text-white px-2.5 py-1 rounded-lg text-xs font-mono">
+          <span className="bg-[#00695C] text-white px-2.5 py-1 rounded-lg text-xs font-mono">
             {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
           </span>
         </div>
@@ -439,7 +439,7 @@ export const GullaManagement = () => {
             onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
             className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all flex-1 sm:flex-initial text-center cursor-pointer ${
               selectedDate === new Date().toISOString().split('T')[0]
-                ? 'bg-[#384959] text-white shadow-xs'
+                ? 'bg-[#00695C] text-white shadow-xs'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
             }`}
           >
@@ -453,7 +453,7 @@ export const GullaManagement = () => {
             }}
             className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all flex-1 sm:flex-initial text-center cursor-pointer ${
               selectedDate === new Date(Date.now() - 86400000).toISOString().split('T')[0]
-                ? 'bg-[#384959] text-white shadow-xs'
+                ? 'bg-[#00695C] text-white shadow-xs'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
             }`}
           >
@@ -471,83 +471,83 @@ export const GullaManagement = () => {
       {/* ================= 1. LIVE GULLA CASH CARDS ================= */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Card 1: Expected Net Cash in Gulla */}
-        <div className="bg-gradient-to-br from-[#384959] to-[#2B3844] text-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xl space-y-2 relative overflow-hidden">
+        <div className="bg-gradient-to-br from-[#004D40] via-[#00695C] to-[#004D40] text-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xl space-y-2 relative overflow-hidden">
           <div className="absolute right-3 top-3 opacity-10">
             <Wallet className="w-20 h-20 sm:w-24 sm:h-24" />
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider text-[#BDDDFC]">
-              Expected Net Gulla Cash (કુલ ગલ્લું)
+            <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-[#E0F2F1]">
+              Expected Net Gulla Cash
             </span>
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
+            <span className="w-2 h-2 rounded-full bg-[#4DB6AC] animate-ping shrink-0" />
           </div>
           <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-white truncate">
             ₹{expectedCashInGulla.toFixed(2)}
           </div>
           <div className="flex items-center justify-between pt-1 border-t border-white/10 text-[10px] text-slate-200">
-            <span className="flex items-center gap-1 font-bold">
+            <span className="flex items-center gap-1 font-bold text-[#E0F2F1]/90">
               🏠 Home Safe Total Cash:
             </span>
-            <span className="font-extrabold font-mono text-amber-300">
+            <span className="font-extrabold font-mono text-[#FBC02D]">
               ₹{homeCashAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </span>
           </div>
         </div>
 
         {/* Card 2: Today Cash Sales & Bills */}
-        <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
+        <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-[#B2DFDB] dark:border-slate-800 shadow-xs space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Today Cash Bills (રોકડ વેચાણ)
+            <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-[#607D8B] dark:text-slate-400">
+              Today's Cash Bills
             </span>
-            <div className="p-1.5 sm:p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 shrink-0">
+            <div className="p-1.5 sm:p-2 rounded-xl bg-[#E0F2F1] dark:bg-emerald-950/60 text-[#00695C] shrink-0">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400 truncate">
+          <div className="text-xl sm:text-2xl font-black font-mono text-[#00695C] dark:text-[#4DB6AC] truncate">
             +₹{summary.cash_bills.toFixed(2)}
           </div>
-          <div className="flex items-center justify-between text-[10px] text-slate-500">
+          <div className="flex items-center justify-between text-[10px] text-[#607D8B]">
             <span>{summary.cash_bills_count} Cash Bills</span>
-            <span className="font-bold text-slate-700 dark:text-slate-300">Khata: ₹{summary.khata_cash.toFixed(2)}</span>
+            <span className="font-bold text-[#263238] dark:text-slate-300">Khata: ₹{summary.khata_cash.toFixed(2)}</span>
           </div>
         </div>
 
         {/* Card 3: Today Cash Outflows */}
-        <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
+        <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-[#B2DFDB] dark:border-slate-800 shadow-xs space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Cash Outflows (રોકડ ચુકવણું)
+            <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-[#607D8B] dark:text-slate-400">
+              Total Cash Outflows
             </span>
             <div className="p-1.5 sm:p-2 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 shrink-0">
               <TrendingDown className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black font-mono text-rose-600 dark:text-rose-400 truncate">
+          <div className="text-xl sm:text-2xl font-black font-mono text-[#E53935] dark:text-rose-400 truncate">
             -₹{summary.total_cash_out.toFixed(2)}
           </div>
-          <div className="flex items-center justify-between text-[10px] text-slate-500">
+          <div className="flex items-center justify-between text-[10px] text-[#607D8B]">
             <span>Expense: ₹{summary.expense_cash.toFixed(2)}</span>
-            <span className="font-bold text-slate-700 dark:text-slate-300">Supplier: ₹{summary.supplier_cash.toFixed(2)}</span>
+            <span className="font-bold text-[#263238] dark:text-slate-300">Supplier: ₹{summary.supplier_cash.toFixed(2)}</span>
           </div>
         </div>
 
         {/* Card 4: Digital Sales (UPI & Cards) */}
-        <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
+        <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-[#B2DFDB] dark:border-slate-800 shadow-xs space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Digital / UPI Sales (ડિજિટલ)
+            <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-[#607D8B] dark:text-slate-400">
+              Digital & UPI Sales
             </span>
-            <div className="p-1.5 sm:p-2 rounded-xl bg-[#BDDDFC]/40 text-[#384959] dark:text-[#88BDF2] shrink-0">
+            <div className="p-1.5 sm:p-2 rounded-xl bg-[#E0F2F1] text-[#00695C] dark:text-[#4DB6AC] shrink-0">
               <Sparkles className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black font-mono text-[#384959] dark:text-[#88BDF2] truncate">
+          <div className="text-xl sm:text-2xl font-black font-mono text-[#00695C] dark:text-[#4DB6AC] truncate">
             ₹{summary.total_digital.toFixed(2)}
           </div>
-          <div className="flex items-center justify-between text-[10px] text-slate-500">
+          <div className="flex items-center justify-between text-[10px] text-[#607D8B]">
             <span>UPI: ₹{summary.upi_bills.toFixed(2)}</span>
-            <span className="font-bold text-slate-700 dark:text-slate-300">Card: ₹{summary.card_bills.toFixed(2)}</span>
+            <span className="font-bold text-[#263238] dark:text-slate-300">Card: ₹{summary.card_bills.toFixed(2)}</span>
           </div>
         </div>
       </div>
@@ -555,15 +555,15 @@ export const GullaManagement = () => {
       {/* ================= 2. DENOMINATION COUNTER & RECONCILIATION ================= */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
         {/* Left 7 Cols: Live Gulla Note & Coin Count Summary (Read-Only) */}
-        <div className="lg:col-span-7 bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+        <div className="lg:col-span-7 bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-[#B2DFDB] dark:border-slate-800 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 gap-2">
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-[#384959]/10 dark:bg-[#88BDF2]/10 text-[#384959] dark:text-[#88BDF2] shrink-0">
+              <div className="p-2 rounded-xl bg-[#E0F2F1] dark:bg-slate-800 text-[#00695C] dark:text-[#4DB6AC] shrink-0">
                 <Calculator className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-sm sm:text-base font-extrabold text-[#384959] dark:text-slate-100">
-                  Live Drawer Note Breakdown (ગલ્લામાં ચલણી નોટ વિગત)
+                <h2 className="text-sm sm:text-base font-extrabold text-[#263238] dark:text-slate-100 font-heading">
+                  Live Cash Drawer Denomination Breakdown
                 </h2>
                 <p className="text-[10px] text-slate-400">
                   Auto-calculated count of physical notes & coins currently inside Gulla cash drawer.
@@ -618,7 +618,7 @@ export const GullaManagement = () => {
                     </span>
                     {isOutOfStock ? (
                       <span className="text-[9px] font-black text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-950 px-1.5 py-0.5 rounded-md inline-block">
-                        ⚠️ Out of Stock (નોટ નથી - કેશ ઉમેરો)
+                        ⚠️ Out of Stock (Add Cash)
                       </span>
                     ) : (
                       <span className="text-[10px] text-slate-400 font-mono font-bold block truncate">
@@ -628,10 +628,10 @@ export const GullaManagement = () => {
                   </div>
 
                   <div className="text-right shrink-0">
-                    <div className={`text-xs font-black font-mono ${isOutOfStock ? 'text-rose-600 dark:text-rose-400' : 'text-[#384959] dark:text-slate-100'}`}>
+                    <div className={`text-xs font-black font-mono ${isOutOfStock ? 'text-rose-600 dark:text-rose-400' : 'text-[#263238] dark:text-slate-100'}`}>
                       {countVal} {denom === 1 ? '₹' : 'Notes'}
                     </div>
-                    <div className={`text-[11px] font-black font-mono ${isOutOfStock ? 'text-rose-500 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                    <div className={`text-[11px] font-black font-mono ${isOutOfStock ? 'text-rose-500 dark:text-rose-400' : 'text-[#00695C] dark:text-[#4DB6AC]'}`}>
                       ₹{subtotalVal.toLocaleString('en-IN')}
                     </div>
                   </div>
@@ -641,10 +641,10 @@ export const GullaManagement = () => {
           </div>
 
           {/* Footer Summary Banner: Total Physical Notes & Total Expected Cash */}
-          <div className="p-3.5 bg-gradient-to-r from-[#384959]/5 via-[#384959]/10 to-[#88BDF2]/10 dark:from-slate-800 dark:to-slate-800/80 rounded-2xl border border-[#384959]/10 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs font-bold text-[#384959] dark:text-slate-200">
+          <div className="p-3.5 bg-gradient-to-r from-[#E0F2F1] via-[#E0F2F1]/70 to-[#E0F2F1] dark:from-slate-800 dark:to-slate-800/80 rounded-2xl border border-[#B2DFDB] dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs font-bold text-[#00695C] dark:text-slate-200">
             <div className="flex items-center gap-2">
-              <span className="text-slate-500 font-medium">Total Cash Notes in Drawer:</span>
-              <span className="font-mono text-xs font-black bg-white dark:bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+              <span className="text-[#607D8B] font-medium">Total Cash Notes in Drawer:</span>
+              <span className="font-mono text-xs font-black bg-white dark:bg-slate-900 px-2 py-0.5 rounded-lg border border-[#B2DFDB] dark:border-slate-700">
                 {(summary.notes_and_coins_summary?.denominations_table || [])
                   .filter((x) => x.denomination > 1)
                   .reduce((acc, x) => acc + Math.max(0, x.net_count || 0), 0)}{' '}
@@ -652,8 +652,8 @@ export const GullaManagement = () => {
               </span>
             </div>
             <div className="flex items-center gap-1.5 self-end sm:self-auto">
-              <span className="text-slate-500 font-medium">Net Gulla Cash:</span>
-              <span className="font-mono text-base font-black text-emerald-600 dark:text-emerald-400">
+              <span className="text-[#607D8B] font-medium">Net Gulla Cash:</span>
+              <span className="font-mono text-base font-black text-[#00695C] dark:text-[#4DB6AC]">
                 ₹{expectedCashInGulla.toFixed(2)}
               </span>
             </div>
@@ -663,34 +663,32 @@ export const GullaManagement = () => {
         {/* Right 5 Cols: Live Reconciliation Audit & Action Box */}
         <div className="lg:col-span-5 space-y-4">
           {/* Audit Comparison & Today Money Counts Card */}
-          <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+          <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-[#B2DFDB] dark:border-slate-800 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-[#384959] dark:text-[#88BDF2] shrink-0" />
-                <h2 className="text-sm sm:text-base font-extrabold text-[#384959] dark:text-slate-100">
+                <ShieldCheck className="w-5 h-5 text-[#00695C] dark:text-[#4DB6AC] shrink-0" />
+                <h2 className="text-sm sm:text-base font-extrabold text-[#263238] dark:text-slate-100 font-heading">
                   Gulla Audit & Reconciliation
                 </h2>
               </div>
-              <Badge variant="primary" className="bg-[#384959] text-white text-[10px] font-mono shrink-0">
+              <Badge variant="primary" className="bg-[#00695C] text-white text-[10px] font-mono shrink-0">
                 TODAY SUMMARY
               </Badge>
             </div>
 
             <div className="space-y-2.5">
               {/* 1. Net Gulla Cash (Primary Highlight) */}
-              <div className="p-3 bg-gradient-to-r from-[#384959] to-[#2B3844] text-white rounded-2xl flex items-center justify-between shadow-xs">
+              <div className="p-3 bg-gradient-to-r from-[#004D40] via-[#00695C] to-[#004D40] text-white rounded-2xl flex items-center justify-between shadow-xs">
                 <div className="space-y-0.5">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#BDDDFC]">
-                    Net Gulla Cash (ગલ્લામાં કુલ રોકડ)
+                  <span className="text-[10px] font-black uppercase tracking-wider text-[#E0F2F1]">
+                    Net Gulla Cash Balance
                   </span>
-                  <p className="text-[10px] text-slate-300">Available drawer cash right now</p>
+                  <p className="text-[10px] text-[#E0F2F1]/90">Available drawer cash right now</p>
                 </div>
                 <div className="text-right font-mono font-black text-lg sm:text-xl text-white">
                   ₹{expectedCashInGulla.toFixed(2)}
                 </div>
               </div>
-
-
 
               {/* Today Money Breakdown List */}
               <div className="divide-y divide-slate-100 dark:divide-slate-800 text-xs bg-slate-50/50 dark:bg-slate-900/50 p-2 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-1 pt-1">
@@ -699,7 +697,7 @@ export const GullaManagement = () => {
                 <div className="flex items-center justify-between py-1.5 px-2">
                   <span className="font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
                     <Plus className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    Added Cash / Float (ઉમેરેલ રોકડ):
+                    Added Cash / Float:
                   </span>
                   <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
                     +₹{(summary.opening_float + summary.cash_in_manual).toFixed(2)}
@@ -710,7 +708,7 @@ export const GullaManagement = () => {
                 <div className="flex items-center justify-between py-1.5 px-2">
                   <span className="font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
                     <TrendingUp className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    POS Cash Bills (રોકડ વેચાણ બિલ):
+                    POS Cash Sales:
                   </span>
                   <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
                     +₹{summary.cash_bills.toFixed(2)} ({summary.cash_bills_count} Bills)
@@ -720,10 +718,10 @@ export const GullaManagement = () => {
                 {/* 5. Khata Customer Cash */}
                 <div className="flex items-center justify-between py-1.5 px-2">
                   <span className="font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
-                    <UserCheck className="w-3.5 h-3.5 text-sky-600 shrink-0" />
-                    Khata Customer Cash (ખાતા કેશ આવક):
+                    <UserCheck className="w-3.5 h-3.5 text-[#009688] shrink-0" />
+                    Khata Customer Receipts:
                   </span>
-                  <span className="font-mono font-bold text-sky-600 dark:text-sky-400">
+                  <span className="font-mono font-bold text-[#009688] dark:text-[#4DB6AC]">
                     +₹{summary.khata_cash.toFixed(2)}
                   </span>
                 </div>
@@ -731,10 +729,10 @@ export const GullaManagement = () => {
                 {/* 6. Cash Withdrawal */}
                 <div className="flex items-center justify-between py-1.5 px-2">
                   <span className="font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
-                    <Minus className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                    Cash Withdrawals (ઉપાડ રોકડ):
+                    <Minus className="w-3.5 h-3.5 text-[#E53935] shrink-0" />
+                    Cash Withdrawals:
                   </span>
-                  <span className="font-mono font-bold text-rose-600 dark:text-rose-400">
+                  <span className="font-mono font-bold text-[#E53935] dark:text-rose-400">
                     -₹{summary.cash_out_manual.toFixed(2)}
                   </span>
                 </div>
@@ -742,10 +740,10 @@ export const GullaManagement = () => {
                 {/* 7. Supplier Cash Payments */}
                 <div className="flex items-center justify-between py-1.5 px-2">
                   <span className="font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
-                    <Truck className="w-3.5 h-3.5 text-orange-600 shrink-0" />
-                    Supplier Payments (સપ્લાયર ચુકવણી):
+                    <Truck className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    Supplier Payments:
                   </span>
-                  <span className="font-mono font-bold text-orange-600 dark:text-orange-400">
+                  <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
                     -₹{summary.supplier_cash.toFixed(2)}
                   </span>
                 </div>
@@ -754,7 +752,7 @@ export const GullaManagement = () => {
                 <div className="flex items-center justify-between py-1.5 px-2">
                   <span className="font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
                     <Receipt className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                    Store Expenses (સ્ટોર ખર્ચ):
+                    Store Expenses:
                   </span>
                   <span className="font-mono font-bold text-purple-600 dark:text-purple-400">
                     -₹{summary.expense_cash.toFixed(2)}
@@ -764,19 +762,19 @@ export const GullaManagement = () => {
 
               {/* 9. Today Total Inflow & Outflow Totals */}
               <div className="grid grid-cols-2 gap-2 pt-1">
-                <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200/60 dark:border-emerald-800/60">
-                  <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 uppercase block">
-                    Total Cash Inflow (કુલ રોકડ આવક)
+                <div className="p-2.5 bg-[#E0F2F1] dark:bg-emerald-950/40 rounded-xl border border-[#B2DFDB] dark:border-emerald-800/60">
+                  <span className="text-[10px] font-black text-[#00695C] dark:text-[#4DB6AC] uppercase block">
+                    Total Cash Inflow
                   </span>
-                  <span className="font-mono font-black text-sm text-emerald-600 dark:text-emerald-400">
+                  <span className="font-mono font-black text-sm text-[#00695C] dark:text-[#4DB6AC]">
                     +₹{summary.total_cash_in.toFixed(2)}
                   </span>
                 </div>
                 <div className="p-2.5 bg-rose-50 dark:bg-rose-950/40 rounded-xl border border-rose-200/60 dark:border-rose-800/60">
-                  <span className="text-[10px] font-bold text-rose-800 dark:text-rose-300 uppercase block">
-                    Total Cash Outflow (કુલ રોકડ જાવક)
+                  <span className="text-[10px] font-black text-[#E53935] dark:text-rose-300 uppercase block">
+                    Total Cash Outflow
                   </span>
-                  <span className="font-mono font-black text-sm text-rose-600 dark:text-rose-400">
+                  <span className="font-mono font-black text-sm text-[#E53935] dark:text-rose-400">
                     -₹{summary.total_cash_out.toFixed(2)}
                   </span>
                 </div>
@@ -788,9 +786,9 @@ export const GullaManagement = () => {
                   variant="outline"
                   size="md"
                   onClick={() => handleOpenEntryModal('SUPPLIER_PAYMENT')}
-                  className="w-full text-xs font-bold flex items-center justify-center gap-1 border-slate-300 dark:border-slate-700"
+                  className="w-full text-xs font-bold flex items-center justify-center gap-1 border-[#B2DFDB] dark:border-slate-700"
                 >
-                  <Truck className="w-3.5 h-3.5 text-[#384959]" />
+                  <Truck className="w-3.5 h-3.5 text-[#00695C]" />
                   Supplier Pay
                 </Button>
 
@@ -798,9 +796,9 @@ export const GullaManagement = () => {
                   variant="outline"
                   size="md"
                   onClick={() => handleOpenEntryModal('EXPENSE')}
-                  className="w-full text-xs font-bold flex items-center justify-center gap-1 border-slate-300 dark:border-slate-700"
+                  className="w-full text-xs font-bold flex items-center justify-center gap-1 border-[#B2DFDB] dark:border-slate-700"
                 >
-                  <Receipt className="w-3.5 h-3.5 text-[#384959]" />
+                  <Receipt className="w-3.5 h-3.5 text-[#00695C]" />
                   Store Expense
                 </Button>
               </div>
@@ -809,10 +807,10 @@ export const GullaManagement = () => {
                 variant="primary"
                 size="md"
                 onClick={() => handleOpenEntryModal('KHATA_PAYMENT')}
-                className="w-full bg-[#384959] hover:bg-[#2B3844] text-white text-xs font-bold flex items-center justify-center gap-2 py-2.5 rounded-xl shadow-sm cursor-pointer"
+                className="w-full bg-[#00695C] hover:bg-[#004D40] text-white text-xs font-bold flex items-center justify-center gap-2 py-2.5 rounded-xl shadow-sm cursor-pointer"
               >
-                <UserCheck className="w-4 h-4 text-[#88BDF2]" />
-                Khata Customer Pay (ખાતા ગ્રાહક ચુકવણી)
+                <UserCheck className="w-4 h-4 text-[#4DB6AC]" />
+                Khata Customer Payment
               </Button>
             </div>
           </div>
@@ -820,26 +818,33 @@ export const GullaManagement = () => {
       </div>
 
       {/* ================= 3. TRANSACTION LEDGER & AUDIT TRAIL ================= */}
-      <Card className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+      <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-md space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
           <div className="flex items-center gap-2">
-            <FileText className="w-5 h-5 text-[#384959] dark:text-[#88BDF2] shrink-0" />
-            <h2 className="text-sm sm:text-base font-extrabold text-[#384959] dark:text-slate-100">
-              Today's Gulla Transaction Ledger (ગલ્લાની વ્યવહાર યાદી)
-            </h2>
+            <div className="p-2 rounded-xl bg-[#E0F2F1] dark:bg-slate-800 text-[#00695C] dark:text-[#4DB6AC] shrink-0">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-sm sm:text-base font-extrabold text-[#263238] dark:text-slate-100 font-heading">
+                Gulla Cash Transaction Ledger
+              </h2>
+              <p className="text-[10px] text-slate-400">
+                Complete real-time record of all drawer cash inflows, payouts, and POS sales
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 max-w-full">
             {/* Filter Tabs */}
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-[10px] sm:text-[11px] font-bold shrink-0">
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl text-[10px] sm:text-[11px] font-bold shrink-0 border border-slate-200/50 dark:border-slate-700/50">
               {['ALL', 'BILL_SALE', 'KHATA_PAYMENT', 'OPENING_FLOAT', 'CASH_IN', 'CASH_OUT', 'SUPPLIER_PAYMENT', 'EXPENSE'].map((type) => (
                 <button
                   key={type}
                   onClick={() => setLedgerFilter(type)}
-                  className={`px-2 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                  className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                     ledgerFilter === type
-                      ? 'bg-white dark:bg-slate-900 text-[#384959] dark:text-slate-100 shadow-2xs'
-                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                      ? 'bg-[#00695C] text-white shadow-xs font-black'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                   }`}
                 >
                   {type === 'BILL_SALE' ? 'POS Bills' : type === 'KHATA_PAYMENT' ? 'Khata Cash' : type.replace('_', ' ')}
@@ -849,7 +854,7 @@ export const GullaManagement = () => {
           </div>
         </div>
 
-        {/* Entries Table */}
+        {/* Entries Responsive Container: Mobile Cards (< md) & Desktop Table (>= md) */}
         {filteredEntries.length === 0 ? (
           <EmptyState
             icon={Wallet}
@@ -857,124 +862,201 @@ export const GullaManagement = () => {
             description="Manual cash entries and payouts will appear here in real-time."
           />
         ) : (
-          <div className="overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-800">
-            <table className="w-full text-left text-xs min-w-[750px]">
-              <thead className="bg-slate-50 dark:bg-slate-800/60 text-[#384959] dark:text-slate-300 uppercase tracking-wider font-extrabold border-b border-slate-200 dark:border-slate-700">
-                <tr>
-                  <th className="py-3 px-4">Date & Time</th>
-                  <th className="py-3 px-4">Entry Type</th>
-                  <th className="py-3 px-4">Transaction Details & Ref</th>
-                  <th className="py-3 px-4">Received Notes (આવેલ નોટ)</th>
-                  <th className="py-3 px-4">Change Notes (આપેલ/જાવક)</th>
-                  <th className="py-3 px-4 text-right">Cash Amount</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {filteredEntries.map((e) => {
-                  const isPositive = ['OPENING_FLOAT', 'CASH_IN', 'BILL_SALE', 'BILL_SALE_DIGITAL', 'KHATA_PAYMENT'].includes(e.entry_type);
+          <>
+            {/* 1. Mobile View Cards (< md screens) */}
+            <div className="block md:hidden space-y-3 max-h-[500px] overflow-y-auto pr-1">
+              {filteredEntries.map((e) => {
+                const isPositive = ['OPENING_FLOAT', 'CASH_IN', 'BILL_SALE', 'BILL_SALE_DIGITAL', 'KHATA_PAYMENT'].includes(e.entry_type);
 
-                  const getBadgeColor = (type) => {
-                    switch (type) {
-                      case 'BILL_SALE':
-                        return 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border-emerald-300';
-                      case 'BILL_SALE_DIGITAL':
-                        return 'bg-indigo-100 dark:bg-indigo-950/80 text-indigo-800 dark:text-indigo-300 border-indigo-300';
-                      case 'KHATA_PAYMENT':
-                        return 'bg-teal-100 dark:bg-teal-950/80 text-teal-800 dark:text-teal-300 border-teal-300';
-                      case 'SUPPLIER_PAYMENT':
-                        return 'bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border-amber-300';
-                      case 'EXPENSE':
-                        return 'bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300 border-purple-300';
-                      case 'OPENING_FLOAT':
-                        return 'bg-sky-100 dark:bg-sky-950/80 text-sky-800 dark:text-sky-300 border-sky-300';
-                      case 'CASH_IN':
-                        return 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200';
-                      case 'CASH_OUT':
-                        return 'bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 border-rose-300';
-                      default:
-                        return 'bg-slate-100 text-slate-700';
-                    }
-                  };
+                const getBadgeColor = (type) => {
+                  switch (type) {
+                    case 'BILL_SALE':
+                      return 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700/60';
+                    case 'BILL_SALE_DIGITAL':
+                      return 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700/60';
+                    case 'KHATA_PAYMENT':
+                      return 'bg-teal-100 dark:bg-teal-900/40 text-teal-800 dark:text-teal-300 border-teal-300 dark:border-teal-700/60';
+                    case 'SUPPLIER_PAYMENT':
+                      return 'bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700/60';
+                    case 'EXPENSE':
+                      return 'bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300 border-purple-300 dark:border-purple-700/60';
+                    case 'OPENING_FLOAT':
+                      return 'bg-sky-100 dark:bg-sky-900/40 text-sky-800 dark:text-sky-300 border-sky-300 dark:border-sky-700/60';
+                    case 'CASH_IN':
+                      return 'bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700/60';
+                    case 'CASH_OUT':
+                      return 'bg-rose-100 dark:bg-rose-900/40 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-700/60';
+                    default:
+                      return 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700';
+                  }
+                };
 
-                  return (
-                    <tr key={e.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
-                      {/* 1. Date & Time */}
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-[#384959] dark:text-slate-200">
-                            {new Date(e.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                          </span>
-                          <span className="font-mono text-[10px] text-slate-400 flex items-center gap-1">
-                            <Clock className="w-3 h-3 text-slate-400 shrink-0" />
-                            {new Date(e.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                      </td>
+                return (
+                  <div key={e.id} className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700/70 space-y-2 shadow-2xs">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider border ${getBadgeColor(e.entry_type)}`}>
+                        {e.entry_type_label || e.entry_type.replace(/_/g, ' ')}
+                      </span>
+                      <span className={`font-mono font-black text-sm ${isPositive ? 'text-[#00695C] dark:text-[#4DB6AC]' : 'text-[#E53935] dark:text-rose-400'}`}>
+                        {isPositive ? `+₹${parseFloat(e.amount).toFixed(2)}` : `-₹${parseFloat(e.amount).toFixed(2)}`}
+                      </span>
+                    </div>
 
-                      {/* 2. Entry Type Badge */}
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <span className={`inline-block px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider border ${getBadgeColor(e.entry_type)}`}>
-                          {e.entry_type_label || e.entry_type.replace('_', ' ')}
-                        </span>
-                      </td>
+                    <div className="text-xs font-medium text-slate-800 dark:text-slate-200 leading-snug">
+                      {e.notes || 'Routine Gulla cash transaction'}
+                    </div>
 
-                      {/* 3. Transaction Details / Notes */}
-                      <td className="py-3 px-4 min-w-[200px]">
-                        <div className="font-medium text-slate-800 dark:text-slate-200 leading-snug">
-                          {e.notes || 'Routine Gulla cash transaction'}
-                        </div>
-                        <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-400">
-                          <span className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-300">
-                            {e.reference_id || e.id}
-                          </span>
-                          <span>• {e.user_name || 'Staff'}</span>
-                        </div>
-                      </td>
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1.5 border-t border-slate-200/60 dark:border-slate-700/60 flex-wrap gap-1">
+                      <div className="flex items-center gap-1.5 font-mono">
+                        <span>{new Date(e.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</span>
+                        <Clock className="w-3 h-3 text-slate-400" />
+                        <span>{new Date(e.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span className="bg-slate-200/70 dark:bg-slate-700 px-1.5 py-0.2 rounded text-slate-700 dark:text-slate-300">{e.reference_id || e.id}</span>
+                      </div>
+                      <span>• {e.user_name || 'Staff'}</span>
+                    </div>
 
-                      {/* 4. Received Notes Count */}
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        {e.tendered_summary ? (
-                          <span className="inline-flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800 font-mono text-[11px] font-bold">
-                            <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    {(e.tendered_summary || e.change_summary) && (
+                      <div className="flex flex-wrap items-center gap-1.5 text-[10px] pt-1 font-mono">
+                        {e.tendered_summary && (
+                          <span className="inline-flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-200 px-2 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-700/60 font-bold">
+                            <ArrowDownLeft className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
                             {e.tendered_summary}
                           </span>
-                        ) : (
-                          <span className="text-slate-300 dark:text-slate-600 text-xs font-mono">-</span>
                         )}
-                      </td>
-
-                      {/* 5. Change / Outflow Notes Count */}
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        {e.change_summary ? (
-                          <span className="inline-flex items-center gap-1.5 bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 px-2.5 py-1 rounded-lg border border-rose-200 dark:border-rose-800 font-mono text-[11px] font-bold">
-                            <ArrowUpRight className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                        {e.change_summary && (
+                          <span className="inline-flex items-center gap-1 bg-rose-50 dark:bg-rose-950/80 text-rose-800 dark:text-rose-200 px-2 py-0.5 rounded-lg border border-rose-200 dark:border-rose-700/60 font-bold">
+                            <ArrowUpRight className="w-3 h-3 text-rose-600 dark:text-rose-400 shrink-0" />
                             {e.change_summary}
                           </span>
-                        ) : (
-                          <span className="text-slate-300 dark:text-slate-600 text-xs font-mono">-</span>
                         )}
-                      </td>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
 
-                      {/* 6. Cash Amount */}
-                      <td className={`py-3 px-4 text-right font-mono font-black text-sm whitespace-nowrap ${
-                        isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
-                      }`}>
-                        {isPositive ? `+₹${parseFloat(e.amount).toFixed(2)}` : `-₹${parseFloat(e.amount).toFixed(2)}`}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+            {/* 2. Desktop & Tablet View Table (>= md screens) */}
+            <div className="hidden md:block max-h-[480px] overflow-y-auto rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-950/60 shadow-xs">
+              <table className="w-full text-left text-xs min-w-[750px]">
+                <thead className="sticky top-0 z-10 bg-[#E0F2F1] dark:bg-slate-800 text-[#00695C] dark:text-slate-200 uppercase tracking-wider font-extrabold border-b border-[#B2DFDB] dark:border-slate-700 shadow-xs">
+                  <tr>
+                    <th className="py-3.5 px-4 whitespace-nowrap">Date & Time</th>
+                    <th className="py-3.5 px-4 whitespace-nowrap">Entry Type</th>
+                    <th className="py-3.5 px-4">Transaction Details & Ref</th>
+                    <th className="py-3.5 px-4 whitespace-nowrap">Received Notes</th>
+                    <th className="py-3.5 px-4 whitespace-nowrap">Change Returned</th>
+                    <th className="py-3.5 px-6 text-right whitespace-nowrap min-w-[130px]">Cash Amount</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {filteredEntries.map((e) => {
+                    const isPositive = ['OPENING_FLOAT', 'CASH_IN', 'BILL_SALE', 'BILL_SALE_DIGITAL', 'KHATA_PAYMENT'].includes(e.entry_type);
+
+                    const getBadgeColor = (type) => {
+                      switch (type) {
+                        case 'BILL_SALE':
+                          return 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700/60';
+                        case 'BILL_SALE_DIGITAL':
+                          return 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700/60';
+                        case 'KHATA_PAYMENT':
+                          return 'bg-teal-100 dark:bg-teal-900/40 text-teal-800 dark:text-teal-300 border-teal-300 dark:border-teal-700/60';
+                        case 'SUPPLIER_PAYMENT':
+                          return 'bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700/60';
+                        case 'EXPENSE':
+                          return 'bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300 border-purple-300 dark:border-purple-700/60';
+                        case 'OPENING_FLOAT':
+                          return 'bg-sky-100 dark:bg-sky-900/40 text-sky-800 dark:text-sky-300 border-sky-300 dark:border-sky-700/60';
+                        case 'CASH_IN':
+                          return 'bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700/60';
+                        case 'CASH_OUT':
+                          return 'bg-rose-100 dark:bg-rose-900/40 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-700/60';
+                        default:
+                          return 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700';
+                      }
+                    };
+
+                    return (
+                      <tr key={e.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                        {/* 1. Date & Time */}
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-[#263238] dark:text-slate-200">
+                              {new Date(e.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            </span>
+                            <span className="font-mono text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                              <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                              {new Date(e.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* 2. Entry Type Badge */}
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <span className={`inline-block px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider border ${getBadgeColor(e.entry_type)}`}>
+                            {e.entry_type_label || e.entry_type.replace(/_/g, ' ')}
+                          </span>
+                        </td>
+
+                        {/* 3. Transaction Details / Notes */}
+                        <td className="py-3.5 px-4 min-w-[220px]">
+                          <div className="font-medium text-slate-800 dark:text-slate-200 leading-snug">
+                            {e.notes || 'Routine Gulla cash transaction'}
+                          </div>
+                          <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-400 flex-wrap">
+                            <span className="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md text-slate-600 dark:text-slate-300 whitespace-nowrap inline-block border border-slate-200/50 dark:border-slate-700/50">
+                              {e.reference_id || e.id}
+                            </span>
+                            <span className="whitespace-nowrap">• {e.user_name || 'Staff'}</span>
+                          </div>
+                        </td>
+
+                        {/* 4. Received Notes Count */}
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          {e.tendered_summary ? (
+                            <span className="inline-flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-200 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-700/60 font-mono text-[11px] font-bold">
+                              <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                              {e.tendered_summary}
+                            </span>
+                          ) : (
+                            <span className="text-slate-300 dark:text-slate-600 text-xs font-mono">-</span>
+                          )}
+                        </td>
+
+                        {/* 5. Change / Outflow Notes Count */}
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          {e.change_summary ? (
+                            <span className="inline-flex items-center gap-1.5 bg-rose-50 dark:bg-rose-950/80 text-rose-800 dark:text-rose-200 px-2.5 py-1 rounded-lg border border-rose-200 dark:border-rose-700/60 font-mono text-[11px] font-bold">
+                              <ArrowUpRight className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
+                              {e.change_summary}
+                            </span>
+                          ) : (
+                            <span className="text-slate-300 dark:text-slate-600 text-xs font-mono">-</span>
+                          )}
+                        </td>
+
+                        {/* 6. Cash Amount */}
+                        <td className={`py-3.5 px-6 text-right font-mono font-black text-sm whitespace-nowrap ${
+                          isPositive ? 'text-[#00695C] dark:text-[#4DB6AC]' : 'text-[#E53935] dark:text-rose-400'
+                        }`}>
+                          {isPositive ? `+₹${parseFloat(e.amount).toFixed(2)}` : `-₹${parseFloat(e.amount).toFixed(2)}`}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
-      </Card>
+      </div>
 
       {/* ================= MODAL 1: ADD CASH / WITHDRAWAL / PAYOUT ================= */}
       <Modal
         isOpen={isEntryModalOpen}
         onClose={() => setIsEntryModalOpen(false)}
-        title={entryType === 'CASH_IN' ? 'Add Cash to Gulla (ગલ્લામાં રોકડ ઉમેરો)' : entryType === 'CASH_OUT' ? 'Cash Withdrawal (ગલ્લામાંથી ઉપાડ)' : entryType === 'KHATA_PAYMENT' ? 'Khata Customer Cash Pay (ખાતા ગ્રાહક ચુકવણી)' : entryType === 'OPENING_FLOAT' ? 'Add Opening Cash / Float' : `Record ${entryType.replace('_', ' ')}`}
+        title={entryType === 'CASH_IN' ? 'Add Cash to Gulla' : entryType === 'CASH_OUT' ? 'Cash Withdrawal' : entryType === 'KHATA_PAYMENT' ? 'Khata Customer Cash Payment' : entryType === 'OPENING_FLOAT' ? 'Add Opening Cash / Float' : `Record ${entryType.replace('_', ' ')}`}
         subtitle="Manage Gulla cash drawer inflows and outflows"
         maxWidth="max-w-lg w-full"
         footer={
@@ -987,7 +1069,7 @@ export const GullaManagement = () => {
               size="sm"
               onClick={handleEntrySubmit}
               loading={entrySubmitting}
-              className="bg-[#384959] hover:bg-[#2B3844] text-white"
+              className="bg-[#00695C] hover:bg-[#004D40] text-white font-bold"
             >
               Submit Entry
             </Button>
@@ -997,7 +1079,7 @@ export const GullaManagement = () => {
         <form onSubmit={handleEntrySubmit} className="space-y-4 text-xs max-h-[75vh] overflow-y-auto pr-1">
           {/* Amount */}
           <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">
+            <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">
               Cash Amount (₹) *
             </label>
             <div className="relative">
@@ -1011,22 +1093,22 @@ export const GullaManagement = () => {
                 value={entryFormData.amount}
                 onChange={(e) => setEntryFormData({ ...entryFormData, amount: e.target.value })}
                 placeholder="0.00"
-                className="w-full pl-8 pr-3 py-2 text-base font-black font-mono bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl outline-hidden focus:border-[#88BDF2]"
+                className="w-full pl-8 pr-3 py-2 text-base font-black font-mono bg-[#F0FAF9] dark:bg-slate-800 border border-[#B2DFDB] dark:border-slate-700 rounded-xl outline-hidden focus:border-[#009688]"
               />
             </div>
           </div>
 
-          {/* Interactive Note Denomination Counter (ચલણી નોટ ગણતરી) */}
-          <div className="p-3 bg-slate-50 dark:bg-slate-800/70 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
+          {/* Interactive Note Denomination Counter */}
+          <div className="p-3 bg-[#F0FAF9] dark:bg-slate-800/70 rounded-2xl border border-[#B2DFDB] dark:border-slate-700 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-extrabold text-[#384959] dark:text-[#88BDF2] flex items-center gap-1.5">
-                <Calculator className="w-3.5 h-3.5 text-[#88BDF2]" />
-                Note Counter System (ચલણી નોટ ગણતરી)
+              <span className="text-[11px] font-extrabold text-[#00695C] dark:text-[#4DB6AC] flex items-center gap-1.5 font-heading">
+                <Calculator className="w-3.5 h-3.5 text-[#009688]" />
+                Note Counter System
               </span>
               <button
                 type="button"
                 onClick={() => setModalNoteCounts({ 500: '', 200: '', 100: '', 50: '', 20: '', 10: '', 5: '', 1: '' })}
-                className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline cursor-pointer"
+                className="text-[10px] font-bold text-[#607D8B] hover:text-[#00695C] underline cursor-pointer"
               >
                 Clear Notes
               </button>
@@ -1046,7 +1128,7 @@ export const GullaManagement = () => {
                 const cnt = modalNoteCounts[denom] || '';
                 const sub = (denom === 1 ? parseFloat(cnt) || 0 : (parseInt(cnt, 10) || 0) * denom);
                 return (
-                  <div key={denom} className="flex items-center justify-between gap-1 p-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px]">
+                  <div key={denom} className="flex items-center justify-between gap-1 p-1.5 rounded-xl bg-white dark:bg-slate-900 border border-[#B2DFDB] dark:border-slate-800 text-[11px]">
                     <span className="font-bold font-mono text-slate-600 dark:text-slate-300 truncate">{label}:</span>
                     <div className="flex items-center gap-1 shrink-0">
                       <input
@@ -1055,9 +1137,9 @@ export const GullaManagement = () => {
                         placeholder="0"
                         value={cnt}
                         onChange={(e) => handleModalNoteChange(denom, e.target.value)}
-                        className="w-12 px-1 py-0.5 text-center font-black font-mono bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs"
+                        className="w-12 px-1 py-0.5 text-center font-black font-mono bg-[#F0FAF9] dark:bg-slate-800 border border-[#B2DFDB] dark:border-slate-700 rounded-lg text-xs"
                       />
-                      <span className="w-10 text-right font-mono font-bold text-[10px] text-emerald-600 dark:text-emerald-400">
+                      <span className="w-10 text-right font-mono font-bold text-[10px] text-[#00695C] dark:text-[#4DB6AC]">
                         ₹{sub}
                       </span>
                     </div>
@@ -1070,13 +1152,13 @@ export const GullaManagement = () => {
           {/* Customer Dropdown if KHATA_PAYMENT */}
           {entryType === 'KHATA_PAYMENT' && (
             <div>
-              <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">
-                Select Khata Customer (ગ્રાહક પસંદ કરો)
+              <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">
+                Select Khata Customer
               </label>
               <select
                 value={entryFormData.customer_id || ''}
                 onChange={(e) => setEntryFormData({ ...entryFormData, customer_id: e.target.value })}
-                className="w-full px-3 py-2 text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl outline-hidden focus:border-[#88BDF2]"
+                className="w-full px-3 py-2 text-xs font-semibold bg-white dark:bg-slate-900 border border-[#B2DFDB] dark:border-slate-700 rounded-xl outline-hidden focus:border-[#009688]"
               >
                 <option value="">-- General Walk-in Khata Cash --</option>
                 {customers.map((c) => (
@@ -1091,14 +1173,14 @@ export const GullaManagement = () => {
           {/* Supplier Dropdown if SUPPLIER_PAYMENT */}
           {entryType === 'SUPPLIER_PAYMENT' && (
             <div>
-              <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">
+              <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">
                 Select Supplier *
               </label>
               <select
                 required
                 value={entryFormData.supplier_id}
                 onChange={(e) => setEntryFormData({ ...entryFormData, supplier_id: e.target.value })}
-                className="w-full px-3 py-2 text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl outline-hidden focus:border-[#88BDF2]"
+                className="w-full px-3 py-2 text-xs font-semibold bg-white dark:bg-slate-900 border border-[#B2DFDB] dark:border-slate-700 rounded-xl outline-hidden focus:border-[#009688]"
               >
                 <option value="">-- Select Supplier --</option>
                 {suppliers.map((s) => (
@@ -1112,7 +1194,7 @@ export const GullaManagement = () => {
           {entryType === 'EXPENSE' && (
             <div className="space-y-3">
               <div>
-                <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">
+                <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">
                   Expense Title *
                 </label>
                 <input
@@ -1121,17 +1203,17 @@ export const GullaManagement = () => {
                   value={entryFormData.title}
                   onChange={(e) => setEntryFormData({ ...entryFormData, title: e.target.value })}
                   placeholder="e.g. Tea & Snacks / Delivery Charges / Freight"
-                  className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl outline-hidden focus:border-[#88BDF2]"
+                  className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-900 border border-[#B2DFDB] dark:border-slate-700 rounded-xl outline-hidden focus:border-[#009688]"
                 />
               </div>
               <div>
-                <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">
+                <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">
                   Expense Category
                 </label>
                 <select
                   value={entryFormData.category_id}
                   onChange={(e) => setEntryFormData({ ...entryFormData, category_id: e.target.value })}
-                  className="w-full px-3 py-2 text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl outline-hidden focus:border-[#88BDF2]"
+                  className="w-full px-3 py-2 text-xs font-semibold bg-white dark:bg-slate-900 border border-[#B2DFDB] dark:border-slate-700 rounded-xl outline-hidden focus:border-[#009688]"
                 >
                   {expenseCategories.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
@@ -1150,14 +1232,14 @@ export const GullaManagement = () => {
                 );
                 if (!isDelCat) return null;
                 return (
-                  <div className="p-2.5 bg-sky-50/80 dark:bg-sky-950/40 rounded-xl border border-sky-200 dark:border-sky-800 space-y-2 text-xs">
-                    <span className="font-extrabold text-[#384959] dark:text-[#88BDF2] flex items-center gap-1.5 text-[11px]">
-                      <Truck className="w-3.5 h-3.5 text-[#88BDF2]" />
-                      Link Delivery & Transport to Order / PO (ઓર્ડર/પો લિંક કરો)
+                  <div className="p-2.5 bg-[#E0F2F1]/80 dark:bg-slate-800/80 rounded-xl border border-[#B2DFDB] dark:border-slate-700 space-y-2 text-xs">
+                    <span className="font-extrabold text-[#00695C] dark:text-[#4DB6AC] flex items-center gap-1.5 text-[11px] font-heading">
+                      <Truck className="w-3.5 h-3.5 text-[#009688]" />
+                      Link Delivery & Transport to Order / PO
                     </span>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">Link Customer Order</label>
+                        <label className="block text-[10px] font-bold text-[#607D8B] dark:text-slate-400 mb-0.5">Link Customer Order</label>
                         <select
                           onChange={(e) => {
                             const ord = orders.find(o => String(o.id) === String(e.target.value));
@@ -1169,7 +1251,7 @@ export const GullaManagement = () => {
                               }));
                             }
                           }}
-                          className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-[11px]"
+                          className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-[#B2DFDB] dark:border-slate-700 rounded-lg text-[11px]"
                         >
                           <option value="">-- Choose Order --</option>
                           {orders.map(o => (
@@ -1179,7 +1261,7 @@ export const GullaManagement = () => {
                       </div>
 
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">Link Supplier Vendor</label>
+                        <label className="block text-[10px] font-bold text-[#607D8B] dark:text-slate-400 mb-0.5">Link Supplier Vendor</label>
                         <select
                           onChange={(e) => {
                             const supp = suppliers.find(s => String(s.id) === String(e.target.value));
@@ -1191,7 +1273,7 @@ export const GullaManagement = () => {
                               }));
                             }
                           }}
-                          className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-[11px]"
+                          className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-[#B2DFDB] dark:border-slate-700 rounded-lg text-[11px]"
                         >
                           <option value="">-- Choose Supplier --</option>
                           {suppliers.map(s => (
@@ -1208,7 +1290,7 @@ export const GullaManagement = () => {
 
           {/* Remarks / Notes */}
           <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">
+            <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">
               Remarks / Notes
             </label>
             <input
@@ -1216,7 +1298,7 @@ export const GullaManagement = () => {
               value={entryFormData.notes}
               onChange={(e) => setEntryFormData({ ...entryFormData, notes: e.target.value })}
               placeholder="e.g. Shift start float / Owner withdrawal"
-              className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl outline-hidden focus:border-[#88BDF2]"
+              className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-900 border border-[#B2DFDB] dark:border-slate-700 rounded-xl outline-hidden focus:border-[#009688]"
             />
           </div>
         </form>
@@ -1226,7 +1308,7 @@ export const GullaManagement = () => {
       <Modal
         isOpen={isEodModalOpen}
         onClose={() => setIsEodModalOpen(false)}
-        title="Day-End Auto Cash Sweep to Home Safe (દિવસના અંતે ઘરે રોકડ ટ્રાન્સફર)"
+        title="Day-End Cash Sweep to Home Safe"
         subtitle="Automatically withdraw cash drawer balance and transfer to Home Safe"
         maxWidth="max-w-md w-full"
         footer={
@@ -1239,7 +1321,7 @@ export const GullaManagement = () => {
               size="sm"
               onClick={handleEodSweepSubmit}
               loading={eodSweeping}
-              className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+              className="bg-[#00695C] hover:bg-[#004D40] text-white font-bold"
             >
               Confirm Home Cash Sweep
             </Button>
@@ -1247,20 +1329,20 @@ export const GullaManagement = () => {
         }
       >
         <form onSubmit={handleEodSweepSubmit} className="space-y-4 text-xs font-sans">
-          <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 rounded-2xl border border-amber-200 dark:border-amber-800 space-y-2">
-            <div className="flex items-center justify-between text-[#384959] dark:text-slate-200 font-bold">
+          <div className="p-3.5 bg-[#F0FAF9] dark:bg-slate-800/80 rounded-2xl border border-[#B2DFDB] dark:border-slate-700 space-y-2">
+            <div className="flex items-center justify-between text-[#263238] dark:text-slate-200 font-bold">
               <span>Expected Gulla Cash Drawer:</span>
-              <span className="font-mono text-sm font-black">₹{expectedCashInGulla.toFixed(2)}</span>
+              <span className="font-mono text-sm font-black text-[#00695C] dark:text-[#4DB6AC]">₹{expectedCashInGulla.toFixed(2)}</span>
             </div>
-            <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+            <div className="flex items-center justify-between text-[#607D8B] dark:text-slate-400">
               <span>Current Home Total Cash:</span>
-              <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">₹{homeCashAmount.toFixed(2)}</span>
+              <span className="font-mono font-bold text-[#009688] dark:text-[#4DB6AC]">₹{homeCashAmount.toFixed(2)}</span>
             </div>
           </div>
 
           <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">
-              Keep Float for Tomorrow (કાલે સવારે ગલ્લામાં રાખવાની રોકડ ₹)
+            <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">
+              Keep Float for Tomorrow (₹)
             </label>
             <input
               type="number"
@@ -1268,14 +1350,14 @@ export const GullaManagement = () => {
               value={eodKeepFloat}
               onChange={(e) => setEodKeepFloat(e.target.value)}
               placeholder="5000.00"
-              className="w-full px-3 py-2 text-xs font-mono font-bold bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl outline-hidden focus:border-[#88BDF2]"
+              className="w-full px-3 py-2 text-xs font-mono font-bold bg-white dark:bg-slate-900 border border-[#B2DFDB] dark:border-slate-700 rounded-xl outline-hidden focus:border-[#009688]"
             />
-            <p className="text-[10px] text-slate-400 mt-1">Default: ₹5,000 float stays in register for morning change; rest transfers to Home Safe.</p>
+            <p className="text-[10px] text-[#607D8B] mt-1">Default: ₹5,000 float stays in register for morning change; rest transfers to Home Safe.</p>
           </div>
 
           <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">
-              Or Custom Sweep Amount (₹) (અથવા મનપસંદ રકમ ઘરે મોકલો)
+            <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">
+              Or Custom Sweep Amount (₹)
             </label>
             <input
               type="number"
@@ -1283,13 +1365,13 @@ export const GullaManagement = () => {
               value={eodCustomAmount}
               onChange={(e) => setEodCustomAmount(e.target.value)}
               placeholder="Leave blank to auto-sweep excess"
-              className="w-full px-3 py-2 text-xs font-mono font-bold bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl outline-hidden focus:border-[#88BDF2]"
+              className="w-full px-3 py-2 text-xs font-mono font-bold bg-white dark:bg-slate-900 border border-[#B2DFDB] dark:border-slate-700 rounded-xl outline-hidden focus:border-[#009688]"
             />
           </div>
 
-          <div className="p-3 bg-sky-50 dark:bg-sky-950/40 rounded-xl border border-sky-200 dark:border-sky-800 text-[11px] text-slate-600 dark:text-slate-300 space-y-1">
-            <p className="font-bold text-[#384959] dark:text-[#88BDF2]">ℹ️ System Action Summary:</p>
-            <ul className="list-disc list-inside space-y-0.5 text-[10px]">
+          <div className="p-3 bg-[#E0F2F1] dark:bg-slate-800/80 rounded-xl border border-[#B2DFDB] dark:border-slate-700 text-[11px] text-[#263238] dark:text-slate-300 space-y-1">
+            <p className="font-bold text-[#00695C] dark:text-[#4DB6AC]">ℹ️ System Action Summary:</p>
+            <ul className="list-disc list-inside space-y-0.5 text-[10px] text-[#607D8B] dark:text-slate-400">
               <li>Creates CASH_OUT entry in Gulla Cash Register</li>
               <li>Adds swept cash directly to <strong>Brand Identity Home Total Cash Amount</strong></li>
               <li>Logs record to <strong>Payment Ledger & Settlements</strong></li>

@@ -152,6 +152,8 @@ else:
             'HOST': DB_HOST,
             'PORT': DB_PORT,
             'OPTIONS': db_options,
+            'CONN_MAX_AGE': 60,
+            'CONN_HEALTH_CHECKS': True,
         }
     }
 

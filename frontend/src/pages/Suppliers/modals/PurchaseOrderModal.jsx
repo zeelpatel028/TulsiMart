@@ -26,8 +26,8 @@ export const PurchaseOrderModal = ({
         <div className="flex items-center justify-between w-full font-sans">
           <div className="text-xs text-left">
             <span className="text-slate-500 font-semibold">Grand Total PO Value: </span>
-            <span className="font-extrabold text-[#384959] dark:text-[#88BDF2] text-sm">
-              ₹{calculatePOTotals(poForm.items, poForm.gst_mode, poForm.tax_type).grandTotal.toLocaleString('en-IN')}
+            <span className="font-extrabold text-[#00695C] dark:text-[#4DB6AC] text-sm">
+              ₹{Number(poForm.total_amount || 0).toLocaleString('en-IN')}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -35,57 +35,53 @@ export const PurchaseOrderModal = ({
               Cancel
             </Button>
             <Button variant="primary" size="md" onClick={onSavePO}>
-              Issue PO Voucher
+              Create Purchase Order
             </Button>
           </div>
         </div>
       }
     >
       <form onSubmit={onSavePO} className="space-y-4 text-xs font-sans">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-300 uppercase tracking-wider mb-1">PO Number *</label>
+            <label className="block font-bold text-[#263238] dark:text-slate-300 uppercase tracking-wider mb-1">PO Number *</label>
             <input
               type="text"
               required
               value={poForm.po_number}
               onChange={(e) => setPoForm({ ...poForm, po_number: e.target.value })}
-              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono font-bold"
+              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-[#263238] dark:text-slate-100"
             />
           </div>
-
           <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-300 uppercase tracking-wider mb-1">Select Supplier *</label>
+            <label className="block font-bold text-[#263238] dark:text-slate-300 uppercase tracking-wider mb-1">Select Supplier *</label>
             <select
               required
               value={poForm.supplier}
               onChange={(e) => setPoForm({ ...poForm, supplier: e.target.value })}
-              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold"
+              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[#263238] dark:text-slate-100 font-bold"
             >
               <option value="">-- Choose Vendor --</option>
-              {suppliers.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.company_name || s.name} ({s.city})
-                </option>
+              {suppliers.map(s => (
+                <option key={s.id} value={s.id}>{s.company_name || s.name}</option>
               ))}
             </select>
           </div>
-
           <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-300 uppercase tracking-wider mb-1">Expected Delivery</label>
+            <label className="block font-bold text-[#263238] dark:text-slate-300 uppercase tracking-wider mb-1">Expected Delivery</label>
             <input
               type="date"
               value={poForm.expected_delivery}
               onChange={(e) => setPoForm({ ...poForm, expected_delivery: e.target.value })}
-              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono"
+              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[#263238] dark:text-slate-100"
             />
           </div>
         </div>
 
-        {/* Line items builder */}
+        {/* PO Items */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="font-bold text-[#384959] dark:text-slate-300 uppercase tracking-wider">Purchase Items List</label>
+            <label className="font-bold text-[#263238] dark:text-slate-300 uppercase tracking-wider">Purchase Items List</label>
             <Button
               variant="outline"
               size="xs"

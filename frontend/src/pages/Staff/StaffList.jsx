@@ -259,15 +259,15 @@ export const StaffList = () => {
     if (status === 'PRESENT') {
       updated.presentDays += 1;
       updated.todayMarked = 'PRESENT';
-      showToast(`Marked ${staff.first_name || staff.username} as Present (હાજર) today!`, 'success');
+      showToast(`Marked ${staff.first_name || staff.username} as Present today!`, 'success');
     } else if (status === 'HALF_DAY') {
       updated.halfDays += 1;
       updated.todayMarked = 'HALF_DAY';
-      showToast(`Marked ${staff.first_name || staff.username} as Half Day (અડધો દિવસ) today!`, 'info');
+      showToast(`Marked ${staff.first_name || staff.username} as Half Day today!`, 'info');
     } else if (status === 'ABSENT') {
       updated.absentDays += 1;
       updated.todayMarked = 'ABSENT';
-      showToast(`Marked ${staff.first_name || staff.username} as Absent (ગેરહાજર) today!`, 'warning');
+      showToast(`Marked ${staff.first_name || staff.username} as Absent today!`, 'warning');
     }
 
     updateAndPersistStaffAttendance(staff.id, updated);
@@ -336,7 +336,7 @@ export const StaffList = () => {
     const existing = att.leaveDates || [];
 
     if (existing.some(l => l.date === leaveDateInput)) {
-      showToast('This leave date (રજાની તારીખ) is already logged!', 'warning');
+      showToast('This leave date is already logged!', 'warning');
       return;
     }
 
@@ -344,7 +344,7 @@ export const StaffList = () => {
       id: Date.now(),
       date: leaveDateInput,
       type: leaveType,
-      note: leaveNote || (leaveType === 'FULL' ? 'Full Day Leave (આખો દિવસ રજા)' : 'Half Day Leave (અડધો દિવસ રજા)')
+      note: leaveNote || (leaveType === 'FULL' ? 'Full Day Leave' : 'Half Day Leave')
     };
 
     const updatedLeaves = [newLeave, ...existing];
@@ -772,20 +772,20 @@ export const StaffList = () => {
   return (
     <div className="space-y-6 font-sans">
       {/* Header & Title */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white p-5 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-800 shadow-lg relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="bg-gradient-to-r from-[#004D40] via-[#00695C] to-[#004D40] text-white p-5 sm:p-6 rounded-2xl sm:rounded-3xl border border-[#004D40] shadow-lg relative overflow-hidden">
+        <div className="absolute right-0 top-0 w-96 h-96 bg-[#4DB6AC]/10 rounded-full blur-3xl pointer-events-none"></div>
 
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 text-[10px] font-extrabold uppercase tracking-wider border border-sky-500/30">
+              <span className="px-2.5 py-0.5 rounded-full bg-[#4DB6AC]/20 text-[#4DB6AC] text-[10px] font-extrabold uppercase tracking-wider border border-[#4DB6AC]/30">
                  Tulsi Mart Staff Portal
               </span>
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight font-heading flex items-center gap-2.5">
-              <Users className="w-6 h-6 text-sky-400" /> Store Staff & Payroll Hub
+              <Users className="w-6 h-6 text-[#4DB6AC]" /> Store Staff & Payroll Hub
             </h1>
-            <p className="text-xs text-slate-300 mt-1 max-w-xl">
+            <p className="text-xs text-teal-100 mt-1 max-w-xl">
               Manage store employees, track daily attendance (હાજરી / રોજ ગણતરી), issue cash advances (ઉપાડ), and calculate monthly salary payouts with live Gulla tallying.
             </p>
           </div>
@@ -795,7 +795,7 @@ export const StaffList = () => {
             size="md"
             icon={Plus}
             onClick={handleOpenCreate}
-            className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 font-extrabold text-white shadow-lg self-start lg:self-auto shrink-0"
+            className="bg-[#009688] hover:bg-[#00695C] font-extrabold text-white shadow-lg self-start lg:self-auto shrink-0"
           >
             Add New Staff Member
           </Button>
@@ -804,22 +804,22 @@ export const StaffList = () => {
 
       {/* KPI Stats Overview Bar */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between shadow-xs hover:border-sky-400/50 transition-all">
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between shadow-xs hover:border-[#009688]/50 transition-all">
           <div>
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Active Staff</p>
-            <h3 className="text-xl sm:text-2xl font-black text-[#384959] dark:text-slate-100 mt-0.5">{totalStaffCount}</h3>
+            <h3 className="text-xl sm:text-2xl font-black text-[#263238] dark:text-slate-100 mt-0.5">{totalStaffCount}</h3>
           </div>
-          <div className="w-11 h-11 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200/50 dark:border-blue-900/50 shadow-xs">
+          <div className="w-11 h-11 rounded-2xl bg-[#E0F2F1] dark:bg-slate-800 text-[#00695C] dark:text-[#4DB6AC] flex items-center justify-center border border-[#B2DFDB] dark:border-slate-700 shadow-xs">
             <Users className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between shadow-xs hover:border-emerald-400/50 transition-all">
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between shadow-xs hover:border-[#009688]/50 transition-all">
           <div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Active Status</p>
-            <h3 className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">{activeStaffCount}</h3>
+            <p className="text-[11px] font-bold text-[#607D8B] uppercase tracking-wider">Active Staff (એક્ટિવ સ્ટોર સ્ટાફ)</p>
+            <h3 className="text-xl sm:text-2xl font-black text-[#00695C] dark:text-[#4DB6AC] mt-0.5">{activeStaffCount}</h3>
           </div>
-          <div className="w-11 h-11 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200/50 dark:border-emerald-900/50 shadow-xs">
+          <div className="w-11 h-11 rounded-2xl bg-[#E0F2F1] dark:bg-slate-800 text-[#00695C] dark:text-[#4DB6AC] flex items-center justify-center border border-[#B2DFDB] dark:border-slate-700 shadow-xs">
             <UserCheck className="w-5 h-5" />
           </div>
         </div>
@@ -827,7 +827,7 @@ export const StaffList = () => {
         <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between shadow-xs hover:border-amber-400/50 transition-all">
           <div>
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Monthly Payroll Budget</p>
-            <h3 className="text-xl sm:text-2xl font-black text-[#384959] dark:text-slate-100 mt-0.5">
+            <h3 className="text-xl sm:text-2xl font-black text-[#263238] dark:text-slate-100 mt-0.5">
               ₹{totalMonthlyPayroll.toLocaleString('en-IN')}
             </h3>
           </div>
@@ -836,14 +836,14 @@ export const StaffList = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between shadow-xs hover:border-indigo-400/50 transition-all">
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between shadow-xs hover:border-teal-400/50 transition-all">
           <div>
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Today's Attendance (હાજરી)</p>
-            <h3 className="text-xl sm:text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-0.5">
+            <h3 className="text-xl sm:text-2xl font-black text-[#00695C] dark:text-[#4DB6AC] mt-0.5">
               {todayPresentCount} / {totalStaffCount}
             </h3>
           </div>
-          <div className="w-11 h-11 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/50 dark:border-indigo-900/50 shadow-xs">
+          <div className="w-11 h-11 rounded-2xl bg-[#E0F2F1] dark:bg-slate-800 text-[#00695C] dark:text-[#4DB6AC] flex items-center justify-center border border-[#B2DFDB] dark:border-slate-700 shadow-xs">
             <CheckCircle2 className="w-5 h-5" />
           </div>
         </div>
@@ -876,7 +876,7 @@ export const StaffList = () => {
                 onClick={() => setRoleFilter(tab.id)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
                   roleFilter === tab.id
-                    ? 'bg-[#384959] dark:bg-[#88BDF2] text-white dark:text-[#384959] shadow-xs'
+                    ? 'bg-[#00695C] dark:bg-[#009688] text-white dark:text-white shadow-xs'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                 }`}
               >
@@ -891,7 +891,7 @@ export const StaffList = () => {
               onClick={() => setViewMode('table')}
               className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'table'
-                  ? 'bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-300 shadow-xs'
+                  ? 'bg-white dark:bg-slate-700 text-[#00695C] dark:text-[#4DB6AC] shadow-xs'
                   : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
             >
@@ -901,7 +901,7 @@ export const StaffList = () => {
               onClick={() => setViewMode('grid')}
               className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'grid'
-                  ? 'bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-300 shadow-xs'
+                  ? 'bg-white dark:bg-slate-700 text-[#00695C] dark:text-[#4DB6AC] shadow-xs'
                   : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
             >
@@ -928,7 +928,7 @@ export const StaffList = () => {
           <div className="p-4 bg-slate-50 dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <h3 className="text-sm font-black text-[#384959] dark:text-slate-100 uppercase tracking-wider">
+              <h3 className="text-sm font-black text-[#263238] dark:text-slate-100 uppercase tracking-wider">
                 Store Staff Table ({filteredStaffList.length} Active Staff Members)
               </h3>
             </div>
@@ -955,11 +955,11 @@ export const StaffList = () => {
                     <tr key={s.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#384959] to-sky-600 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-xs">
+                          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#00695C] to-[#009688] text-white flex items-center justify-center font-black text-xs shrink-0 shadow-xs">
                             {staffName ? staffName[0].toUpperCase() : 'S'}
                           </div>
                           <div>
-                            <div className="font-extrabold text-[#384959] dark:text-slate-100">{staffName}</div>
+                            <div className="font-extrabold text-[#263238] dark:text-slate-100">{staffName}</div>
                             <div className="text-[10px] text-slate-400">Staff ID: #{s.id}</div>
                           </div>
                         </div>
@@ -1058,11 +1058,11 @@ export const StaffList = () => {
                   {/* Top Header Card Info */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#384959] to-sky-600 text-white flex items-center justify-center font-black text-lg shrink-0 shadow-md border border-white/20 group-hover:scale-105 transition-transform">
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#00695C] to-[#009688] text-white flex items-center justify-center font-black text-lg shrink-0 shadow-md border border-white/20 group-hover:scale-105 transition-transform">
                         {s.first_name ? s.first_name[0] : (s.username?.[0] || 'U')}
                       </div>
                       <div className="min-w-0">
-                        <h3 className="text-base font-black text-[#384959] dark:text-slate-100 leading-tight truncate">
+                        <h3 className="text-base font-black text-[#263238] dark:text-slate-100 leading-tight truncate">
                           {s.first_name ? `${s.first_name} ${s.last_name || ''}` : s.username}
                         </h3>
                         <div className="flex items-center gap-2 mt-1">
@@ -1107,7 +1107,7 @@ export const StaffList = () => {
                       <span className="flex items-center gap-1.5 text-slate-400">
                         <Phone className="w-3.5 h-3.5 shrink-0" /> Mobile:
                       </span>
-                      <span className="font-mono font-bold text-[#384959] dark:text-slate-200">{s.phone || 'No phone'}</span>
+                      <span className="font-mono font-bold text-[#263238] dark:text-slate-200">{s.phone || 'No phone'}</span>
                     </div>
 
                     <div className="flex items-center justify-between pt-1">
@@ -1133,7 +1133,7 @@ export const StaffList = () => {
                         </span>
                         <button
                           onClick={() => handleOpenAdvanceModal(s)}
-                          className="text-[10px] text-[#6A89A7] hover:underline font-bold cursor-pointer"
+                          className="text-[10px] text-[#009688] hover:underline font-bold cursor-pointer"
                         >
                           + Give Advance
                         </button>
@@ -1219,11 +1219,11 @@ export const StaffList = () => {
                     <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 text-[11px]">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-slate-500 font-bold flex items-center gap-1">
-                          <MessageSquare className="w-3 h-3 text-[#6A89A7]" /> Notes (રિમાર્કસ):
+                          <MessageSquare className="w-3 h-3 text-[#009688]" /> Notes (રિમાર્કસ):
                         </span>
                         <button
                           onClick={() => handleOpenNoteModal(s)}
-                          className="text-[10px] text-[#6A89A7] dark:text-[#88BDF2] font-bold hover:underline cursor-pointer"
+                          className="text-[10px] text-[#009688] dark:text-[#4DB6AC] font-bold hover:underline cursor-pointer"
                         >
                           + Add Note (નોંધ)
                         </button>
@@ -1240,7 +1240,7 @@ export const StaffList = () => {
                             >
                               <div>
                                 <div className="flex items-center gap-1">
-                                  <span className="font-bold text-[#384959] dark:text-slate-200">{n.category}:</span>
+                                  <span className="font-bold text-[#263238] dark:text-slate-200">{n.category}:</span>
                                   <span className="text-slate-400 text-[9px]">{n.date}</span>
                                 </div>
                                 <p className="text-slate-600 dark:text-slate-300 leading-tight">{n.text}</p>
@@ -1324,7 +1324,7 @@ export const StaffList = () => {
       >
         <form onSubmit={handleFormSubmit} className="space-y-3.5 text-xs">
           <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">
+            <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">
               Staff Full Name * (સ્ટાફનું નામ)
             </label>
             <input
@@ -1333,12 +1333,12 @@ export const StaffList = () => {
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="e.g. Ramesh Patel"
-              className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-hidden focus:border-[#88BDF2] text-[#384959] dark:text-slate-100 font-medium"
+              className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-hidden focus:border-[#009688] text-[#263238] dark:text-slate-100 font-medium"
             />
           </div>
 
           <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">
+            <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">
               Mobile / Phone Number * (મોબાઈલ નંબર)
             </label>
             <input
@@ -1347,18 +1347,18 @@ export const StaffList = () => {
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               placeholder="+91 98XXX XXXXX"
-              className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono outline-hidden focus:border-[#88BDF2] text-[#384959] dark:text-slate-100 font-medium"
+              className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono outline-hidden focus:border-[#009688] text-[#263238] dark:text-slate-100 font-medium"
             />
           </div>
 
           <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">
+            <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">
               Assigned Role * (રોલ / હોદ્દો)
             </label>
             <select
               value={formData.role}
               onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-              className="w-full px-3 py-2 text-sm font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[#384959] dark:text-slate-100 focus:border-[#88BDF2] outline-hidden"
+              className="w-full px-3 py-2 text-sm font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[#263238] dark:text-slate-100 focus:border-[#00695C] outline-hidden"
             >
               <option value="Store Management">🏢 Store Management (સ્ટોર મેનેજમેન્ટ)</option>
               <option value="Store Manager">🏪 Store Manager (સ્ટોર મેનેજર)</option>
@@ -1368,7 +1368,7 @@ export const StaffList = () => {
           </div>
 
           <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">
+            <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">
               Monthly Salary (₹) (માસિક પગાર)
             </label>
             <input
@@ -1377,7 +1377,7 @@ export const StaffList = () => {
               value={formData.salary}
               onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
               placeholder="e.g. 25000"
-              className="w-full px-3.5 py-2.5 text-sm font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-hidden focus:border-[#88BDF2] text-[#384959] dark:text-slate-100"
+              className="w-full px-3.5 py-2.5 text-sm font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-hidden focus:border-[#00695C] text-[#263238] dark:text-slate-100"
             />
           </div>
         </form>
@@ -1400,7 +1400,7 @@ export const StaffList = () => {
               size="md"
               onClick={handlePaySalarySubmit}
               loading={submittingSalary}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="bg-[#00695C] hover:bg-[#004D40] text-white font-bold"
             >
               Confirm Payout (પગાર આપો)
             </Button>
@@ -1412,39 +1412,39 @@ export const StaffList = () => {
           return (
             <form onSubmit={handlePaySalarySubmit} className="space-y-4 text-xs">
               {/* Live Gulla Cash Register Drawer Connection Banner */}
-              <div className="p-3.5 bg-blue-50/80 dark:bg-blue-950/40 rounded-2xl border border-blue-200/80 dark:border-blue-800/80 flex items-center justify-between">
+              <div className="p-3.5 bg-[#E0F2F1] dark:bg-slate-800/80 rounded-2xl border border-[#B2DFDB] flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black text-base shadow-xs">
+                  <div className="w-9 h-9 rounded-xl bg-[#00695C] text-white flex items-center justify-center font-black text-base shadow-xs">
                     💵
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-800 dark:text-blue-300">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#00695C] dark:text-[#4DB6AC]">
                       Gulla Register Cash (ગલ્લો બેલેન્સ)
                     </span>
-                    <h4 className="text-sm font-black text-[#384959] dark:text-slate-100 mt-0.5">
+                    <h4 className="text-sm font-black text-[#263238] dark:text-slate-100 mt-0.5">
                       ₹{Number(gullaSummary?.cash_in_hand ?? gullaSummary?.net_cash_in_gulla ?? gullaSummary?.total_cash_inflow ?? 0).toLocaleString('en-IN')} Available
                     </h4>
                   </div>
                 </div>
-                <span className="text-[9px] font-black px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                <span className="text-[9px] font-black px-2 py-0.5 rounded-md bg-[#4DB6AC] text-[#00695C]">
                   ● Gulla Active
                 </span>
               </div>
 
               {/* Gross & Net Salary Summary Banner */}
-              <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl border border-emerald-200 dark:border-emerald-800/80 flex items-center justify-between">
+              <div className="p-4 bg-[#E0F2F1] dark:bg-slate-800/80 rounded-2xl border border-[#B2DFDB] flex items-center justify-between">
                 <div>
-                  <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">
+                  <span className="text-[11px] font-bold text-[#00695C] dark:text-[#4DB6AC] uppercase tracking-wider">
                     Net Salary Payable (ચૂકવવાનો ચોખ્ખો પગાર)
                   </span>
-                  <h2 className="text-2xl font-black text-emerald-700 dark:text-emerald-400 mt-0.5">
+                  <h2 className="text-2xl font-black text-[#00695C] dark:text-[#4DB6AC] mt-0.5">
                     ₹{net.toLocaleString('en-IN')}
                   </h2>
-                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                  <p className="text-[10px] text-[#009688] dark:text-[#4DB6AC]">
                     ₹{perDay}/day × {salaryForm.present_days} days = ₹{gross.toLocaleString('en-IN')} Gross
                   </p>
                 </div>
-                <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black text-xl shadow-md">
+                <div className="w-12 h-12 rounded-2xl bg-[#00695C] text-white flex items-center justify-center font-black text-xl shadow-md">
                   ₹
                 </div>
               </div>
@@ -1452,10 +1452,10 @@ export const StaffList = () => {
               {/* Salary Period Date Range Picker (તારીખ થી તારીખ કસ્ટમ પસંદગી) */}
               <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <label className="block text-[11px] font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-[#6A89A7]" /> Pay Period Date Range (તારીખ થી તારીખ પસંદ કરો)
+                  <label className="block text-[11px] font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-[#00695C]" /> Pay Period Date Range (તારીખ થી તારીખ પસંદ કરો)
                   </label>
-                  <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-[#6A89A7]/20 text-[#384959] dark:text-slate-300">
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-[#E0F2F1] text-[#00695C] dark:bg-[#00695C]/40 dark:text-[#4DB6AC]">
                     {salaryForm.total_days} Days Period
                   </span>
                 </div>
@@ -1468,7 +1468,7 @@ export const StaffList = () => {
                       value={salaryForm.start_date || ''}
                       max={salaryForm.end_date || ''}
                       onChange={(e) => handleSalaryDateChange('start_date', e.target.value)}
-                      className="w-full px-3 py-1.5 text-xs font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-[#384959] dark:text-slate-100"
+                      className="w-full px-3 py-1.5 text-xs font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-[#263238] dark:text-slate-100"
                     />
                   </div>
 
@@ -1479,7 +1479,7 @@ export const StaffList = () => {
                       value={salaryForm.end_date || ''}
                       min={salaryForm.start_date || ''}
                       onChange={(e) => handleSalaryDateChange('end_date', e.target.value)}
-                      className="w-full px-3 py-1.5 text-xs font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-[#384959] dark:text-slate-100"
+                      className="w-full px-3 py-1.5 text-xs font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-[#263238] dark:text-slate-100"
                     />
                   </div>
                 </div>
@@ -1487,7 +1487,7 @@ export const StaffList = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">
+                  <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">
                     Monthly Base Salary (₹)
                   </label>
                   <input
@@ -1498,7 +1498,7 @@ export const StaffList = () => {
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">
+                  <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">
                     Total Days in Month
                   </label>
                   <input
@@ -1512,7 +1512,7 @@ export const StaffList = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">
+                  <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">
                     Work Days Attended (રોજ)
                   </label>
                   <input
@@ -1520,11 +1520,11 @@ export const StaffList = () => {
                     step="0.5"
                     value={salaryForm.present_days}
                     onChange={(e) => setSalaryForm({ ...salaryForm, present_days: e.target.value })}
-                    className="w-full px-3 py-2 text-sm font-bold text-indigo-600 dark:text-indigo-400 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                    className="w-full px-3 py-2 text-sm font-bold text-[#00695C] dark:text-[#4DB6AC] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">
+                  <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">
                     Advance Deduction (ઉપાડ બાદબાકી)
                   </label>
                   <input

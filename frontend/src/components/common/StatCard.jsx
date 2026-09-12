@@ -15,24 +15,24 @@ export const StatCard = ({
 }) => {
   const colorSchemes = {
     navy: {
-      iconBg: 'bg-[#384959]/10 text-[#384959] dark:bg-[#88BDF2]/20 dark:text-[#88BDF2]',
+      iconBg: 'bg-[#E0F2F1] text-[#00695C] dark:bg-[#00695C]/30 dark:text-[#4DB6AC]',
       cardBg: 'bg-white dark:bg-slate-900',
-      tagBg: 'bg-[#384959]/5 dark:bg-[#88BDF2]/10 text-[#384959] dark:text-[#88BDF2]'
+      tagBg: 'bg-[#E0F2F1]/50 dark:bg-[#00695C]/20 text-[#00695C] dark:text-[#4DB6AC]'
     },
     sky: {
-      iconBg: 'bg-[#88BDF2]/20 text-[#384959] dark:bg-[#88BDF2]/30 dark:text-[#BDDDFC]',
+      iconBg: 'bg-[#E0F2F1] text-[#009688] dark:bg-teal-950/40 dark:text-[#4DB6AC]',
       cardBg: 'bg-white dark:bg-slate-900',
-      tagBg: 'bg-sky-50 dark:bg-sky-950/30 text-sky-700 dark:text-sky-300'
+      tagBg: 'bg-[#E0F2F1] dark:bg-teal-950/30 text-[#009688] dark:text-[#4DB6AC]'
     },
     slate: {
-      iconBg: 'bg-amber-500/15 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400',
+      iconBg: 'bg-[#FFF8E1] text-[#FBC02D] dark:bg-amber-950/30 dark:text-amber-400',
       cardBg: 'bg-white dark:bg-slate-900',
-      tagBg: 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300'
+      tagBg: 'bg-[#FFF8E1] dark:bg-amber-950/30 text-[#263238] dark:text-amber-300'
     },
     light: {
-      iconBg: 'bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400',
+      iconBg: 'bg-[#E0F2F1] text-[#00695C] dark:bg-teal-950/40 dark:text-[#4DB6AC]',
       cardBg: 'bg-white dark:bg-slate-900',
-      tagBg: 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300'
+      tagBg: 'bg-[#E0F2F1] dark:bg-teal-950/30 text-[#00695C] dark:text-[#4DB6AC]'
     }
   };
 
@@ -41,12 +41,12 @@ export const StatCard = ({
   return (
     <div 
       onClick={onClick}
-      className={`p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-md transition-all duration-200 ${scheme.cardBg} ${onClick ? 'cursor-pointer hover:border-[#88BDF2]/50' : ''}`}
+      className={`p-5 rounded-3xl border border-[#B2DFDB] dark:border-slate-800 shadow-xs hover:shadow-md transition-all duration-200 ${scheme.cardBg} ${onClick ? 'cursor-pointer hover:border-[#009688]' : ''}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 tracking-wide truncate">{title}</p>
-          <h3 className="text-2xl font-black text-[#384959] dark:text-slate-100 mt-1.5 font-heading tracking-tight truncate">
+          <p className="text-xs font-semibold text-[#607D8B] dark:text-slate-400 tracking-wide truncate">{title}</p>
+          <h3 className="text-2xl font-black text-[#263238] dark:text-slate-100 mt-1.5 font-heading tracking-tight truncate">
             {prefix}{typeof value === 'number' ? value.toLocaleString('en-IN') : value}{suffix}
           </h3>
         </div>
@@ -57,16 +57,15 @@ export const StatCard = ({
         )}
       </div>
 
-
       {change !== undefined && (
         <div className="mt-2.5 sm:mt-3 flex items-center gap-1.5 text-[11px] sm:text-xs">
           <span className={`inline-flex items-center font-bold px-1.5 py-0.5 rounded-md ${
-            isPositive ? 'text-emerald-700 bg-emerald-50' : 'text-rose-700 bg-rose-50'
+            isPositive ? 'text-[#00695C] bg-[#E0F2F1]' : 'text-[#E53935] bg-[#FFEBEE]'
           }`}>
             {isPositive ? <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" /> : <ArrowDownRight className="w-3.5 h-3.5 mr-0.5" />}
             {change}%
           </span>
-          <span className="text-slate-400 font-medium truncate">{trendLabel}</span>
+          <span className="text-[#607D8B] dark:text-slate-400 font-medium truncate">{trendLabel}</span>
         </div>
       )}
     </div>

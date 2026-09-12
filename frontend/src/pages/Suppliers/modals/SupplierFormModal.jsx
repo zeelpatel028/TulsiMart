@@ -33,7 +33,7 @@ export const SupplierFormModal = ({
     >
       <form onSubmit={onSaveSupplier} className="space-y-3 text-xs font-sans">
         <div>
-          <label className="block font-bold text-[#384959] dark:text-slate-300 uppercase tracking-wider mb-1">Company / Agency Name *</label>
+          <label className="block font-bold text-[#263238] dark:text-slate-300 uppercase tracking-wider mb-1">Company / Agency Name *</label>
           <input
             type="text"
             required
@@ -46,7 +46,7 @@ export const SupplierFormModal = ({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-300 uppercase tracking-wider mb-1">Contact Person Name *</label>
+            <label className="block font-bold text-[#263238] dark:text-slate-300 uppercase tracking-wider mb-1">Contact Person Name *</label>
             <input
               type="text"
               required
@@ -57,7 +57,7 @@ export const SupplierFormModal = ({
             />
           </div>
           <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-300 uppercase tracking-wider mb-1">Supplier Category</label>
+            <label className="block font-bold text-[#263238] dark:text-slate-300 uppercase tracking-wider mb-1">Supplier Category</label>
             <select
               value={supplierForm.category}
               onChange={(e) => setSupplierForm({ ...supplierForm, category: e.target.value })}
@@ -70,7 +70,7 @@ export const SupplierFormModal = ({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-300 uppercase tracking-wider mb-1">Phone Number *</label>
+            <label className="block font-bold text-[#263238] dark:text-slate-300 uppercase tracking-wider mb-1">Phone Number *</label>
             <input
               type="tel"
               required
@@ -81,7 +81,7 @@ export const SupplierFormModal = ({
             />
           </div>
           <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-300 uppercase tracking-wider mb-1">GSTIN Number</label>
+            <label className="block font-bold text-[#263238] dark:text-slate-300 uppercase tracking-wider mb-1">GSTIN Number</label>
             <input
               type="text"
               value={supplierForm.gstin}
@@ -94,7 +94,7 @@ export const SupplierFormModal = ({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-300 uppercase tracking-wider mb-1">Payment Terms</label>
+            <label className="block font-bold text-[#263238] dark:text-slate-300 uppercase tracking-wider mb-1">Payment Terms</label>
             <select
               value={supplierForm.payment_terms}
               onChange={(e) => setSupplierForm({ ...supplierForm, payment_terms: e.target.value })}
@@ -108,7 +108,7 @@ export const SupplierFormModal = ({
             </select>
           </div>
           <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-300 uppercase tracking-wider mb-1">Credit Limit (₹)</label>
+            <label className="block font-bold text-[#263238] dark:text-slate-300 uppercase tracking-wider mb-1">Credit Limit (₹)</label>
             <input
               type="number"
               value={supplierForm.credit_limit}
@@ -119,7 +119,7 @@ export const SupplierFormModal = ({
         </div>
 
         <div>
-          <label className="block font-bold text-[#384959] dark:text-slate-300 uppercase tracking-wider mb-1">Address & City</label>
+          <label className="block font-bold text-[#263238] dark:text-slate-300 uppercase tracking-wider mb-1">Address & City</label>
           <input
             type="text"
             value={supplierForm.address}

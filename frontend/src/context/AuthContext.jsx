@@ -70,6 +70,11 @@ export const AuthProvider = ({ children }) => {
           localStorage.setItem('tm_user', JSON.stringify(res.data.user));
         } catch (err) {
           console.warn('Invalid or expired session token, resetting auth state.');
+          localStorage.removeItem('tm_access_token');
+          localStorage.removeItem('tm_refresh_token');
+          localStorage.removeItem('tm_user');
+          localStorage.removeItem('tm_permissions');
+          setUser(null);
         }
       }
       
