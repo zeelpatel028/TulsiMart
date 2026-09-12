@@ -91,20 +91,23 @@ WSGI_APPLICATION = 'tulsimart_backend.wsgi.application'
 
 # Database Configuration (MySQL Primary with phpMyAdmin & Render environment variable support)
 import urllib.parse
+from django.core.exceptions import ImproperlyConfigured
+
+IS_RENDER = os.getenv('RENDER') is not None or os.getenv('RENDER_EXTERNAL_HOSTNAME') is not None
 
 db_url = os.getenv('MYSQL_URL') or os.getenv('DATABASE_URL')
 if db_url and (db_url.startswith('mysql://') or db_url.startswith('mysql2://')):
     url = urllib.parse.urlparse(db_url)
     DB_NAME = url.path.lstrip('/')
-    DB_USER = url.username or 'root'
+    DB_USER = url.username or ''
     DB_PASSWORD = urllib.parse.unquote(url.password or '')
-    DB_HOST = url.hostname or '127.0.0.1'
+    DB_HOST = url.hostname or ''
     DB_PORT = str(url.port or 3306)
 else:
     DB_NAME = os.getenv('DB_NAME', os.getenv('MYSQL_DATABASE', 'tulsimart'))
     DB_USER = os.getenv('DB_USER', os.getenv('MYSQL_USER', 'root'))
     DB_PASSWORD = os.getenv('DB_PASSWORD', os.getenv('MYSQL_PASSWORD', ''))
-    DB_HOST = os.getenv('DB_HOST', os.getenv('MYSQL_HOST', '127.0.0.1'))
+    DB_HOST = os.getenv('DB_HOST', os.getenv('MYSQL_HOST', '' if IS_RENDER else '127.0.0.1'))
     DB_PORT = os.getenv('DB_PORT', os.getenv('MYSQL_PORT', '3306'))
 
 if os.getenv('USE_SQLITE', 'False').lower() in ('true', '1'):
@@ -115,6 +118,13 @@ if os.getenv('USE_SQLITE', 'False').lower() in ('true', '1'):
         }
     }
 else:
+    if IS_RENDER and (not DB_HOST or DB_HOST in ('127.0.0.1', 'localhost')):
+        raise ImproperlyConfigured(
+            "\n[Render Deployment Error] Cannot connect to MySQL database on '127.0.0.1' or empty host in production on Render.\n"
+            "Render containers do not run a local MySQL server on 127.0.0.1.\n"
+            "Please add DB_HOST, DB_USER, DB_PASSWORD, and DB_NAME to your Render Web Service Environment Variables dashboard.\n"
+        )
+
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
