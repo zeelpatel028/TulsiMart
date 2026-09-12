@@ -14,8 +14,10 @@ services:
         generateValue: true
       - key: CORS_ALLOW_ALL_ORIGINS
         value: "True"
+      - key: MYSQL_URL
+        sync: false
       - key: DB_NAME
-        value: tulsimart
+        value: defaultdb
       - key: DB_USER
         sync: false
       - key: DB_PASSWORD
@@ -23,5 +25,6 @@ services:
       - key: DB_HOST
         sync: false
       - key: DB_PORT
-        value: "3306"
+        value: "18925"
+
 
