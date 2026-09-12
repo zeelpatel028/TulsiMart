@@ -19,9 +19,11 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-tulsimart-super-sec
 
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
+ALLOWED_HOSTS = [host.strip() for host in os.getenv('ALLOWED_HOSTS', '*').split(',') if host.strip()]
 if '*' not in ALLOWED_HOSTS:
-    ALLOWED_HOSTS.extend(['.onrender.com', 'localhost', '127.0.0.1'])
+    for default_host in ['tulsimart.onrender.com', '.onrender.com', 'localhost', '127.0.0.1']:
+        if default_host not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(default_host)
 RENDER_EXTERNAL_HOSTNAME = os.getenv('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
@@ -73,7 +75,7 @@ ROOT_URLCONF = 'tulsimart_backend.urls'
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'BACKEND': 'django.template.backends.DjangoTemplates',
         'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -216,23 +218,31 @@ USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
 
 # CORS Configuration
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ORIGIN_ALLOW_ALL = True  # Backward compatibility for django-cors-headers
+CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'False').lower() in ('true', '1')
 CORS_ALLOW_CREDENTIALS = True
 
-CORS_ALLOWED_ORIGINS = [
-    'https://tulsimart.onrender.com',
+# Helper to normalize origins (no trailing slashes)
+def _clean_origins(origin_list):
+    cleaned = []
+    for origin in origin_list:
+        if not origin:
+            continue
+        item = origin.strip().rstrip('/')
+        if item and item not in cleaned:
+            cleaned.append(item)
+    return cleaned
+
+default_cors_origins = [
     'https://tulsi-mart.vercel.app',
     'https://tulsimart.vercel.app',
-    'https://tulsi-mart-4amuymdqt-zeel-dobariyas-projects.vercel.app',
+    'https://tulsimart.onrender.com',
     'http://localhost:5173',
     'http://127.0.0.1:5173',
     'http://localhost:3000',
     'http://127.0.0.1:3000',
 ]
-extra_cors_origins = os.getenv('CORS_ALLOWED_ORIGINS', '')
-if extra_cors_origins:
-    CORS_ALLOWED_ORIGINS.extend([origin.strip() for origin in extra_cors_origins.split(',') if origin.strip()])
+extra_cors_origins = os.getenv('CORS_ALLOWED_ORIGINS', '').split(',')
+CORS_ALLOWED_ORIGINS = _clean_origins(default_cors_origins + extra_cors_origins)
 
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.vercel\.app$",
@@ -260,19 +270,17 @@ CORS_ALLOW_METHODS = [
     'PUT',
 ]
 
-CSRF_TRUSTED_ORIGINS = [
+default_csrf_origins = [
     'https://tulsi-mart.vercel.app',
     'https://tulsimart.vercel.app',
-    'https://tulsi-mart-4amuymdqt-zeel-dobariyas-projects.vercel.app',
+    'https://tulsimart.onrender.com',
     'http://localhost:5173',
     'http://127.0.0.1:5173',
-    'https://tulsimart.onrender.com',
-    'https://*.onrender.com',
-    'https://*.vercel.app',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
 ]
-extra_csrf = os.getenv('CSRF_TRUSTED_ORIGINS', '')
-if extra_csrf:
-    CSRF_TRUSTED_ORIGINS.extend([origin.strip() for origin in extra_csrf.split(',') if origin.strip()])
+extra_csrf = os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
+CSRF_TRUSTED_ORIGINS = _clean_origins(default_csrf_origins + extra_csrf)
 
 
 

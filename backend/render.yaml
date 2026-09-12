@@ -13,7 +13,11 @@ services:
       - key: DJANGO_SECRET_KEY
         generateValue: true
       - key: CORS_ALLOW_ALL_ORIGINS
-        value: "True"
+        value: "False"
+      - key: CORS_ALLOWED_ORIGINS
+        value: "https://tulsi-mart.vercel.app,https://tulsimart.vercel.app,https://tulsimart.onrender.com"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://tulsi-mart.vercel.app,https://tulsimart.vercel.app,https://tulsimart.onrender.com"
       - key: MYSQL_URL
         sync: false
       - key: DB_NAME
