@@ -8,7 +8,8 @@ export const MobileHeader = ({ onMenuClick, cartCount = 0, onOpenSearch }) => {
   const { user } = useAuth();
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-[#B2DFDB] dark:border-slate-800 px-3.5 py-2.5 lg:hidden shadow-xs">
+    <header className="fixed top-0 inset-x-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-[#B2DFDB] dark:border-slate-800 px-3.5 py-2.5 lg:hidden shadow-xs">
+
       <div className="flex items-center justify-between gap-2">
         {/* Left: Store Brand & Delivery Pill */}
         <div className="flex items-center gap-2.5 min-w-0">

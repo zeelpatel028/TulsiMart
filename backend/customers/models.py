@@ -7,17 +7,18 @@ class Customer(models.Model):
     )
 
     name = models.CharField(max_length=150)
-    phone = models.CharField(max_length=20, unique=True)
+    phone = models.CharField(max_length=20, unique=True, db_index=True)
     email = models.EmailField(blank=True, null=True)
     address = models.TextField(blank=True, null=True)
     city = models.CharField(max_length=100, default='Mumbai')
     pincode = models.CharField(max_length=15, blank=True, null=True)
-    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='ACTIVE')
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='ACTIVE', db_index=True)
     notes = models.TextField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
         ordering = ['-created_at']
+
 
     def __str__(self):
         return f"{self.name} ({self.phone})"

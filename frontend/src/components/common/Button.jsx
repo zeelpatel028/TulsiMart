@@ -11,7 +11,8 @@ export const Button = ({
   className = '',
   ...props
 }) => {
-  const baseStyles = "inline-flex items-center justify-center font-bold rounded-xl transition-all duration-200 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none select-none gap-2";
+  const baseStyles = "inline-flex items-center justify-center font-bold rounded-xl transition-all duration-200 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none select-none gap-2 whitespace-nowrap";
+
 
   const sizeStyles = {
     sm: "px-3 py-1.5 text-xs",

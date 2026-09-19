@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { fetchWithCache } from '../../utils/metaCache';
 import { Card } from '../../components/common/Card';
+
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
 import { Modal } from '../../components/common/Modal';
@@ -101,11 +103,12 @@ export const ProductList = () => {
   }, [page, search, selectedCategory, selectedBrand, stockFilter]);
 
   const loadMeta = async () => {
+
     try {
       const [catRes, brandRes, unitRes] = await Promise.all([
-        inventoryApi.getCategories(),
-        inventoryApi.getBrands(),
-        inventoryApi.getUnits()
+        fetchWithCache('categories', () => inventoryApi.getCategories()),
+        fetchWithCache('brands', () => inventoryApi.getBrands()),
+        fetchWithCache('units', () => inventoryApi.getUnits())
       ]);
       setCategories(catRes.data?.results || catRes.data || []);
       setBrands(brandRes.data?.results || brandRes.data || []);
@@ -114,6 +117,7 @@ export const ProductList = () => {
       console.error('Failed to load meta', err);
     }
   };
+
 
   const loadProducts = async () => {
     try {

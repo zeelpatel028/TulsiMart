@@ -9,13 +9,28 @@ from django.db.models import Q, Sum
 from .models import Customer, CustomerFeedback
 from .serializers import CustomerSerializer, CustomerFeedbackSerializer
 
+from django.db.models import Q, Sum, Count, DecimalField
+from django.db.models.functions import Coalesce
+
 class CustomerViewSet(viewsets.ModelViewSet):
-    queryset = Customer.objects.all().prefetch_related('feedbacks', 'orders')
+    queryset = Customer.objects.all().prefetch_related('feedbacks')
     serializer_class = CustomerSerializer
     permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
-        qs = super().get_queryset()
+        qs = Customer.objects.annotate(
+            annotated_total_orders=Count('orders', distinct=True),
+            annotated_total_spent=Coalesce(
+                Sum('orders__total_amount', filter=Q(orders__payment_status='PAID')),
+                0.0,
+                output_field=DecimalField()
+            ),
+            annotated_pending_payments=Coalesce(
+                Sum('orders__total_amount', filter=Q(orders__payment_status='PENDING')),
+                0.0,
+                output_field=DecimalField()
+            )
+        )
         status_param = self.request.query_params.get('status')
         search = self.request.query_params.get('search')
         
@@ -29,6 +44,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
                 Q(city__icontains=search)
             )
         return qs
+
 
     @action(detail=True, methods=['post'])
     def toggle_block(self, request, pk=None):

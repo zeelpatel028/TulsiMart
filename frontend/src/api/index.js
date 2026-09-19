@@ -146,3 +146,9 @@ export const homeCashApi = {
   createHomeCashTransaction: (data) => apiClient.post('/core/home-cash/', data),
 };
 
+// Health Check API
+export const healthApi = {
+  check: () => apiClient.get('/health/'),
+};
+
+

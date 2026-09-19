@@ -1218,36 +1218,42 @@ export const SettingsPage = () => {
             </div>
           )}
 
-          {/* Bottom Floating Actions */}
-          <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-md">
-            <span className="text-xs text-slate-500">
-              Last Updated: {formData.updated_at ? new Date(formData.updated_at).toLocaleString('en-IN') : 'Just now'}
-            </span>
-            <div className="flex items-center gap-3">
+          {/* Bottom Actions Bar */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-3.5 sm:p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-md gap-3 overflow-hidden">
+            <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium shrink-0">
+              <span>Last Updated:</span>
+              <span className="font-semibold text-slate-700 dark:text-slate-300">
+                {formData.updated_at ? new Date(formData.updated_at).toLocaleString('en-IN') : 'Just now'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end flex-wrap sm:flex-nowrap">
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
+                size="md"
                 icon={RotateCcw}
                 onClick={fetchSettings}
                 disabled={saving}
+                className="flex-1 sm:flex-initial justify-center text-xs sm:text-sm font-semibold whitespace-nowrap"
               >
-                Cancel / Reset
+                Reset
               </Button>
               <Button
                 type="submit"
                 variant="primary"
-                size="sm"
+                size="md"
                 icon={Save}
                 loading={saving}
-                className="bg-[#384959] text-white hover:bg-slate-700 font-bold"
+                className="flex-1 sm:flex-initial justify-center bg-[#00695C] hover:bg-[#004D40] text-white text-xs sm:text-sm font-bold whitespace-nowrap shadow-xs"
               >
-                Save Settings to Database
+                Save Settings
               </Button>
             </div>
           </div>
         </form>
       )}
+
+
 
       {/* Modal for Creating / Editing Login Account Credentials */}
       <Modal

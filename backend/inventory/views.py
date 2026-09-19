@@ -3,7 +3,8 @@ import io
 import datetime
 from decimal import Decimal
 from django.db import transaction
-from django.db.models import Q, F
+from django.db.models import Q, F, Count
+
 from django.utils import timezone
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
@@ -65,17 +66,13 @@ def ensure_grocery_defaults():
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
-    queryset = Category.objects.all()
+    queryset = Category.objects.all().annotate(product_count=Count('products'))
     serializer_class = CategorySerializer
     permission_classes = [permissions.AllowAny]
 
-    def get_queryset(self):
-        ensure_grocery_defaults()
-        return super().get_queryset()
-
 
 class BrandViewSet(viewsets.ModelViewSet):
-    queryset = Brand.objects.all()
+    queryset = Brand.objects.all().annotate(product_count=Count('products'))
     serializer_class = BrandSerializer
     permission_classes = [permissions.AllowAny]
 
@@ -84,10 +81,6 @@ class UnitViewSet(viewsets.ModelViewSet):
     queryset = Unit.objects.all()
     serializer_class = UnitSerializer
     permission_classes = [permissions.AllowAny]
-
-    def get_queryset(self):
-        ensure_grocery_defaults()
-        return super().get_queryset()
 
 
 class ProductViewSet(viewsets.ModelViewSet):

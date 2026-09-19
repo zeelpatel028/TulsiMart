@@ -21,13 +21,19 @@ class CustomerSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_total_orders(self, obj):
+        if hasattr(obj, 'annotated_total_orders'):
+            return obj.annotated_total_orders
         return getattr(obj, 'order_count', obj.orders.count())
 
     def get_total_spent(self, obj):
+        if hasattr(obj, 'annotated_total_spent'):
+            return float(obj.annotated_total_spent or 0.0)
         total = obj.orders.filter(payment_status='PAID').aggregate(total=Sum('total_amount'))['total']
         return float(total or 0.00)
 
     def get_pending_payments(self, obj):
+        if hasattr(obj, 'annotated_pending_payments'):
+            return float(obj.annotated_pending_payments or 0.0)
         from decimal import Decimal
         pending_orders = obj.orders.filter(payment_status='PENDING')
         total_due = Decimal('0.00')
@@ -35,3 +41,4 @@ class CustomerSerializer(serializers.ModelSerializer):
             paid_sum = order.transactions.filter(status='PAID').aggregate(t=Sum('amount'))['t'] or Decimal('0.00')
             total_due += max(Decimal('0.00'), order.total_amount - paid_sum)
         return float(total_due)
+

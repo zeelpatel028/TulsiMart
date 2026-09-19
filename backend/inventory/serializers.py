@@ -2,7 +2,7 @@ from rest_framework import serializers
 from .models import Category, Brand, Unit, Product, StockMovement
 
 class CategorySerializer(serializers.ModelSerializer):
-    product_count = serializers.IntegerField(source='products.count', read_only=True)
+    product_count = serializers.IntegerField(read_only=True, default=0)
 
     class Meta:
         model = Category
@@ -10,11 +10,12 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class BrandSerializer(serializers.ModelSerializer):
-    product_count = serializers.IntegerField(source='products.count', read_only=True)
+    product_count = serializers.IntegerField(read_only=True, default=0)
 
     class Meta:
         model = Brand
         fields = '__all__'
+
 
 
 class UnitSerializer(serializers.ModelSerializer):

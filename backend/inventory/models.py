@@ -59,21 +59,26 @@ class Product(models.Model):
     gst_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
     
     # Inventory
-    stock_quantity = models.IntegerField(default=0)
+    stock_quantity = models.IntegerField(default=0, db_index=True)
     min_stock_alert = models.IntegerField(default=10)
-    expiry_date = models.DateField(blank=True, null=True)
+    expiry_date = models.DateField(blank=True, null=True, db_index=True)
     batch_number = models.CharField(max_length=50, blank=True, null=True)
     
     # Media & Meta
     image = models.CharField(max_length=500, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     is_featured = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['-id']
+        indexes = [
+            models.Index(fields=['is_active', 'stock_quantity']),
+            models.Index(fields=['created_at']),
+        ]
+
 
     def save(self, *args, **kwargs):
         import random

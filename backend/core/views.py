@@ -793,3 +793,16 @@ def get_me_auth_view(request):
     }, status=status.HTTP_200_OK)
 
 
+class HealthCheckView(APIView):
+    """
+    Lightweight health check endpoint for Render / external pingers.
+    Returns HTTP 200 {"status": "ok"} without modifying database records.
+    """
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        return Response({"status": "ok"}, status=status.HTTP_200_OK)
+
+
+

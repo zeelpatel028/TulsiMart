@@ -67,23 +67,40 @@ class DashboardSummaryView(APIView):
         else:
             sales_growth_percent = 100.0 if curr_30_sales > 0 else 0.0
 
-        # 7-Day Sales Trend
+        # 7-Day Sales Trend (Optimized single-pass aggregations)
+        order_trend_qs = (
+            paid_orders.filter(created_at__date__gte=seven_days_ago)
+            .annotate(day_date=TruncDate('created_at'))
+            .values('day_date')
+            .annotate(total_sales=Sum('total_amount'), order_count=Count('id'))
+        )
+        sales_by_day = {str(item['day_date']): item for item in order_trend_qs if item['day_date']}
+
+        expense_trend_qs = (
+            Expense.objects.filter(date__gte=seven_days_ago)
+            .values('date')
+            .annotate(total_exp=Sum('amount'))
+        )
+        exp_by_day = {str(item['date']): float(item['total_exp'] or 0) for item in expense_trend_qs if item['date']}
+
         daily_trends = []
         for i in range(7):
             d = seven_days_ago + datetime.timedelta(days=i)
-            day_orders = paid_orders.filter(created_at__date=d)
-            sales_sum = day_orders.aggregate(t=Sum('total_amount'))['t'] or Decimal('0.00')
-            order_cnt = day_orders.count()
-            day_exp = Expense.objects.filter(date=d).aggregate(t=Sum('amount'))['t'] or Decimal('0.00')
+            d_str = str(d)
+            day_data = sales_by_day.get(d_str, {})
+            s_sum = float(day_data.get('total_sales') or 0.0)
+            o_cnt = int(day_data.get('order_count') or 0)
+            e_sum = exp_by_day.get(d_str, 0.0)
             daily_trends.append({
                 'date': d.strftime('%d %b'),
-                'raw_date': str(d),
-                'sales': float(sales_sum),
-                'revenue': float(sales_sum),
-                'orders': order_cnt,
-                'expenses': float(day_exp),
-                'profit': float(sales_sum - day_exp)
+                'raw_date': d_str,
+                'sales': s_sum,
+                'revenue': s_sum,
+                'orders': o_cnt,
+                'expenses': e_sum,
+                'profit': round(s_sum - e_sum, 2)
             })
+
 
         # Category Breakdown
         categories_data = (

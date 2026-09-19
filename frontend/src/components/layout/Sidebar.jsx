@@ -70,9 +70,11 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
         { label: 'Suppliers', path: '/suppliers', icon: Truck },
         { label: 'Store Staff', path: '/staff', icon: ShieldCheck },
         { label: 'Settings', path: '/settings', icon: Settings },
+        { label: 'Logout System', path: '#logout', icon: LogOut, isLogout: true },
       ]
     }
   ];
+
 
   return (
     <>
@@ -145,11 +147,20 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
                 return (
                   <NavLink
                     key={item.path}
-                    to={item.path}
-                    onClick={() => setIsMobileOpen(false)}
+                    to={item.isLogout ? '#' : item.path}
+                    onClick={(e) => {
+                      if (item.isLogout) {
+                        e.preventDefault();
+                        handleLogout();
+                      } else {
+                        setIsMobileOpen(false);
+                      }
+                    }}
                     className={({ isActive }) =>
                       `flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 group relative ${
-                        item.isPrimary && !isActive
+                        item.isLogout
+                          ? 'bg-rose-500/15 text-rose-200 hover:bg-rose-500/25 hover:text-white border border-rose-400/20 font-bold'
+                          : item.isPrimary && !isActive
                           ? 'bg-[#4DB6AC]/20 text-[#E0F2F1] border border-[#4DB6AC]/40 hover:bg-[#4DB6AC]/30 hover:text-white'
                           : isActive
                           ? 'bg-[#009688] text-white font-bold shadow-md shadow-[#009688]/30'
@@ -159,7 +170,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
                     title={isCollapsed ? item.label : undefined}
                   >
                     <Icon className={`w-4.5 h-4.5 shrink-0 transition-transform group-hover:scale-110 ${
-                      item.isPrimary ? 'text-[#4DB6AC]' : ''
+                      item.isLogout ? 'text-rose-300' : item.isPrimary ? 'text-[#4DB6AC]' : ''
                     }`} />
                     
                     {!isCollapsed && (
@@ -189,18 +200,18 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
         </div>
 
         {/* User Card & Logout Footer */}
-        <div className="p-3 border-t border-white/10 bg-black/20 shrink-0">
+        <div className="p-3 pb-24 lg:pb-3 border-t border-white/10 bg-black/30 shrink-0 z-10">
           {!isCollapsed ? (
-            <div className="flex items-center justify-between gap-2 p-2.5 rounded-2xl bg-white/5 border border-white/10 hover:border-white/20 transition-all">
+            <div className="flex items-center justify-between gap-2 p-2.5 rounded-2xl bg-white/10 border border-white/15 hover:border-white/25 transition-all">
               <div className="flex items-center gap-2.5 overflow-hidden min-w-0">
-                <div className="w-9 h-9 rounded-xl bg-linear-to-br from-[#009688] to-[#00695C] text-white flex items-center justify-center font-bold text-sm shrink-0 border border-white/20 shadow-xs">
+                <div className="w-9.5 h-9.5 rounded-xl bg-gradient-to-br from-[#009688] to-[#004D40] text-white flex items-center justify-center font-bold text-sm shrink-0 border border-white/20 shadow-xs">
                   {user?.first_name ? user.first_name[0] : (user?.username?.[0] || 'A')}
                 </div>
                 <div className="truncate text-left min-w-0">
                   <p className="text-xs font-bold text-white truncate leading-tight">
                     {user?.first_name ? `${user.first_name} ${user.last_name || ''}` : (user?.username || 'Admin')}
                   </p>
-                  <span className="inline-block text-[10px] text-[#E0F2F1] font-medium tracking-wide truncate">
+                  <span className="inline-block text-[10px] text-[#E0F2F1]/80 font-medium tracking-wide truncate">
                     {user?.role?.replace('_', ' ') || 'Admin'}
                   </span>
                 </div>
@@ -208,28 +219,30 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
 
               <button
                 onClick={handleLogout}
-                className="text-slate-200 hover:text-rose-300 hover:bg-rose-500/20 p-2 rounded-xl transition-colors cursor-pointer shrink-0"
-                title="Logout"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/35 text-rose-200 hover:text-white border border-rose-400/30 transition-all cursor-pointer shrink-0 font-bold text-xs"
+                title="Logout Account"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-4 h-4 text-rose-300" />
+                <span className="text-[11px]">Logout</span>
               </button>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-linear-to-br from-[#009688] to-[#00695C] text-white flex items-center justify-center font-bold text-xs border border-white/20 shadow-xs">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#009688] to-[#004D40] text-white flex items-center justify-center font-bold text-xs border border-white/20 shadow-xs">
                 {user?.first_name ? user.first_name[0] : (user?.username?.[0] || 'A')}
               </div>
               <button
                 onClick={handleLogout}
-                className="text-slate-200 hover:text-rose-300 p-2 rounded-xl hover:bg-white/10 transition-colors"
+                className="p-2 rounded-xl bg-rose-500/20 text-rose-200 hover:text-white hover:bg-rose-500/35 transition-colors"
                 title="Logout"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-4 h-4 text-rose-300" />
               </button>
             </div>
           )}
         </div>
       </aside>
+
     </>
   );
 };

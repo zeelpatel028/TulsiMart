@@ -91,35 +91,19 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'tulsimart_backend.wsgi.application'
 
-# Database Configuration (MySQL Primary with phpMyAdmin & Aiven / Render Cloud support)
+# Database Configuration (Aiven PostgreSQL / MySQL Cloud & Local Dev support)
 import urllib.parse
 from django.core.exceptions import ImproperlyConfigured
+try:
+    import dj_database_url
+except ImportError:
+    dj_database_url = None
 
 IS_RENDER = os.getenv('RENDER') is not None or os.getenv('RENDER_EXTERNAL_HOSTNAME') is not None
 
-db_url = os.getenv('MYSQL_URL') or os.getenv('DATABASE_URL')
-require_ssl = False
-
-if db_url and (db_url.startswith('mysql://') or db_url.startswith('mysql2://')):
-    url = urllib.parse.urlparse(db_url)
-    DB_NAME = url.path.lstrip('/')
-    DB_USER = url.username or ''
-    DB_PASSWORD = urllib.parse.unquote(url.password or '')
-    DB_HOST = url.hostname or ''
-    DB_PORT = str(url.port or 3306)
-    query_params = urllib.parse.parse_qs(url.query)
-    if 'ssl-mode' in query_params or 'ssl_mode' in query_params or 'ssl' in query_params:
-        require_ssl = True
-else:
-    DB_NAME = os.getenv('DB_NAME', os.getenv('MYSQL_DATABASE', 'tulsimart'))
-    DB_USER = os.getenv('DB_USER', os.getenv('MYSQL_USER', 'root'))
-    DB_PASSWORD = os.getenv('DB_PASSWORD', os.getenv('MYSQL_PASSWORD', ''))
-    DB_HOST = os.getenv('DB_HOST', os.getenv('MYSQL_HOST', '' if IS_RENDER else '127.0.0.1'))
-    DB_PORT = os.getenv('DB_PORT', os.getenv('MYSQL_PORT', '3306'))
-
+db_url = os.getenv('DATABASE_URL') or os.getenv('MYSQL_URL')
 ssl_env = os.getenv('DB_SSL_MODE', os.getenv('MYSQL_SSL_MODE', '')).upper()
-if ssl_env in ('REQUIRED', 'TRUE', '1') or 'aivencloud.com' in DB_HOST:
-    require_ssl = True
+require_ssl = ssl_env in ('REQUIRED', 'TRUE', '1') or (db_url and 'aivencloud.com' in db_url) or (os.getenv('DB_HOST', '') and 'aivencloud.com' in os.getenv('DB_HOST', ''))
 
 if os.getenv('USE_SQLITE', 'False').lower() in ('true', '1'):
     DATABASES = {
@@ -128,34 +112,72 @@ if os.getenv('USE_SQLITE', 'False').lower() in ('true', '1'):
             'NAME': BASE_DIR / 'tulsimart.sqlite3',
         }
     }
+elif db_url and dj_database_url:
+    ssl_require_param = True if require_ssl else False
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=db_url,
+            conn_max_age=600,
+            conn_health_checks=True,
+            ssl_require=ssl_require_param,
+        )
+    }
+    # Sanitize query parameters extracted by dj_database_url to prevent driver keyword parameter errors
+    options = DATABASES['default'].get('OPTIONS', {})
+    for key in list(options.keys()):
+        if key in ('ssl-mode', 'ssl_mode', 'sslmode', 'ssl_require'):
+            options.pop(key, None)
+
+    if 'mysql' in DATABASES['default'].get('ENGINE', ''):
+        DATABASES['default'].setdefault('OPTIONS', {})
+        DATABASES['default']['OPTIONS']['charset'] = 'utf8mb4'
+        DATABASES['default']['OPTIONS']['init_command'] = "SET sql_mode='STRICT_TRANS_TABLES'"
+        if require_ssl:
+            DATABASES['default']['OPTIONS']['ssl'] = {'ssl_mode': 'REQUIRED'}
+    elif 'postgresql' in DATABASES['default'].get('ENGINE', '') and require_ssl:
+        DATABASES['default'].setdefault('OPTIONS', {})
+        DATABASES['default']['OPTIONS']['sslmode'] = 'require'
+
+
 else:
+    DB_ENGINE = os.getenv('DB_ENGINE', 'django.db.backends.postgresql' if (db_url and 'postgres' in db_url) else 'django.db.backends.mysql')
+    DB_NAME = os.getenv('DB_NAME', os.getenv('MYSQL_DATABASE', 'defaultdb'))
+    DB_USER = os.getenv('DB_USER', os.getenv('MYSQL_USER', 'avnadmin'))
+    DB_PASSWORD = os.getenv('DB_PASSWORD', os.getenv('MYSQL_PASSWORD', ''))
+    DB_HOST = os.getenv('DB_HOST', os.getenv('MYSQL_HOST', '' if IS_RENDER else '127.0.0.1'))
+    DB_PORT = os.getenv('DB_PORT', os.getenv('MYSQL_PORT', '18925'))
+
     if IS_RENDER and (not DB_HOST or DB_HOST in ('127.0.0.1', 'localhost')):
         raise ImproperlyConfigured(
-            "\n[Render Deployment Error] Cannot connect to MySQL database on '127.0.0.1' or empty host in production on Render.\n"
-            "Render containers do not run a local MySQL server on 127.0.0.1.\n"
-            "Please add DB_HOST, DB_USER, DB_PASSWORD, and DB_NAME to your Render Web Service Environment Variables dashboard.\n"
+            "\n[Render Deployment Error] Cannot connect to database on '127.0.0.1' or empty host in production on Render.\n"
+            "Please add DATABASE_URL or DB_HOST, DB_USER, DB_PASSWORD, DB_NAME to your Render Web Service Environment Variables dashboard.\n"
         )
 
-    db_options = {
-        'charset': 'utf8mb4',
-        'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-    }
-    if require_ssl:
-        db_options['ssl'] = {'ssl_mode': 'REQUIRED'}
+    db_options = {}
+    if 'mysql' in DB_ENGINE:
+        db_options = {
+            'charset': 'utf8mb4',
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        }
+        if require_ssl:
+            db_options['ssl'] = {'ssl_mode': 'REQUIRED'}
+    elif 'postgresql' in DB_ENGINE and require_ssl:
+        db_options['sslmode'] = 'require'
 
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.mysql',
+            'ENGINE': DB_ENGINE,
             'NAME': DB_NAME,
             'USER': DB_USER,
             'PASSWORD': DB_PASSWORD,
             'HOST': DB_HOST,
             'PORT': DB_PORT,
             'OPTIONS': db_options,
-            'CONN_MAX_AGE': 60,
+            'CONN_MAX_AGE': 600,
             'CONN_HEALTH_CHECKS': True,
         }
     }
+
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [

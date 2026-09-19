@@ -3,8 +3,9 @@ services:
     name: tulsi-mart-backend
     env: python
     rootDir: backend
+    healthCheckPath: /api/health/
     buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate"
-    startCommand: "gunicorn tulsimart_backend.wsgi:application"
+    startCommand: "gunicorn tulsimart_backend.wsgi:application --workers 2 --threads 2 --timeout 60"
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.11
@@ -18,6 +19,8 @@ services:
         value: "https://tulsi-mart.vercel.app,https://tulsimart.vercel.app,https://tulsimart.onrender.com"
       - key: CSRF_TRUSTED_ORIGINS
         value: "https://tulsi-mart.vercel.app,https://tulsimart.vercel.app,https://tulsimart.onrender.com"
+      - key: DATABASE_URL
+        sync: false
       - key: MYSQL_URL
         sync: false
       - key: DB_NAME
@@ -30,5 +33,6 @@ services:
         sync: false
       - key: DB_PORT
         value: "18925"
+
 
 

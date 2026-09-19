@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const rawApiUrl = import.meta.env.VITE_API_BASE_URL;
+const rawApiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
 let API_BASE_URL;
 
 if (import.meta.env.PROD) {
@@ -19,11 +19,10 @@ if (import.meta.env.PROD) {
   }
 }
 
-
-
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -41,15 +40,18 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor for token expiration handling
+// Response interceptor for token expiration and cold-start retry handling
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    const isAuthEndpoint = originalRequest?.url?.includes('/core/auth/login/') ||
-                          originalRequest?.url?.includes('/core/auth/verify-otp/') ||
-                          originalRequest?.url?.includes('/core/auth/refresh/');
+    if (!originalRequest) return Promise.reject(error);
 
+    const isAuthEndpoint = originalRequest.url?.includes('/core/auth/login/') ||
+                          originalRequest.url?.includes('/core/auth/verify-otp/') ||
+                          originalRequest.url?.includes('/core/auth/refresh/');
+
+    // 1. JWT 401 Refresh Handling
     if (error.response && error.response.status === 401 && !isAuthEndpoint && !originalRequest._retry) {
       originalRequest._retry = true;
       const refreshToken = localStorage.getItem('tm_refresh_token');
@@ -81,9 +83,26 @@ apiClient.interceptors.response.use(
       if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
         window.location.href = '/login';
       }
+      return Promise.reject(error);
     }
+
+    // 2. Cold-start network retry logic ONLY for safe GET requests
+    const isNetworkOrColdStart = !error.response || [502, 503, 504, 524].includes(error.response.status);
+    const isGetMethod = (originalRequest.method || 'get').toLowerCase() === 'get';
+
+    if (isNetworkOrColdStart && isGetMethod) {
+      originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
+      if (originalRequest._retryCount <= 2) {
+        // Wait 2.5s for Render backend instance to complete cold-start boot
+        await new Promise((resolve) => setTimeout(resolve, 2500));
+        return apiClient(originalRequest);
+      }
+    }
+
+    // For non-GET transactional requests (POST, PUT, PATCH, DELETE), NEVER auto-retry to prevent duplication
     return Promise.reject(error);
   }
 );
 
 export default apiClient;
+

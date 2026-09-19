@@ -62,6 +62,11 @@ class Order(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['payment_status', 'created_at']),
+            models.Index(fields=['status', 'created_at']),
+        ]
+
 
     def __str__(self):
         return f"{self.order_number} - {self.customer_name} (₹{self.total_amount})"
