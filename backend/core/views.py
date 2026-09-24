@@ -521,6 +521,8 @@ def login_auth_view(request):
             # Single Email Dispatcher (Primary: Django SMTP | Fallback: Nodemailer Node Script)
             import subprocess
             import base64
+            import threading
+            import socket
             from django.conf import settings as django_settings
             from django.core.mail import EmailMultiAlternatives
             from email.mime.image import MIMEImage
@@ -624,46 +626,51 @@ def login_auth_view(request):
             </html>
             """
 
-            email_sent = False
-
-            # Attempt 1: Native Django SMTP (Strictly Primary)
             sender_email = getattr(django_settings, 'EMAIL_HOST_USER', '') or getattr(django_settings, 'DEFAULT_FROM_EMAIL', '') or 'noreply@tulsimart.com'
-            if sender_email:
-                try:
-                    msg = EmailMultiAlternatives(subject, message_text, sender_email, [acc.email])
-                    msg.attach_alternative(html_message, "text/html")
-                    if logo_bytes:
-                        try:
-                            logo_mime = MIMEImage(logo_bytes)
-                            logo_mime.add_header('Content-ID', '<logo_img>')
-                            logo_mime.add_header('Content-Disposition', 'inline', filename='logo.png')
-                            msg.attach(logo_mime)
-                        except Exception as le:
-                            print(f"[Django Logo Attach Warning]: {le}")
-                    msg.send(fail_silently=False)
-                    email_sent = True
-                    print(f"[Django SMTP Single Dispatch Success] OTP {otp_code} delivered to {acc.email}")
-                except Exception as e:
-                    print(f"[Django SMTP Dispatch Exception]: {e} | Falling back to Nodemailer script...")
+            script_path = os.path.join(django_settings.BASE_DIR, 'send_email.js')
 
-            # Attempt 2: Nodemailer Script (ONLY executed if Django SMTP failed or is unconfigured)
-            if not email_sent:
-                script_path = os.path.join(django_settings.BASE_DIR, 'send_email.js')
-                if os.path.exists(script_path):
+            def _async_send_email():
+                try:
+                    socket.setdefaulttimeout(10)
+                except Exception:
+                    pass
+
+                email_sent = False
+                if sender_email:
+                    try:
+                        msg = EmailMultiAlternatives(subject, message_text, sender_email, [acc.email])
+                        msg.attach_alternative(html_message, "text/html")
+                        if logo_bytes:
+                            try:
+                                logo_mime = MIMEImage(logo_bytes)
+                                logo_mime.add_header('Content-ID', '<logo_img>')
+                                logo_mime.add_header('Content-Disposition', 'inline', filename='logo.png')
+                                msg.attach(logo_mime)
+                            except Exception as le:
+                                print(f"[Django Logo Attach Warning]: {le}")
+                        msg.send(fail_silently=False)
+                        email_sent = True
+                        print(f"[Django SMTP Async Dispatch Success] OTP {otp_code} delivered to {acc.email}")
+                    except Exception as e:
+                        print(f"[Django SMTP Dispatch Exception]: {e} | Falling back to Nodemailer script...")
+
+                if not email_sent and os.path.exists(script_path):
                     try:
                         res_proc = subprocess.run(
                             ['node', script_path, acc.email, otp_code, acc.full_name],
                             capture_output=True,
                             text=True,
-                            timeout=15
+                            timeout=12
                         )
                         if res_proc.returncode == 0:
-                            email_sent = True
-                            print(f"[Nodemailer Single Dispatch Success] Delivered single OTP email to {acc.email}")
+                            print(f"[Nodemailer Async Dispatch Success] Delivered single OTP email to {acc.email}")
                         else:
                             print(f"[Nodemailer Dispatch Failed]: {res_proc.stderr.strip() or res_proc.stdout.strip()}")
                     except Exception as e:
                         print(f"[Nodemailer Execution Error]: {e}")
+
+            # Fire background thread so HTTP response returns in ~50ms
+            threading.Thread(target=_async_send_email, daemon=True).start()
 
             email_parts = acc.email.split('@') if acc.email and '@' in acc.email else ['', '']
             masked_email = (email_parts[0][:2] + '***@' + email_parts[1]) if email_parts[0] else acc.email
