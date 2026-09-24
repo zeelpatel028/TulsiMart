@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { fetchWithCache } from '../../utils/metaCache';
+import { fetchWithCache, getCachedData, setCachedData, invalidateCache } from '../../utils/metaCache';
 import { Card } from '../../components/common/Card';
-
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
 import { Modal } from '../../components/common/Modal';
@@ -41,6 +40,7 @@ import { inventoryApi } from '../../api';
 import { useNotification } from '../../context/NotificationContext';
 import { ProductCard } from '../../components/common/ProductCard';
 import { ProductDetailModal } from '../../components/common/ProductDetailModal';
+import { CartLoader } from '../../components/common/CartLoader';
 
 export const ProductList = () => {
   const { showToast } = useNotification();
@@ -103,7 +103,6 @@ export const ProductList = () => {
   }, [page, search, selectedCategory, selectedBrand, stockFilter]);
 
   const loadMeta = async () => {
-
     try {
       const [catRes, brandRes, unitRes] = await Promise.all([
         fetchWithCache('categories', () => inventoryApi.getCategories()),
@@ -118,10 +117,20 @@ export const ProductList = () => {
     }
   };
 
-
   const loadProducts = async () => {
-    try {
+    const cacheKey = `products_${page}_${search}_${selectedCategory}_${selectedBrand}_${stockFilter}`;
+    const cached = getCachedData(cacheKey);
+
+    if (cached) {
+      setProducts(cached.products);
+      setTotalCount(cached.totalCount);
+      setTotalPages(cached.totalPages);
+      setLoading(false);
+    } else {
       setLoading(true);
+    }
+
+    try {
       const params = { page, search };
       if (selectedCategory) params.category = selectedCategory;
       if (selectedBrand) params.brand = selectedBrand;
@@ -132,17 +141,26 @@ export const ProductList = () => {
       const res = await inventoryApi.getProducts(params);
       const data = res.data;
 
+      let fetchedProducts = [];
+      let count = 0;
+      let pages = 1;
+
       if (data.results) {
-        setProducts(data.results);
-        setTotalCount(data.count);
-        setTotalPages(Math.ceil(data.count / 20));
+        fetchedProducts = data.results;
+        count = data.count;
+        pages = Math.ceil(data.count / 20);
       } else {
-        setProducts(Array.isArray(data) ? data : []);
-        setTotalCount(data.length || 0);
-        setTotalPages(1);
+        fetchedProducts = Array.isArray(data) ? data : [];
+        count = fetchedProducts.length || 0;
+        pages = 1;
       }
+
+      setProducts(fetchedProducts);
+      setTotalCount(count);
+      setTotalPages(pages);
+      setCachedData(cacheKey, { products: fetchedProducts, totalCount: count, totalPages: pages }, 3 * 60 * 1000);
     } catch (err) {
-      showToast('Failed to load products', 'error');
+      if (!cached) showToast('Failed to load products', 'error');
     } finally {
       setLoading(false);
     }
@@ -311,6 +329,7 @@ export const ProductList = () => {
       }
 
       setIsFormOpen(false);
+      invalidateCache('products_');
       loadProducts();
     } catch (err) {
       console.error(err);
@@ -326,6 +345,7 @@ export const ProductList = () => {
       await inventoryApi.deleteProduct(deletingProductId);
       showToast('Product deleted from inventory', 'success');
       setDeletingProductId(null);
+      invalidateCache('products_');
       loadProducts();
     } catch (err) {
       showToast('Failed to delete product', 'error');
@@ -349,6 +369,7 @@ export const ProductList = () => {
       showToast(`Successfully imported ${res.data.imported_count} products!`, 'success');
       setIsBulkOpen(false);
       setBulkFile(null);
+      invalidateCache('products_');
       loadProducts();
     } catch (err) {
       showToast(err.response?.data?.error || 'Bulk upload failed', 'error');
@@ -374,13 +395,13 @@ export const ProductList = () => {
   return (
     <div className="space-y-6 font-sans">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-[#B2DFDB] dark:border-slate-800 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-[#263238] dark:text-slate-100 tracking-tight font-heading">
+          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">
             Product Management
           </h1>
-          <p className="text-[11px] sm:text-xs text-[#607D8B] dark:text-slate-400 mt-1">
-            Manage catalogue, SKU barcodes, MRP & discounts, stock thresholds, and units.
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Manage catalogue, SKU barcodes, prices, stock, and units.
           </p>
         </div>
 
@@ -395,8 +416,8 @@ export const ProductList = () => {
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-[#B2DFDB] dark:border-slate-800 shadow-xs space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 sm:gap-3 items-center">
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
           <div className="sm:col-span-5 lg:col-span-4">
             <SearchInput
               value={search}
@@ -409,7 +430,7 @@ export const ProductList = () => {
             <select
               value={selectedCategory}
               onChange={(e) => { setSelectedCategory(e.target.value); setPage(1); }}
-              className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-800 border border-[#B2DFDB] dark:border-slate-700 rounded-xl outline-hidden focus:border-[#009688] text-[#263238] dark:text-slate-100 font-medium"
+              className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:border-teal-500 text-slate-800 dark:text-slate-100 font-medium"
             >
               <option value="">All Categories ({categories.length})</option>
               {categories.map((c) => (
@@ -422,7 +443,7 @@ export const ProductList = () => {
             <select
               value={selectedBrand}
               onChange={(e) => { setSelectedBrand(e.target.value); setPage(1); }}
-              className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-800 border border-[#B2DFDB] dark:border-slate-700 rounded-xl outline-hidden focus:border-[#009688] text-[#263238] dark:text-slate-100 font-medium"
+              className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:border-teal-500 text-slate-800 dark:text-slate-100 font-medium"
             >
               <option value="">All Brands ({brands.length})</option>
               {brands.map((b) => (
@@ -435,10 +456,10 @@ export const ProductList = () => {
           <div className="sm:col-span-12 lg:col-span-2 flex items-center justify-end gap-1">
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-xl border transition-colors cursor-pointer flex-1 sm:flex-initial flex items-center justify-center ${
+              className={`p-2 rounded-lg border transition-colors cursor-pointer flex-1 sm:flex-initial flex items-center justify-center ${
                 viewMode === 'grid' 
-                  ? 'bg-[#009688] dark:bg-[#009688] text-white border-[#009688]' 
-                  : 'bg-white dark:bg-slate-800 text-[#607D8B] dark:text-slate-400 border-[#B2DFDB] dark:border-slate-700 hover:bg-[#E0F2F1]'
+                  ? 'bg-teal-600 text-white border-teal-600' 
+                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
               }`}
               title="Grid View"
             >
@@ -446,10 +467,10 @@ export const ProductList = () => {
             </button>
             <button
               onClick={() => setViewMode('table')}
-              className={`p-2 rounded-xl border transition-colors cursor-pointer flex-1 sm:flex-initial flex items-center justify-center ${
+              className={`p-2 rounded-lg border transition-colors cursor-pointer flex-1 sm:flex-initial flex items-center justify-center ${
                 viewMode === 'table' 
-                  ? 'bg-[#009688] dark:bg-[#009688] text-white border-[#009688]' 
-                  : 'bg-white dark:bg-slate-800 text-[#607D8B] dark:text-slate-400 border-[#B2DFDB] dark:border-slate-700 hover:bg-[#E0F2F1]'
+                  ? 'bg-teal-600 text-white border-teal-600' 
+                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
               }`}
               title="Table View"
             >
@@ -459,8 +480,8 @@ export const ProductList = () => {
         </div>
 
         {/* Stock Filter Pills */}
-        <div className="flex items-center gap-1.5 pt-2 border-t border-[#B2DFDB]/60 dark:border-slate-800 text-xs overflow-x-auto no-scrollbar touch-pan pb-1">
-          <span className="text-[#607D8B] font-bold uppercase text-[10px] tracking-wider mr-1 shrink-0">Stock Status:</span>
+        <div className="flex items-center gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs overflow-x-auto no-scrollbar">
+          <span className="text-slate-500 font-medium text-[11px] mr-1 shrink-0">Stock Status:</span>
           {[
             { id: 'all', label: 'All Products' },
             { id: 'in_stock', label: 'In Stock' },
@@ -470,10 +491,10 @@ export const ProductList = () => {
             <button
               key={tab.id}
               onClick={() => { setStockFilter(tab.id); setPage(1); }}
-              className={`px-3 py-1 rounded-full font-bold transition-all cursor-pointer shrink-0 ${
+              className={`px-3 py-1 rounded-lg font-medium text-xs transition-colors cursor-pointer shrink-0 ${
                 stockFilter === tab.id
-                  ? 'bg-[#009688] text-white shadow-xs'
-                  : 'bg-[#E0F2F1] dark:bg-slate-800 text-[#263238] dark:text-slate-400 hover:bg-[#B2DFDB]'
+                  ? 'bg-teal-600 text-white'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
               }`}
             >
               {tab.label}
@@ -483,7 +504,11 @@ export const ProductList = () => {
       </div>
 
       {/* Content: Grid or Table View */}
-      {products.length === 0 ? (
+      {loading && products.length === 0 ? (
+        <div className="flex items-center justify-center py-16 bg-white dark:bg-slate-900 rounded-2xl border border-[#B2DFDB] dark:border-slate-800">
+          <CartLoader text="Loading products catalog..." size="md" />
+        </div>
+      ) : products.length === 0 ? (
         <EmptyState
           icon={ShoppingBag}
           title="No Products Found"
@@ -543,11 +568,11 @@ export const ProductList = () => {
         </div>
 
       ) : (
-        <Card className="p-0 overflow-hidden">
+        <Card className="p-0 overflow-hidden border border-slate-200 dark:border-slate-800 shadow-2xs">
           <div className="overflow-x-auto max-h-[640px] overflow-y-auto custom-scrollbar touch-pan">
             <table className="w-full min-w-[840px] text-left text-xs border-collapse">
-              <thead className="sticky top-0 z-10 bg-[#F0FAF9] dark:bg-slate-800 shadow-xs">
-                <tr className="bg-[#F0FAF9] dark:bg-slate-800 border-b border-[#B2DFDB] dark:border-slate-800 text-[#607D8B] dark:text-slate-400 font-bold uppercase tracking-wider text-[11px]">
+              <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-800 shadow-2xs">
+                <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold uppercase tracking-wider text-[11px]">
                   <th className="py-3 px-4">Product Details</th>
                   <th className="py-3 px-4">SKU / Barcode</th>
                   <th className="py-3 px-4">Category</th>
@@ -560,7 +585,7 @@ export const ProductList = () => {
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E0F2F1] dark:divide-slate-800 font-medium">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
                 {products.map((p) => {
                   const cost = parseFloat(p.cost_price || 0);
                   const selling = parseFloat(p.selling_price || 0);
@@ -568,37 +593,37 @@ export const ProductList = () => {
                   const profit = selling > 0 && cost > 0 ? (selling - cost).toFixed(2) : 0;
 
                   return (
-                    <tr key={p.id} className="hover:bg-[#F0FAF9]/70 dark:hover:bg-slate-800/60 transition-colors">
+                    <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
-                          <img src={p.image || '/logo.png'} alt="" className="w-9 h-9 rounded-lg object-cover border border-[#B2DFDB]" />
+                          <img src={p.image || '/logo.png'} alt="" className="w-9 h-9 rounded-lg object-cover border border-slate-200 dark:border-slate-700" />
                           <div>
-                            <p className="font-bold text-[#263238] dark:text-slate-100 font-heading">{p.name}</p>
-                            <p className="text-[10px] text-[#607D8B]">{p.brand_name || 'Tulsi Mart'}</p>
+                            <p className="font-semibold text-slate-800 dark:text-slate-100">{p.name}</p>
+                            <p className="text-[10px] text-slate-500">{p.brand_name || 'Tulsi Mart'}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="py-3 px-4 font-mono text-[#263238] dark:text-slate-300">
+                      <td className="py-3 px-4 font-mono text-slate-700 dark:text-slate-300">
                         <div>{p.sku}</div>
-                        <div className="text-[10px] text-[#607D8B]">{p.barcode}</div>
+                        <div className="text-[10px] text-slate-500">{p.barcode}</div>
                       </td>
-                      <td className="py-3 px-4 text-[#263238] dark:text-slate-300">{p.category_name || '-'}</td>
-                      <td className="py-3 px-4 text-right font-mono text-[#607D8B] dark:text-slate-300">
+                      <td className="py-3 px-4 text-slate-700 dark:text-slate-300">{p.category_name || '-'}</td>
+                      <td className="py-3 px-4 text-right font-mono text-slate-500 dark:text-slate-400">
                         ₹{Number(p.cost_price || 0).toFixed(2)}
                       </td>
-                      <td className="py-3 px-4 text-right font-extrabold text-[#00695C] dark:text-[#4DB6AC] font-mono">
+                      <td className="py-3 px-4 text-right font-bold text-teal-600 dark:text-teal-400 font-mono">
                         ₹{Number(p.selling_price).toFixed(2)}
                       </td>
-                      <td className="py-3 px-4 text-right text-[#607D8B] font-mono">
+                      <td className="py-3 px-4 text-right text-slate-400 font-mono">
                         ₹{Number(p.mrp).toFixed(2)}
                       </td>
                       <td className="py-3 px-4 text-center">
                         {cost > 0 && selling > 0 ? (
-                          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E0F2F1] text-[#00695C] border border-[#B2DFDB]">
+                          <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-teal-50 text-teal-700 dark:bg-slate-800 dark:text-teal-400 border border-teal-200 dark:border-slate-700">
                             +{margin}% (+₹{profit})
                           </span>
                         ) : (
-                          <span className="text-[#607D8B] text-[10px]">-</span>
+                          <span className="text-slate-400 text-[10px]">-</span>
                         )}
                       </td>
                       <td className="py-3 px-4 text-center">
@@ -606,13 +631,13 @@ export const ProductList = () => {
                           {p.stock_quantity} {p.unit_name || 'units'}
                         </Badge>
                       </td>
-                      <td className="py-3 px-4 text-center text-[#607D8B] dark:text-slate-400">{p.expiry_date || 'N/A'}</td>
+                      <td className="py-3 px-4 text-center text-slate-500 dark:text-slate-400">{p.expiry_date || 'N/A'}</td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => handleOpenEdit(p)} className="p-1.5 hover:bg-[#E0F2F1] dark:hover:bg-slate-800 rounded-lg text-[#607D8B] hover:text-[#00695C] dark:hover:text-white" title="Edit Product">
+                          <button onClick={() => handleOpenEdit(p)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 hover:text-teal-600 dark:hover:text-white" title="Edit Product">
                             <Edit className="w-4 h-4" />
                           </button>
-                          <button onClick={() => setDeletingProductId(p.id)} className="p-1.5 hover:bg-[#FFEBEE] dark:hover:bg-rose-950/40 rounded-lg text-[#607D8B] hover:text-[#E53935]" title="Delete Product">
+                          <button onClick={() => setDeletingProductId(p.id)} className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg text-slate-500 hover:text-rose-600" title="Delete Product">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>

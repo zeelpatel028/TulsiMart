@@ -52,6 +52,7 @@ import { EmptyState } from '../components/common/UiHelpers';
 import { ProductCard } from '../components/common/ProductCard';
 import { ProductDetailModal } from '../components/common/ProductDetailModal';
 import { analyticsApi, inventoryApi } from '../api';
+import { getCachedData, setCachedData } from '../utils/metaCache';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import InvoiceModal from '../components/invoices/InvoiceModal';
@@ -120,21 +121,38 @@ export const Dashboard = () => {
   }, []);
 
   const fetchDashboardAndCatalog = async () => {
-    try {
+    const cachedDash = getCachedData('dashboard_summary');
+    if (cachedDash) {
+      setDashboardData(cachedDash.dashboardData);
+      setPopularProducts(cachedDash.popularProducts);
+      setCategoriesList(cachedDash.categoriesList);
+      setLoading(false);
+    } else {
       setLoading(true);
+    }
+
+    try {
       const [dashRes, prodRes, catRes] = await Promise.all([
         analyticsApi.getDashboardSummary(),
         inventoryApi.getProducts({ page: 1 }),
         inventoryApi.getCategories()
       ]);
 
-      setDashboardData(dashRes.data);
-      
+      const dashData = dashRes.data;
       const prods = prodRes.data?.results || prodRes.data || [];
-      setPopularProducts(Array.isArray(prods) ? prods.slice(0, 8) : []);
-
+      const popular = Array.isArray(prods) ? prods.slice(0, 8) : [];
       const cats = catRes.data?.results || catRes.data || [];
-      setCategoriesList(Array.isArray(cats) ? cats : []);
+      const catList = Array.isArray(cats) ? cats : [];
+
+      setDashboardData(dashData);
+      setPopularProducts(popular);
+      setCategoriesList(catList);
+
+      setCachedData('dashboard_summary', {
+        dashboardData: dashData,
+        popularProducts: popular,
+        categoriesList: catList
+      }, 2 * 60 * 1000);
     } catch (err) {
       console.error('Failed to load dashboard summary', err);
     } finally {

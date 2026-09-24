@@ -19,6 +19,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { inventoryApi } from '../../api';
+import { getCachedData, setCachedData } from '../../utils/metaCache';
 import { useNotification } from '../../context/NotificationContext';
 
 export const InventoryList = () => {
@@ -47,15 +48,26 @@ export const InventoryList = () => {
   }, [activeTab, search, stockFilter]);
 
   const loadProducts = async () => {
-    try {
+    const cacheKey = `inv_products_${activeTab}_${search}_${stockFilter}`;
+    const cached = getCachedData(cacheKey);
+
+    if (cached) {
+      setProducts(cached);
+      setLoading(false);
+    } else {
       setLoading(true);
+    }
+
+    try {
       const params = {
         search,
         stock_status: stockFilter !== 'all' ? stockFilter : undefined,
         expiry: activeTab === 'near_expiry' ? 'near_expiry' : undefined,
       };
       const res = await inventoryApi.getProducts(params);
-      setProducts(res.data?.results || res.data || []);
+      const data = res.data?.results || res.data || [];
+      setProducts(data);
+      setCachedData(cacheKey, data, 2 * 60 * 1000);
     } catch (err) {
       console.error(err);
     } finally {
@@ -64,10 +76,21 @@ export const InventoryList = () => {
   };
 
   const loadMovements = async () => {
-    try {
+    const cacheKey = `inv_movements_${search}`;
+    const cached = getCachedData(cacheKey);
+
+    if (cached) {
+      setMovements(cached);
+      setLoading(false);
+    } else {
       setLoading(true);
+    }
+
+    try {
       const res = await inventoryApi.getStockMovements();
-      setMovements(res.data?.results || res.data || []);
+      const data = res.data?.results || res.data || [];
+      setMovements(data);
+      setCachedData(cacheKey, data, 2 * 60 * 1000);
     } catch (err) {
       console.error(err);
     } finally {

@@ -23,6 +23,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { ordersApi } from '../../api';
+import { getCachedData, setCachedData } from '../../utils/metaCache';
 import { useNotification } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
 import InvoiceModal from '../../components/invoices/InvoiceModal';
@@ -55,8 +56,19 @@ export const OrderList = () => {
   }, [page, search, selectedStatus, paymentStatusFilter, dateFrom, dateTo]);
 
   const loadOrders = async () => {
-    try {
+    const cacheKey = `orders_${page}_${search}_${selectedStatus}_${paymentStatusFilter}_${dateFrom}_${dateTo}`;
+    const cached = getCachedData(cacheKey);
+
+    if (cached) {
+      setOrders(cached.orders);
+      setTotalCount(cached.totalCount);
+      setTotalPages(cached.totalPages);
+      setLoading(false);
+    } else {
       setLoading(true);
+    }
+
+    try {
       const params = {
         page,
         search,
@@ -66,11 +78,15 @@ export const OrderList = () => {
         date_to: dateTo || undefined,
       };
       const res = await ordersApi.getOrders(params);
-      setOrders(res.data?.results || res.data || []);
-      if (res.data?.count !== undefined) {
-        setTotalCount(res.data.count);
-        setTotalPages(Math.ceil(res.data.count / 20));
-      }
+      const fetchedOrders = res.data?.results || res.data || [];
+      const count = res.data?.count !== undefined ? res.data.count : fetchedOrders.length;
+      const pages = Math.ceil(count / 20) || 1;
+
+      setOrders(fetchedOrders);
+      setTotalCount(count);
+      setTotalPages(pages);
+
+      setCachedData(cacheKey, { orders: fetchedOrders, totalCount: count, totalPages: pages }, 2 * 60 * 1000);
     } catch (err) {
       console.error(err);
     } finally {

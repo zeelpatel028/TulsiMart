@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  User, 
-  Lock, 
-  Eye, 
-  EyeOff, 
-  ArrowRight, 
-  ShieldCheck, 
-  RefreshCw, 
+import {
+  User,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  ShieldCheck,
+  RefreshCw,
   ArrowLeft,
   CheckCircle2
 } from 'lucide-react';
@@ -107,7 +107,7 @@ export const LoginPage = () => {
   const handleCredentialsSubmit = async (e) => {
     if (e) e.preventDefault();
     if (loading) return;
-    
+
     const trimmedUsername = username.trim();
     const trimmedPassword = password.trim();
 
@@ -193,29 +193,15 @@ export const LoginPage = () => {
 
   const storeName = storeSettings?.store_name || 'Tulsi Mart';
   const tagline = storeSettings?.tagline || 'Supermarket POS & Management System';
-  const logo = storeSettings?.store_logo || '/logo.png';
 
   return (
-    <div className="min-h-screen animated-mesh-bg flex items-center justify-center p-4 sm:p-6 font-sans text-slate-100 selection:bg-[#4DB6AC] selection:text-[#00695C]">
-      
-      {/* Background Radial Glow */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-tr from-[#00695C]/40 to-[#4DB6AC]/20 rounded-full blur-[140px]" />
-      </div>
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 sm:p-6 font-sans text-slate-100 selection:bg-[#4DB6AC] selection:text-[#00695C]">
 
       {/* Sleek Centered Card */}
       <div className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl shadow-2xl backdrop-blur-2xl p-6 sm:p-8 relative z-10 space-y-6">
-        
-        {/* BRAND HEADER: LOGO & PROJECT NAME */}
+
+        {/* BRAND HEADER: PROJECT NAME */}
         <div className="text-center space-y-3">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#00695C] via-[#009688] to-[#4DB6AC] p-3 shadow-lg border border-white/20">
-            <img 
-              src={logo} 
-              alt={storeName} 
-              className="w-full h-full object-contain filter drop-shadow"
-              onError={(e) => { e.target.src = '/logo.png'; }}
-            />
-          </div>
           <div>
             <h1 className="text-2xl font-black tracking-tight font-heading text-white">
               {storeName}
@@ -229,7 +215,7 @@ export const LoginPage = () => {
         {/* STEP 1: USERNAME & PASSWORD LOGIN */}
         {step === 'credentials' && (
           <form onSubmit={handleCredentialsSubmit} className="space-y-4">
-            
+
             {/* Username Input */}
             <div className="space-y-1.5">
               <label htmlFor="username" className="block text-xs font-semibold text-slate-300">
@@ -335,11 +321,10 @@ export const LoginPage = () => {
                   value={digit}
                   onChange={(e) => handleOtpDigitChange(index, e.target.value)}
                   onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                  className={`w-10 h-12 text-center font-mono font-bold text-lg rounded-xl bg-slate-950 border transition-all outline-none ${
-                    digit
+                  className={`w-10 h-12 text-center font-mono font-bold text-lg rounded-xl bg-slate-950 border transition-all outline-none ${digit
                       ? 'border-[#009688] text-[#4DB6AC] ring-2 ring-[#009688]/20 bg-slate-900'
                       : 'border-slate-800 text-white focus:border-[#009688] focus:ring-2 focus:ring-[#009688]/20'
-                  }`}
+                    }`}
                 />
               ))}
             </div>

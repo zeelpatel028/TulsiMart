@@ -1,4 +1,4 @@
-// Client-side in-memory cache for static/semi-static metadata (Categories, Brands, Units, Store Settings)
+// Client-side in-memory cache for static/semi-static metadata & table queries
 // Reduces repeated duplicate API requests to Render/Aiven during page navigation.
 
 const cache = new Map();
@@ -31,9 +31,13 @@ export const fetchWithCache = async (key, fetchFn, ttlMs = DEFAULT_TTL_MS) => {
   return result;
 };
 
-export const invalidateCache = (key) => {
-  if (key) {
-    cache.delete(key);
+export const invalidateCache = (prefix = null) => {
+  if (prefix) {
+    for (const key of cache.keys()) {
+      if (key.startsWith(prefix)) {
+        cache.delete(key);
+      }
+    }
   } else {
     cache.clear();
   }
