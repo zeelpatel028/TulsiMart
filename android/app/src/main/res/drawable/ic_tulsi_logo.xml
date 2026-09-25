@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <!-- Outer Circle Badge -->
+    <path
+        android:fillColor="#E0F2F1"
+        android:pathData="M60,0A60,60 0 1,0 120,60A60,60 0 0,0 60,0Z" />
+
+    <!-- Inner Circle -->
+    <path
+        android:fillColor="#00695C"
+        android:pathData="M60,10A50,50 0 1,0 110,60A50,50 0 0,0 60,10Z" />
+
+    <!-- Tulsi Leaves (Natural Leaf Design) -->
+    <path
+        android:fillColor="#4DB6AC"
+        android:pathData="M60,25 C75,25 85,40 85,55 C85,70 70,75 60,75 C50,75 35,70 35,55 C35,40 45,25 60,25 Z" />
+
+    <path
+        android:fillColor="#009688"
+        android:pathData="M60,25 C70,30 78,42 75,55 C72,65 65,72 60,75 C60,55 60,35 60,25 Z" />
+
+    <!-- Leaf Stem / Center Line -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M60,30 L60,82" />
+
+    <!-- Shopping Cart Wheels / Base Overlay -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M40,82 L80,82 C83,82 85,84 84,87 L81,93 C80,95 78,96 76,96 L44,96 C42,96 40,95 39,93 L36,87 C35,84 37,82 40,82 Z" />
+
+    <path
+        android:fillColor="#00695C"
+        android:pathData="M46,92 A3,3 0 1,1 46,86 A3,3 0 0,1 46,92 Z" />
+
+    <path
+        android:fillColor="#00695C"
+        android:pathData="M74,92 A3,3 0 1,1 74,86 A3,3 0 0,1 74,92 Z" />
+
+</vector>
