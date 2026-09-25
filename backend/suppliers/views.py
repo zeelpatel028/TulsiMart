@@ -14,10 +14,22 @@ from .serializers import (
 )
 from inventory.models import StockMovement
 
+from django.core.cache import cache
+
 class SupplierViewSet(viewsets.ModelViewSet):
     queryset = Supplier.objects.all().prefetch_related('purchase_orders', 'payments')
     serializer_class = SupplierSerializer
     permission_classes = [permissions.AllowAny]
+
+    def list(self, request, *args, **kwargs):
+        q = request.META.get('QUERY_STRING', '')
+        cache_key = f'suppliers_list_{q}'
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+        res = super().list(request, *args, **kwargs)
+        cache.set(cache_key, res.data, 60)
+        return res
 
     def get_queryset(self):
         qs = super().get_queryset()

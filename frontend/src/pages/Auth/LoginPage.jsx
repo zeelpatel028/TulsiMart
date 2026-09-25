@@ -202,6 +202,13 @@ export const LoginPage = () => {
 
         {/* BRAND HEADER: PROJECT NAME */}
         <div className="text-center space-y-3">
+          <div className="w-16 h-16 mx-auto bg-white p-2 rounded-2xl shadow-md border border-slate-700/50 flex items-center justify-center">
+            <img 
+              src="/logo.png" 
+              alt="Tulsi Mart Logo" 
+              className="w-full h-full object-contain"
+            />
+          </div>
           <div>
             <h1 className="text-2xl font-black tracking-tight font-heading text-white">
               {storeName}

@@ -16,13 +16,20 @@
   --color-mint-border: #B2DFDB;
 
   /* Aliases for tm- Theme Tokens */
-  --color-tm-navy: #00695C;       /* Primary Brand Color: Deep Teal */
-  --color-tm-navy-dark: #004D40;  /* Darker Deep Teal */
-  --color-tm-slate: #009688;      /* Primary Action Color: Teal */
-  --color-tm-sky: #4DB6AC;        /* Mint Green Accent */
-  --color-tm-sky-hover: #00695C;  /* Hover Deep Teal */
-  --color-tm-light: #E0F2F1;      /* Light Mint Background */
-  --color-tm-bg: #F0FAF9;         /* Very Light Mint Page BG */
+  --color-tm-navy: #00695C;
+  /* Primary Brand Color: Deep Teal */
+  --color-tm-navy-dark: #004D40;
+  /* Darker Deep Teal */
+  --color-tm-slate: #009688;
+  /* Primary Action Color: Teal */
+  --color-tm-sky: #4DB6AC;
+  /* Mint Green Accent */
+  --color-tm-sky-hover: #00695C;
+  /* Hover Deep Teal */
+  --color-tm-light: #E0F2F1;
+  /* Light Mint Background */
+  --color-tm-bg: #F0FAF9;
+  /* Very Light Mint Page BG */
   --color-tm-surface: #FFFFFF;
   --color-tm-card: #FFFFFF;
   --color-tm-border: #B2DFDB;
@@ -131,7 +138,12 @@ body {
 }
 
 /* Dark mode text defaults */
-.dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark h5,
+.dark h6 {
   color: #F1F5F9;
 }
 
@@ -139,7 +151,12 @@ body {
   color: #CBD5E1;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-heading);
 }
 
@@ -285,6 +302,7 @@ h1, h2, h3, h4, h5, h6 {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -301,15 +319,15 @@ h1, h2, h3, h4, h5, h6 {
     background: #ffffff !important;
     color: #000000 !important;
   }
-  
+
   .no-print {
     display: none !important;
   }
-  
+
   .print-only {
     display: block !important;
   }
-  
+
   .invoice-printable {
     box-shadow: none !important;
     border: none !important;
@@ -321,10 +339,13 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Animated background utilities for Login */
 @keyframes floatParticle {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0px) rotate(0deg) scale(1);
     opacity: 0.4;
   }
+
   50% {
     transform: translateY(-25px) rotate(180deg) scale(1.1);
     opacity: 0.8;
@@ -332,10 +353,13 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @keyframes pulseGlow {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
     opacity: 0.5;
   }
+
   50% {
     transform: scale(1.15);
     opacity: 0.85;
@@ -346,9 +370,11 @@ h1, h2, h3, h4, h5, h6 {
   0% {
     background-position: 0% 50%;
   }
+
   50% {
     background-position: 100% 50%;
   }
+
   100% {
     background-position: 0% 50%;
   }
@@ -376,6 +402,7 @@ h1, h2, h3, h4, h5, h6 {
 .touch-active {
   transition: transform 0.1s ease, opacity 0.1s ease;
 }
+
 .touch-active:active {
   transform: scale(0.96);
 }
@@ -413,8 +440,7 @@ h1, h2, h3, h4, h5, h6 {
 .grocery-card-shadow {
   box-shadow: 0 4px 20px -2px rgba(0, 105, 92, 0.08);
 }
+
 .grocery-card-shadow:hover {
   box-shadow: 0 8px 30px -4px rgba(0, 105, 92, 0.16);
 }
-
-

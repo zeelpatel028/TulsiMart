@@ -12,6 +12,47 @@ from .serializers import CashRegisterEntrySerializer
 DENOM_LIST = [500, 200, 100, 50, 20, 10, 5, 1]
 
 
+def safe_int(val, default=0):
+    if isinstance(val, (int, float, str)):
+        try:
+            return int(val)
+        except (ValueError, TypeError):
+            return default
+    return default
+
+
+def is_valid_notes_dict(counts):
+    if not isinstance(counts, dict):
+        return False
+    if 'breakdown' in counts and isinstance(counts['breakdown'], dict):
+        counts = counts['breakdown']
+    for v in counts.values():
+        if isinstance(v, (int, float, str)):
+            try:
+                if int(v) > 0:
+                    return True
+            except (ValueError, TypeError):
+                pass
+    return False
+
+
+def sanitize_note_counts(counts):
+    if not isinstance(counts, dict):
+        return {}
+    if 'breakdown' in counts and isinstance(counts['breakdown'], dict):
+        counts = counts['breakdown']
+    result = {}
+    for k, v in counts.items():
+        if isinstance(v, (int, float, str)):
+            try:
+                val_int = int(v)
+                if val_int > 0:
+                    result[str(k)] = val_int
+            except (ValueError, TypeError):
+                pass
+    return result
+
+
 def calculate_denomination_breakdown(denomination_counts):
     """
     Python backend helper to calculate total amount & note breakdown string from note counts dictionary.
@@ -21,14 +62,11 @@ def calculate_denomination_breakdown(denomination_counts):
     
     if not isinstance(denomination_counts, dict):
         return total, ""
+
+    clean_counts = sanitize_note_counts(denomination_counts)
         
     for d in DENOM_LIST:
-        cnt_val = denomination_counts.get(str(d)) or denomination_counts.get(d) or 0
-        try:
-            cnt = int(cnt_val)
-        except (ValueError, TypeError):
-            cnt = 0
-            
+        cnt = clean_counts.get(str(d), 0)
         if cnt > 0:
             if d == 1:
                 total += Decimal(str(cnt))
@@ -178,50 +216,41 @@ def get_gulla_summary(target_date=None):
 
     # Parse manual register entries for note counts
     for entry in entries_qs:
-        parsed_counts = entry.denomination_counts if (isinstance(entry.denomination_counts, dict) and any(int(v or 0) > 0 for v in entry.denomination_counts.values())) else parse_notes_from_text(entry.notes)
-        has_notes = any(int(c or 0) > 0 for c in parsed_counts.values())
+        parsed_counts = sanitize_note_counts(entry.denomination_counts) if is_valid_notes_dict(entry.denomination_counts) else parse_notes_from_text(entry.notes)
+        has_notes = is_valid_notes_dict(parsed_counts)
         if not has_notes and entry.amount > 0:
             parsed_counts = calc_greedy_notes(entry.amount)
 
         for d_str, count in parsed_counts.items():
-            try:
-                cnt_num = int(count or 0)
-                if cnt_num > 0 and d_str in tendered_notes_agg:
-                    if entry.entry_type in ['OPENING_FLOAT', 'CASH_IN']:
-                        tendered_notes_agg[d_str] += cnt_num
-                    elif entry.entry_type in ['CASH_OUT', 'SUPPLIER_PAYMENT', 'EXPENSE']:
-                        change_notes_agg[d_str] += cnt_num
-            except (ValueError, TypeError):
-                pass
+            cnt_num = safe_int(count)
+            if cnt_num > 0 and str(d_str) in tendered_notes_agg:
+                if entry.entry_type in ['OPENING_FLOAT', 'CASH_IN']:
+                    tendered_notes_agg[str(d_str)] += cnt_num
+                elif entry.entry_type in ['CASH_OUT', 'SUPPLIER_PAYMENT', 'EXPENSE']:
+                    change_notes_agg[str(d_str)] += cnt_num
 
     cash_tender_logs_list = []
     for o in cash_orders:
-        t_has_notes = isinstance(o.tendered_notes, dict) and any(int(v or 0) > 0 for v in o.tendered_notes.values())
-        c_has_notes = isinstance(o.change_notes, dict) and any(int(v or 0) > 0 for v in o.change_notes.values())
+        t_has_notes = is_valid_notes_dict(o.tendered_notes)
+        c_has_notes = is_valid_notes_dict(o.change_notes)
 
-        t_counts = o.tendered_notes if t_has_notes else calc_greedy_notes(o.cash_tendered or o.total_amount)
-        c_counts = o.change_notes if c_has_notes else (calc_greedy_notes(o.change_returned) if (o.change_returned and float(o.change_returned) > 0) else {})
+        t_counts = sanitize_note_counts(o.tendered_notes) if t_has_notes else calc_greedy_notes(o.cash_tendered or o.total_amount)
+        c_counts = sanitize_note_counts(o.change_notes) if c_has_notes else (calc_greedy_notes(o.change_returned) if (o.change_returned and safe_int(o.change_returned) > 0) else {})
 
         for d_str, count in t_counts.items():
-            if d_str in tendered_notes_agg:
-                try:
-                    tendered_notes_agg[d_str] += int(count or 0)
-                except (ValueError, TypeError):
-                    pass
+            if str(d_str) in tendered_notes_agg:
+                tendered_notes_agg[str(d_str)] += safe_int(count)
 
         for d_str, count in c_counts.items():
-            if d_str in change_notes_agg:
-                try:
-                    change_notes_agg[d_str] += int(count or 0)
-                except (ValueError, TypeError):
-                    pass
+            if str(d_str) in change_notes_agg:
+                change_notes_agg[str(d_str)] += safe_int(count)
 
         cash_tender_logs_list.append({
             'id': o.id,
             'order_number': o.order_number,
             'customer_name': o.customer_name or 'Walk-in',
-            'bill_amount': float(o.total_amount),
-            'cash_tendered': float(o.cash_tendered or o.total_amount),
+            'bill_amount': float(o.total_amount or 0),
+            'cash_tendered': float(o.cash_tendered or o.total_amount or 0),
             'change_returned': float(o.change_returned or 0),
             'tendered_notes': t_counts,
             'change_notes': c_counts,
@@ -249,8 +278,8 @@ def get_gulla_summary(target_date=None):
 
     # 1. Manual Cash Register Entries for today
     for e in entries_qs.order_by('-created_at'):
-        parsed = e.denomination_counts if (isinstance(e.denomination_counts, dict) and any(int(v or 0) > 0 for v in e.denomination_counts.values())) else parse_notes_from_text(e.notes)
-        if not any(int(v or 0) > 0 for v in parsed.values()) and e.amount > 0:
+        parsed = sanitize_note_counts(e.denomination_counts) if is_valid_notes_dict(e.denomination_counts) else parse_notes_from_text(e.notes)
+        if not is_valid_notes_dict(parsed) and e.amount > 0:
             parsed = calc_greedy_notes(e.amount)
 
         is_inflow = e.entry_type in ['OPENING_FLOAT', 'CASH_IN', 'KHATA_PAYMENT']
@@ -281,12 +310,12 @@ def get_gulla_summary(target_date=None):
         c_name = o.customer_name or 'Walk-in Customer'
         is_cash = (o.payment_method == 'CASH')
         
-        t_has_notes = isinstance(o.tendered_notes, dict) and any(int(v or 0) > 0 for v in o.tendered_notes.values())
-        c_has_notes = isinstance(o.change_notes, dict) and any(int(v or 0) > 0 for v in o.change_notes.values())
+        t_has_notes = is_valid_notes_dict(o.tendered_notes)
+        c_has_notes = is_valid_notes_dict(o.change_notes)
 
         if is_cash:
-            t_counts = o.tendered_notes if t_has_notes else calc_greedy_notes(o.cash_tendered or o.total_amount)
-            c_counts = o.change_notes if c_has_notes else (calc_greedy_notes(o.change_returned) if (o.change_returned and float(o.change_returned) > 0) else {})
+            t_counts = sanitize_note_counts(o.tendered_notes) if t_has_notes else calc_greedy_notes(o.cash_tendered or o.total_amount)
+            c_counts = sanitize_note_counts(o.change_notes) if c_has_notes else (calc_greedy_notes(o.change_returned) if (o.change_returned and float(o.change_returned or 0) > 0) else {})
             _, t_str = calculate_denomination_breakdown(t_counts)
             _, c_str = calculate_denomination_breakdown(c_counts)
             e_label = 'POS Cash Bill'

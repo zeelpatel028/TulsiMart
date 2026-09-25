@@ -156,9 +156,15 @@ def gulla_summary_view(request):
     Supports ?date=YYYY-MM-DD query parameter for historical register audits.
     """
     import datetime
+    from django.core.cache import cache
     from .gulla_services import get_gulla_summary
     
     date_param = request.GET.get('date') or (request.query_params.get('date') if hasattr(request, 'query_params') else None)
+    cache_key = f'gulla_sum_cache_{date_param or "today"}'
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return Response(cached)
+
     target_date = None
     if date_param:
         try:
@@ -167,6 +173,7 @@ def gulla_summary_view(request):
             pass
 
     summary = get_gulla_summary(target_date=target_date)
+    cache.set(cache_key, summary, 15)
     return Response(summary)
 
 

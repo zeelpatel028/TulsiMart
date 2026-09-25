@@ -179,6 +179,16 @@ else:
     }
 
 
+# High Performance In-Memory Caching (LocMemCache)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'tulsimart-fast-locmem-cache',
+        'TIMEOUT': 300,
+    }
+}
+
+
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {

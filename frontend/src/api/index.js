@@ -127,7 +127,10 @@ export const analyticsApi = {
 
 // Gulla (Cash Drawer / Register) API
 export const gullaApi = {
-  getGullaSummary: (params) => apiClient.get('/core/gulla/', { params }),
+  getGullaSummary: (params) => {
+    const config = typeof params === 'string' ? { params: { date: params } } : (params ? { params } : {});
+    return apiClient.get('/core/gulla/', config);
+  },
   createGullaEntry: (data) => apiClient.post('/core/gulla/entry/', data),
   calculateNotes: (data) => apiClient.post('/core/gulla/calculate-notes/', data),
   eodSweep: (data) => apiClient.post('/core/gulla/eod-sweep/', data),

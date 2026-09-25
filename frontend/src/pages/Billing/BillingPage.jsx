@@ -7,25 +7,25 @@ import { Modal } from '../../components/common/Modal';
 import { EmptyState } from '../../components/common/UiHelpers';
 import InvoiceModal from '../../components/invoices/InvoiceModal';
 import { GullaAlertModal } from '../../components/pos/GullaAlertModal';
-import { 
-  Store, 
-  Search, 
-  Barcode, 
-  Plus, 
-  Minus, 
-  Trash2, 
-  ShoppingBag, 
-  CreditCard, 
-  Banknote, 
-  QrCode, 
-  Clock, 
-  UserPlus, 
-  CheckCircle2, 
-  Percent, 
-  Sparkles, 
-  Printer, 
-  RotateCcw, 
-  PauseCircle, 
+import {
+  Store,
+  Search,
+  Barcode,
+  Plus,
+  Minus,
+  Trash2,
+  ShoppingBag,
+  CreditCard,
+  Banknote,
+  QrCode,
+  Clock,
+  UserPlus,
+  CheckCircle2,
+  Percent,
+  Sparkles,
+  Printer,
+  RotateCcw,
+  PauseCircle,
   PlayCircle,
   Tag,
   Receipt,
@@ -744,7 +744,7 @@ export const BillingPage = () => {
   const netSubtotal = cartItems.reduce((acc, item) => acc + item.unitPrice * item.quantity, 0);
   const totalMrpSavings = Math.max(0, grossTotal - netSubtotal);
   const couponDiscount = currentCart.discountAmount || 0;
-  
+
   // Tax breakdown: Extracted from inclusive selling prices (Retail GST Standard)
   const taxAmount = cartItems.reduce((acc, item) => {
     const lineTotal = item.unitPrice * item.quantity;
@@ -857,6 +857,13 @@ export const BillingPage = () => {
       return;
     }
 
+    const tenderedVal = paymentMethod === 'CASH'
+      ? (cashAmountNumber > 0 ? parseFloat(cashAmountNumber.toFixed(2)) : parseFloat(grandTotal.toFixed(2)))
+      : null;
+    const changeVal = paymentMethod === 'CASH'
+      ? parseFloat(changeToReturn.toFixed(2))
+      : 0;
+
     if (paymentMethod === 'CASH' && changeVal > 0) {
       for (const [denomStr, count] of Object.entries(changeNotes)) {
         const d = Number(denomStr);
@@ -880,13 +887,6 @@ export const BillingPage = () => {
 
     try {
       setSubmittingOrder(true);
-
-      const tenderedVal = paymentMethod === 'CASH'
-        ? (cashAmountNumber > 0 ? parseFloat(cashAmountNumber.toFixed(2)) : parseFloat(grandTotal.toFixed(2)))
-        : null;
-      const changeVal = paymentMethod === 'CASH'
-        ? parseFloat(changeToReturn.toFixed(2))
-        : 0;
 
       const payload = {
         customer: currentCart.customer?.id || null,
@@ -920,7 +920,7 @@ export const BillingPage = () => {
       const res = await ordersApi.createOrder(payload);
       setLastCreatedOrder(res.data);
       setIsInvoiceModalOpen(true);
-      
+
       if (paymentMethod === 'CASH' && changeVal > 0) {
         const changeStr = getDenominationBreakdownSummary(changeNotes);
         showToast(`Bill #${res.data?.order_number || ''} completed! Hand over ₹${changeVal.toFixed(2)} change (${changeStr}) to customer.`, 'success');
@@ -952,26 +952,26 @@ export const BillingPage = () => {
 
   return (
     <div className="space-y-3 font-sans pb-12">
-      {/* 🌟 Professional & Properly Aligned POS Top Header Card */}
-      <div className="bg-[#00695C] dark:bg-slate-900 text-white p-3.5 sm:p-4 rounded-2xl shadow-md border border-white/15 space-y-2.5">
+      {/* 🌟 Clean & Simple POS Top Header Card (White Theme) */}
+      <div className="bg-white dark:bg-slate-900 text-slate-800 dark:text-white p-3.5 sm:p-4 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-800 space-y-3">
         {/* Top Row: Terminal Identity (Left) & Gulla Balance + Clock (Right) */}
         <div className="flex items-center justify-between gap-3">
           {/* Left: Terminal Identity */}
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/10 border border-[#4DB6AC]/40 flex items-center justify-center text-[#4DB6AC] shrink-0 shadow-inner">
-              <Store className="w-5 h-5" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white p-1 border border-slate-200 dark:border-slate-800 flex items-center justify-center shrink-0 shadow-xs overflow-hidden">
+              <img src="/logo.png" alt="Tulsi Mart Logo" className="w-full h-full object-contain" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-sm sm:text-base font-black tracking-tight text-white font-heading">
+                <h1 className="text-sm sm:text-base font-bold tracking-tight text-slate-900 dark:text-white">
                   POS Billing Terminal
                 </h1>
-                <span className="bg-[#E0F2F1] text-[#00695C] text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0 shadow-2xs">
+                <span className="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0">
                   Counter #1
                 </span>
               </div>
-              <p className="text-[11px] text-[#E0F2F1]/90 truncate">
-                Cashier: <strong className="text-white font-semibold">{user?.first_name ? `${user.first_name} ${user.last_name || ''}` : (user?.username || 'Super Admin')}</strong>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                Cashier: <strong className="text-slate-700 dark:text-slate-200 font-semibold">{user?.first_name ? `${user.first_name} ${user.last_name || ''}` : (user?.username || 'Super Admin')}</strong>
               </p>
             </div>
           </div>
@@ -982,43 +982,42 @@ export const BillingPage = () => {
             <button
               type="button"
               onClick={() => navigate('/gulla')}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/25 active:scale-95 transition-all backdrop-blur-md rounded-xl border border-white/20 text-xs font-bold text-[#E0F2F1] cursor-pointer shadow-2xs"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 dark:bg-slate-800/80 hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-slate-800 active:scale-95 transition-all rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer shadow-2xs"
               title="Gulla Cash in Drawer • Click to open Gulla Management Page"
             >
-              <Wallet className="w-3.5 h-3.5 text-[#4DB6AC]" />
+              <Wallet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
               <span>Gulla: ₹{gullaData.net_cash_in_gulla?.toFixed(0) || '0'}</span>
             </button>
 
             {/* Live Digital Clock */}
-            <div className="hidden sm:flex items-center gap-1 bg-white/10 px-2.5 py-1.5 rounded-xl border border-white/15 text-xs font-mono font-bold text-[#E0F2F1]">
-              <Clock className="w-3.5 h-3.5 text-[#4DB6AC]" />
+            <div className="hidden sm:flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-mono font-bold text-slate-700 dark:text-slate-200">
+              <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
               <span>{currentTime.toLocaleTimeString('en-IN', { hour12: true })}</span>
             </div>
           </div>
         </div>
 
         {/* Bottom Row: Multi-Bill Tabs */}
-        <div className="pt-2 border-t border-white/10 flex items-center justify-between gap-2">
+        <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar touch-pan py-0.5 flex-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#E0F2F1]/80 shrink-0 mr-1 hidden sm:inline">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 shrink-0 mr-1 hidden sm:inline">
               Active Bills:
             </span>
             {carts.map((cart, idx) => (
               <button
                 key={cart.id}
                 onClick={() => setActiveCartIndex(idx)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
-                  activeCartIndex === idx
-                    ? 'bg-[#009688] text-white border-[#4DB6AC] shadow-xs font-black'
-                    : 'bg-white/10 text-white/90 border-white/15 hover:bg-white/20'
-                }`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${activeCartIndex === idx
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs font-bold'
+                    : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                  }`}
               >
                 <ShoppingBag className="w-3.5 h-3.5" />
                 <span>{cart.items.length > 0 ? `Bill #${idx + 1} (${cart.items.length})` : `Bill #${idx + 1}`}</span>
                 {carts.length > 1 && (
                   <span
                     onClick={(e) => handleCloseCartTab(idx, e)}
-                    className="hover:text-rose-300 ml-0.5 p-0.5 rounded-full hover:bg-white/20"
+                    className="hover:text-rose-500 ml-0.5 p-0.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"
                     title="Close Tab"
                   >
                     ×
@@ -1028,35 +1027,33 @@ export const BillingPage = () => {
             ))}
             <button
               onClick={handleHoldCart}
-              className="flex items-center gap-1 px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-[#E0F2F1] hover:text-white border border-white/15 rounded-xl text-xs font-bold transition-colors cursor-pointer shrink-0"
+              className="flex items-center gap-1 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer shrink-0"
               title="Hold current cart & open new bill tab"
             >
-              <Plus className="w-3.5 h-3.5 text-[#4DB6AC]" /> Hold Bill
+              <Plus className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> Hold Bill
             </button>
           </div>
         </div>
       </div>
 
       {/* Mobile View Switcher (Only visible on screens < lg) */}
-      <div className="flex lg:hidden items-center bg-[#E0F2F1] dark:bg-slate-800 p-1.5 rounded-2xl gap-1.5 border border-[#B2DFDB] dark:border-slate-700 shadow-2xs">
+      <div className="flex lg:hidden items-center bg-white dark:bg-slate-800 p-1.5 rounded-2xl gap-1.5 border border-slate-200 dark:border-slate-700 shadow-2xs">
         <button
           onClick={() => setMobileTab('catalog')}
-          className={`flex-1 py-2 text-xs font-black rounded-xl transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer ${
-            mobileTab === 'catalog'
-              ? 'bg-[#00695C] text-white shadow-xs'
-              : 'text-[#00695C] dark:text-slate-300 hover:bg-white/60'
-          }`}
+          className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer ${mobileTab === 'catalog'
+              ? 'bg-emerald-600 text-white shadow-xs'
+              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+            }`}
         >
           <Store className="w-3.5 h-3.5" />
           Catalog ({filteredProducts.length})
         </button>
         <button
           onClick={() => setMobileTab('cart')}
-          className={`flex-1 py-2 text-xs font-black rounded-xl transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer ${
-            mobileTab === 'cart'
-              ? 'bg-[#00695C] text-white shadow-xs'
-              : 'text-[#00695C] dark:text-slate-300 hover:bg-white/60'
-          }`}
+          className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer ${mobileTab === 'cart'
+              ? 'bg-emerald-600 text-white shadow-xs'
+              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+            }`}
         >
           <ShoppingBag className="w-3.5 h-3.5" />
           Cart ({currentCart.items.length})
@@ -1123,11 +1120,10 @@ export const BillingPage = () => {
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar touch-pan pt-0.5">
               <button
                 onClick={() => setSelectedCategory('ALL')}
-                className={`px-3 py-1 rounded-xl text-[11px] font-bold transition-colors shrink-0 cursor-pointer ${
-                  selectedCategory === 'ALL'
+                className={`px-3 py-1 rounded-xl text-[11px] font-bold transition-colors shrink-0 cursor-pointer ${selectedCategory === 'ALL'
                     ? 'bg-[#00695C] dark:bg-[#009688] text-white shadow-2xs font-extrabold'
                     : 'bg-[#E0F2F1] dark:bg-slate-800 text-[#00695C] dark:text-slate-300 hover:bg-[#B2DFDB]'
-                }`}
+                  }`}
               >
                 All ({products.length})
               </button>
@@ -1135,11 +1131,10 @@ export const BillingPage = () => {
                 <button
                   key={c.id}
                   onClick={() => setSelectedCategory(c.name)}
-                  className={`px-3 py-1 rounded-xl text-[11px] font-bold transition-colors shrink-0 cursor-pointer ${
-                    selectedCategory === c.name
+                  className={`px-3 py-1 rounded-xl text-[11px] font-bold transition-colors shrink-0 cursor-pointer ${selectedCategory === c.name
                       ? 'bg-[#00695C] dark:bg-[#009688] text-white shadow-2xs font-extrabold'
                       : 'bg-[#E0F2F1] dark:bg-slate-800 text-[#00695C] dark:text-slate-300 hover:bg-[#B2DFDB]'
-                  }`}
+                    }`}
                 >
                   {c.name}
                 </button>
@@ -1179,11 +1174,10 @@ export const BillingPage = () => {
                       key={product.id}
                       disabled={isOutOfStock}
                       onClick={() => handleAddToCart(product)}
-                      className={`text-left p-3 rounded-xl border transition-all duration-150 flex flex-col justify-between group cursor-pointer relative ${
-                        isOutOfStock
+                      className={`text-left p-3 rounded-xl border transition-all duration-150 flex flex-col justify-between group cursor-pointer relative ${isOutOfStock
                           ? 'bg-[#F0FAF9] dark:bg-slate-800/40 border-[#B2DFDB] dark:border-slate-800 opacity-60 cursor-not-allowed'
                           : 'bg-white dark:bg-slate-800/80 border-[#B2DFDB] dark:border-slate-700/80 hover:border-[#009688] hover:shadow-md hover:-translate-y-0.5 active:scale-95'
-                      }`}
+                        }`}
                     >
                       <div>
                         {/* Top Category & Discount row */}
@@ -1222,13 +1216,12 @@ export const BillingPage = () => {
                           )}
                         </div>
 
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                          isOutOfStock
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${isOutOfStock
                             ? 'bg-[#FFEBEE] dark:bg-rose-950/40 text-[#E53935]'
                             : isLowStock
-                            ? 'bg-[#FFF8E1] dark:bg-amber-950/40 text-[#263238] border border-[#FBC02D]'
-                            : 'bg-[#E0F2F1] dark:bg-slate-700 text-[#00695C]'
-                        }`}>
+                              ? 'bg-[#FFF8E1] dark:bg-amber-950/40 text-[#263238] border border-[#FBC02D]'
+                              : 'bg-[#E0F2F1] dark:bg-slate-700 text-[#00695C]'
+                          }`}>
                           {isOutOfStock ? 'Out' : `Qty ${product.stock_quantity}`}
                         </span>
                       </div>
@@ -1468,11 +1461,10 @@ export const BillingPage = () => {
                       key={item.id}
                       type="button"
                       onClick={() => setPaymentMethod(item.id)}
-                      className={`p-2 rounded-xl border flex flex-col items-center gap-1 transition-all cursor-pointer ${
-                        isSelected
+                      className={`p-2 rounded-xl border flex flex-col items-center gap-1 transition-all cursor-pointer ${isSelected
                           ? 'bg-[#009688] text-white border-[#009688] shadow-2xs font-extrabold'
                           : 'bg-white dark:bg-slate-800 text-[#263238] dark:text-slate-300 border-[#B2DFDB] dark:border-slate-700 hover:bg-[#F0FAF9]'
-                      }`}
+                        }`}
                     >
                       <Icon className="w-4 h-4" />
                       <span className="text-[11px]">{item.label}</span>
@@ -1549,11 +1541,10 @@ export const BillingPage = () => {
                         <div
                           key={amt}
                           onClick={() => handleAddNoteQuick(amt)}
-                          className={`py-1 px-1 rounded-lg text-[11px] font-extrabold border transition-all cursor-pointer relative flex flex-col items-center justify-center select-none ${
-                            hasCount
+                          className={`py-1 px-1 rounded-lg text-[11px] font-extrabold border transition-all cursor-pointer relative flex flex-col items-center justify-center select-none ${hasCount
                               ? 'bg-[#00695C] text-white border-[#00695C] shadow-2xs ring-2 ring-[#4DB6AC]/60'
                               : 'bg-white dark:bg-slate-900 border-[#B2DFDB] dark:border-slate-700 text-[#263238] dark:text-slate-200 hover:border-[#009688]'
-                          }`}
+                            }`}
                           title={`Click to add +1 note/coin of ₹${amt}`}
                         >
                           {hasCount && (
@@ -1624,11 +1615,10 @@ export const BillingPage = () => {
               onClick={handleCompleteCheckout}
               loading={submittingOrder}
               disabled={cartItems.length === 0}
-              className={`w-full py-3.5 text-sm font-black rounded-xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-[0.99] ${
-                cartItems.length === 0
+              className={`w-full py-3.5 text-sm font-black rounded-xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-[0.99] ${cartItems.length === 0
                   ? 'bg-slate-200! dark:bg-slate-800! text-slate-500! dark:text-slate-400! border border-slate-300 dark:border-slate-700 cursor-not-allowed opacity-75'
                   : 'bg-[#00695C] hover:bg-[#004D40] text-white! dark:text-white! border border-[#00695C] shadow-lg cursor-pointer font-extrabold'
-              }`}
+                }`}
             >
               <Printer className={`w-4 h-4 ${cartItems.length === 0 ? 'text-slate-400' : 'text-[#4DB6AC]'}`} />
               <span className={cartItems.length === 0 ? 'text-slate-500! font-bold' : 'text-white! font-extrabold'}>
@@ -1800,11 +1790,10 @@ export const BillingPage = () => {
                   key={tab.id}
                   type="button"
                   onClick={() => setGullaForm({ ...gullaForm, actionType: tab.id })}
-                  className={`p-2 rounded-xl border text-center transition-all cursor-pointer text-[11px] ${
-                    gullaForm.actionType === tab.id
+                  className={`p-2 rounded-xl border text-center transition-all cursor-pointer text-[11px] ${gullaForm.actionType === tab.id
                       ? 'bg-[#384959] dark:bg-[#88BDF2] text-white dark:text-[#384959] border-[#384959] dark:border-[#88BDF2] shadow-xs'
                       : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
-                  }`}
+                    }`}
                 >
                   {tab.label}
                 </button>
@@ -1994,19 +1983,17 @@ export const BillingPage = () => {
                 <button
                   key={tab.id}
                   onClick={() => setGullaHistoryTab(tab.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                    gullaHistoryTab === tab.id
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${gullaHistoryTab === tab.id
                       ? 'bg-[#384959] dark:bg-[#88BDF2] text-white dark:text-[#384959] shadow-xs'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                  }`}
+                    }`}
                 >
                   {TabIcon && <TabIcon className="w-3.5 h-3.5" />}
                   <span>{tab.label}</span>
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                    gullaHistoryTab === tab.id
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${gullaHistoryTab === tab.id
                       ? 'bg-white/20 text-white dark:bg-slate-900/40 dark:text-[#384959]'
                       : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                  }`}>
+                    }`}>
                     {tab.count}
                   </span>
                 </button>
@@ -2036,11 +2023,10 @@ export const BillingPage = () => {
                       <div key={entry.id} className="py-2.5 px-2 rounded-xl hover:bg-slate-50/80 dark:hover:bg-slate-800/60 flex items-center justify-between text-xs gap-3">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                              isOut
+                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${isOut
                                 ? 'bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-400'
                                 : 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400'
-                            }`}>
+                              }`}>
                               {entry.entry_type_label || entry.entry_type}
                             </span>
                             <span className="text-[10px] text-slate-400 font-mono">
@@ -2055,9 +2041,8 @@ export const BillingPage = () => {
                         </div>
 
                         <div className="text-right shrink-0">
-                          <span className={`text-xs font-black ${
-                            isOut ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
-                          }`}>
+                          <span className={`text-xs font-black ${isOut ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
+                            }`}>
                             {isOut ? '-' : '+'}₹{parseFloat(entry.amount).toFixed(2)}
                           </span>
                           {entry.user_name && (
@@ -2243,11 +2228,10 @@ export const BillingPage = () => {
               return (
                 <div key={amt} className="py-2 flex items-center justify-between text-xs gap-2">
                   <div className="flex items-center gap-2 w-24">
-                    <span className={`px-2 py-1 rounded-lg text-xs font-black font-heading ${
-                      isNote
+                    <span className={`px-2 py-1 rounded-lg text-xs font-black font-heading ${isNote
                         ? 'bg-[#BDDDFC]/30 dark:bg-[#384959] text-[#384959] dark:text-[#88BDF2] border border-[#88BDF2]/40'
                         : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
-                    }`}>
+                      }`}>
                       ₹{amt}
                     </span>
                     <span className="text-[10px] text-slate-400">
@@ -2332,11 +2316,10 @@ export const BillingPage = () => {
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
                 Selected Change Notes Total
               </span>
-              <span className={`text-base font-black font-heading ${
-                calculateDenominationTotal(changeNotes) === changeToReturn
+              <span className={`text-base font-black font-heading ${calculateDenominationTotal(changeNotes) === changeToReturn
                   ? 'text-[#384959] dark:text-[#88BDF2]'
                   : 'text-rose-600 dark:text-rose-400'
-              }`}>
+                }`}>
                 ₹{calculateDenominationTotal(changeNotes).toFixed(2)}
               </span>
               <span className="text-[10px] block font-bold mt-0.5">
@@ -2368,21 +2351,19 @@ export const BillingPage = () => {
               const isExceeding = amt > remainingNeeded;
 
               return (
-                <div key={amt} className={`py-2 flex items-center justify-between text-xs gap-2 p-1.5 rounded-xl transition-all ${
-                  isZero
+                <div key={amt} className={`py-2 flex items-center justify-between text-xs gap-2 p-1.5 rounded-xl transition-all ${isZero
                     ? 'bg-rose-50/40 dark:bg-rose-950/20 border border-rose-200/60 dark:border-rose-900/60'
                     : isExceeding
-                    ? 'bg-slate-50/50 dark:bg-slate-800/40 border border-slate-200/40 dark:border-slate-800'
-                    : ''
-                }`}>
+                      ? 'bg-slate-50/50 dark:bg-slate-800/40 border border-slate-200/40 dark:border-slate-800'
+                      : ''
+                  }`}>
                   <div className="flex items-center gap-2">
-                    <span className={`px-2 py-1 rounded-lg text-xs font-black font-heading ${
-                      isZero
+                    <span className={`px-2 py-1 rounded-lg text-xs font-black font-heading ${isZero
                         ? 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
                         : isNote
-                        ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border border-amber-200 dark:border-amber-800'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
-                    }`}>
+                          ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border border-amber-200 dark:border-amber-800'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                      }`}>
                       ₹{amt}
                     </span>
                     <div>
@@ -2436,11 +2417,10 @@ export const BillingPage = () => {
                       type="button"
                       disabled={isZero || isExceeding}
                       onClick={() => handleChangeNoteQuickAdd(amt)}
-                      className={`px-1.5 py-1 text-[10px] font-bold rounded-md border cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
-                        isZero
+                      className={`px-1.5 py-1 text-[10px] font-bold rounded-md border cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${isZero
                           ? 'text-rose-700 bg-rose-100 border-rose-300 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800'
                           : 'text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 border-amber-200 dark:border-amber-800'
-                      }`}
+                        }`}
                       title={isExceeding ? `Note ₹${amt} exceeds remaining change ₹${remainingNeeded.toFixed(2)}` : `Add 1 note of ₹${amt}`}
                     >
                       +1

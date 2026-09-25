@@ -6,10 +6,21 @@ from django.utils import timezone
 from .models import ExpenseCategory, Expense
 from .serializers import ExpenseCategorySerializer, ExpenseSerializer
 
+from django.core.cache import cache
+
 class ExpenseCategoryViewSet(viewsets.ModelViewSet):
     queryset = ExpenseCategory.objects.all()
     serializer_class = ExpenseCategorySerializer
     permission_classes = [permissions.AllowAny]
+
+    def list(self, request, *args, **kwargs):
+        cache_key = 'expense_cats_v1'
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+        res = super().list(request, *args, **kwargs)
+        cache.set(cache_key, res.data, 120)
+        return res
 
 
 class ExpenseViewSet(viewsets.ModelViewSet):

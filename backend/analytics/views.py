@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import permissions, status
 
+from django.core.cache import cache
 from orders.models import Order, OrderItem, PaymentTransaction
 from inventory.models import Product, Category, StockMovement
 from customers.models import Customer
@@ -19,6 +20,11 @@ class DashboardSummaryView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
+        cache_key = 'analytics_dashboard_sum_v1'
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
         today = timezone.now().date()
         first_day_of_month = today.replace(day=1)
         seven_days_ago = today - datetime.timedelta(days=6)
@@ -128,7 +134,7 @@ class DashboardSummaryView(APIView):
         recent_orders_queryset = Order.objects.all().order_by('-created_at')[:6]
         recent_orders = OrderSerializer(recent_orders_queryset, many=True).data
 
-        return Response({
+        res_payload = {
             'kpis': {
                 'total_sales': float(total_sales),
                 'today_sales': float(today_sales),
@@ -168,7 +174,9 @@ class DashboardSummaryView(APIView):
             'low_stock_items': list(low_stock_items),
             'recent_orders': recent_orders,
             'notifications': []
-        })
+        }
+        cache.set('analytics_dashboard_sum_v1', res_payload, 30)
+        return Response(res_payload)
 
 
 class AnalyticsTrendsView(APIView):

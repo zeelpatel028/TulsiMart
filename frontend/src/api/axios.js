@@ -93,8 +93,8 @@ apiClient.interceptors.response.use(
     if (isNetworkOrColdStart && isGetMethod) {
       originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
       if (originalRequest._retryCount <= 2) {
-        // Wait 2.5s for Render backend instance to complete cold-start boot
-        await new Promise((resolve) => setTimeout(resolve, 2500));
+        const retryDelay = import.meta.env.PROD ? 300 : 100;
+        await new Promise((resolve) => setTimeout(resolve, retryDelay));
         return apiClient(originalRequest);
       }
     }

@@ -41,34 +41,32 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const startTime = Date.now();
     const initAuth = async () => {
-      // Always fetch live store settings from database
-      try {
-        const settingsRes = await settingsApi.getSettings();
-        if (settingsRes.data) {
-          setStoreSettings(settingsRes.data);
-          localStorage.setItem('tm_store_settings', JSON.stringify(settingsRes.data));
-        }
-      } catch (err) {
-        console.warn('Could not fetch store settings from API, using cached/default settings.', err);
-      }
-
       const savedToken = localStorage.getItem('tm_access_token');
-      if (savedToken) {
-        try {
-          const res = await authApi.getMe();
-          setUser(res.data.user);
-          if (res.data.store_settings) {
-            setStoreSettings(res.data.store_settings);
-            localStorage.setItem('tm_store_settings', JSON.stringify(res.data.store_settings));
+      try {
+        const [settingsRes, meRes] = await Promise.allSettled([
+          settingsApi.getSettings(),
+          savedToken ? authApi.getMe() : Promise.resolve(null)
+        ]);
+
+        if (settingsRes.status === 'fulfilled' && settingsRes.value?.data) {
+          setStoreSettings(settingsRes.value.data);
+          localStorage.setItem('tm_store_settings', JSON.stringify(settingsRes.value.data));
+        }
+
+        if (savedToken && meRes.status === 'fulfilled' && meRes.value?.data) {
+          const resData = meRes.value.data;
+          setUser(resData.user);
+          if (resData.store_settings) {
+            setStoreSettings(resData.store_settings);
+            localStorage.setItem('tm_store_settings', JSON.stringify(resData.store_settings));
           }
-          if (res.data.permissions) {
-            setPermissions(res.data.permissions);
-            localStorage.setItem('tm_permissions', JSON.stringify(res.data.permissions));
+          if (resData.permissions) {
+            setPermissions(resData.permissions);
+            localStorage.setItem('tm_permissions', JSON.stringify(resData.permissions));
           }
-          localStorage.setItem('tm_user', JSON.stringify(res.data.user));
-        } catch (err) {
+          localStorage.setItem('tm_user', JSON.stringify(resData.user));
+        } else if (savedToken && meRes.status === 'rejected') {
           console.warn('Invalid or expired session token, resetting auth state.');
           localStorage.removeItem('tm_access_token');
           localStorage.removeItem('tm_refresh_token');
@@ -76,13 +74,11 @@ export const AuthProvider = ({ children }) => {
           localStorage.removeItem('tm_permissions');
           setUser(null);
         }
-      }
-      
-      const elapsedTime = Date.now() - startTime;
-      const remainingTime = Math.max(0, 500 - elapsedTime);
-      setTimeout(() => {
+      } catch (err) {
+        console.warn('Could not complete auth init', err);
+      } finally {
         setLoading(false);
-      }, remainingTime);
+      }
     };
 
     initAuth();

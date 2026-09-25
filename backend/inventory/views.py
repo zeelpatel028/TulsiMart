@@ -65,10 +65,40 @@ def ensure_grocery_defaults():
         pass
 
 
+from django.core.cache import cache
+
+def clear_inventory_caches():
+    try:
+        cache.clear()
+    except Exception:
+        pass
+
+
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all().annotate(product_count=Count('products'))
     serializer_class = CategorySerializer
     permission_classes = [permissions.AllowAny]
+
+    def list(self, request, *args, **kwargs):
+        cache_key = 'inv_cat_list_v1'
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+        res = super().list(request, *args, **kwargs)
+        cache.set(cache_key, res.data, 120)
+        return res
+
+    def perform_create(self, serializer):
+        serializer.save()
+        clear_inventory_caches()
+
+    def perform_update(self, serializer):
+        serializer.save()
+        clear_inventory_caches()
+
+    def perform_destroy(self, instance):
+        instance.delete()
+        clear_inventory_caches()
 
 
 class BrandViewSet(viewsets.ModelViewSet):
@@ -87,6 +117,16 @@ class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all().select_related('category', 'brand', 'unit')
     serializer_class = ProductSerializer
     permission_classes = [permissions.AllowAny]
+
+    def list(self, request, *args, **kwargs):
+        q = request.META.get('QUERY_STRING', '')
+        cache_key = f'inv_prod_list_{q}'
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+        res = super().list(request, *args, **kwargs)
+        cache.set(cache_key, res.data, 30)
+        return res
 
     def get_queryset(self):
         qs = super().get_queryset()

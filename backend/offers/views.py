@@ -6,10 +6,22 @@ from django.db.models import Q
 from .models import Coupon, FestivalOffer
 from .serializers import CouponSerializer, FestivalOfferSerializer
 
+from django.core.cache import cache
+
 class CouponViewSet(viewsets.ModelViewSet):
     queryset = Coupon.objects.all()
     serializer_class = CouponSerializer
     permission_classes = [permissions.AllowAny]
+
+    def list(self, request, *args, **kwargs):
+        q = request.META.get('QUERY_STRING', '')
+        cache_key = f'coupons_list_{q}'
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+        res = super().list(request, *args, **kwargs)
+        cache.set(cache_key, res.data, 60)
+        return res
 
     def get_queryset(self):
         qs = super().get_queryset()
