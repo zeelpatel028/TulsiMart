@@ -38,6 +38,9 @@ export const InventoryList = () => {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [stockFilter, setStockFilter] = useState('all'); // all, low_stock, out_of_stock, in_stock
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Stock Adjustment Modal
   const [adjustingProduct, setAdjustingProduct] = useState(null);
@@ -52,14 +55,16 @@ export const InventoryList = () => {
     } else if (activeTab === 'movements') {
       loadMovements();
     }
-  }, [activeTab, search, stockFilter]);
+  }, [activeTab, page, search, stockFilter]);
 
   const loadProducts = async () => {
-    const cacheKey = `inv_products_${activeTab}_${search}_${stockFilter}`;
+    const cacheKey = `inv_products_${activeTab}_${page}_${search}_${stockFilter}`;
     const cached = getCachedData(cacheKey);
 
     if (cached) {
-      setProducts(cached);
+      setProducts(cached.products || []);
+      setTotalPages(cached.totalPages || 1);
+      setTotalCount(cached.totalCount || 0);
       setLoading(false);
     } else {
       setLoading(true);
@@ -67,14 +72,21 @@ export const InventoryList = () => {
 
     try {
       const params = {
+        page,
         search,
         stock_status: stockFilter !== 'all' ? stockFilter : undefined,
         expiry: activeTab === 'near_expiry' ? 'near_expiry' : undefined,
       };
       const res = await inventoryApi.getProducts(params);
-      const data = res.data?.results || res.data || [];
-      setProducts(data);
-      setCachedData(cacheKey, data, 2 * 60 * 1000);
+      const data = res.data;
+      const fetchedProducts = data?.results || (Array.isArray(data) ? data : []);
+      const count = data?.count || fetchedProducts.length || 0;
+      const pages = Math.ceil(count / 50) || 1;
+
+      setProducts(fetchedProducts);
+      setTotalCount(count);
+      setTotalPages(pages);
+      setCachedData(cacheKey, { products: fetchedProducts, totalPages: pages, totalCount: count }, 2 * 60 * 1000);
     } catch (err) {
       console.error(err);
     } finally {
@@ -509,6 +521,11 @@ export const InventoryList = () => {
                   </tbody>
                 </table>
               </div>
+              {activeTab !== 'movements' && (
+                <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                  <Pagination currentPage={page} totalPages={totalPages} totalCount={totalCount} onPageChange={setPage} />
+                </div>
+              )}
             </Card>
           )}
         </div>
