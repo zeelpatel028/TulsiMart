@@ -90,44 +90,64 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
         } ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
         {/* Brand Header */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-white/10 dark:border-slate-800 shrink-0">
-          <div className="flex items-center gap-3 overflow-hidden cursor-pointer" onClick={() => { navigate('/'); setIsMobileOpen(false); }}>
-            <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 p-1 flex items-center justify-center shrink-0 border border-white/20 dark:border-slate-700 shadow-sm">
-              <img
-                src="/logo.png"
-                alt="Tulsi Mart Logo"
-                className="w-full h-full object-contain"
-                onError={(e) => { e.target.src = '/logo.png'; }}
-              />
-            </div>
-            {(!isCollapsed || isMobileOpen) && (
-              <div className="truncate">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-extrabold text-base tracking-wide text-white dark:text-slate-100 font-heading">Tulsi Mart</span>
-                  <span className="bg-teal-400 dark:bg-teal-500 text-slate-950 font-black text-[9px] px-1.5 py-0.5 rounded-md uppercase tracking-wider shadow-xs">POS</span>
-                </div>
-                <p className="text-[10px] text-teal-200/80 dark:text-slate-400 truncate font-medium">Grocery POS & Mart</p>
+        <div className={`h-16 flex items-center ${isCollapsed ? 'justify-center px-2' : 'justify-between px-4'} border-b border-white/10 dark:border-slate-800 shrink-0`}>
+          {isCollapsed ? (
+            <button
+              onClick={() => setIsCollapsed(false)}
+              className="flex items-center justify-center p-1 rounded-xl hover:bg-white/10 dark:hover:bg-slate-800 transition-all cursor-pointer group relative"
+              title="Expand Sidebar"
+            >
+              <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 p-1 flex items-center justify-center shrink-0 border border-white/20 dark:border-slate-700 shadow-sm">
+                <img
+                  src="/logo.png"
+                  alt="Tulsi Mart Logo"
+                  className="w-full h-full object-contain"
+                  onError={(e) => { e.target.src = '/logo.png'; }}
+                />
               </div>
-            )}
-          </div>
+              <div className="absolute -right-1 -bottom-1 w-5 h-5 rounded-full bg-teal-400 dark:bg-teal-500 text-slate-950 flex items-center justify-center shadow-md border border-white dark:border-slate-800">
+                <ChevronRight className="w-3 h-3 stroke-[3]" />
+              </div>
+            </button>
+          ) : (
+            <>
+              <div className="flex items-center gap-3 overflow-hidden cursor-pointer min-w-0" onClick={() => { navigate('/'); setIsMobileOpen(false); }}>
+                <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 p-1 flex items-center justify-center shrink-0 border border-white/20 dark:border-slate-700 shadow-sm">
+                  <img
+                    src="/logo.png"
+                    alt="Tulsi Mart Logo"
+                    className="w-full h-full object-contain"
+                    onError={(e) => { e.target.src = '/logo.png'; }}
+                  />
+                </div>
+                <div className="truncate">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-extrabold text-base tracking-wide text-white dark:text-slate-100 font-heading">Tulsi Mart</span>
+                    <span className="bg-teal-400 dark:bg-teal-500 text-slate-950 font-black text-[9px] px-1.5 py-0.5 rounded-md uppercase tracking-wider shadow-xs">POS</span>
+                  </div>
+                  <p className="text-[10px] text-teal-200/80 dark:text-slate-400 truncate font-medium">Grocery POS & Mart</p>
+                </div>
+              </div>
 
-          {/* Close button on mobile */}
-          <button
-            onClick={() => setIsMobileOpen(false)}
-            className="flex lg:hidden items-center justify-center w-8 h-8 rounded-lg text-teal-200 dark:text-slate-400 hover:text-white dark:hover:text-slate-100 hover:bg-white/10 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-            title="Close Menu"
-          >
-            <X className="w-5 h-5" />
-          </button>
+              {/* Close button on mobile */}
+              <button
+                onClick={() => setIsMobileOpen(false)}
+                className="flex lg:hidden items-center justify-center w-8 h-8 rounded-lg text-teal-200 dark:text-slate-400 hover:text-white dark:hover:text-slate-100 hover:bg-white/10 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                title="Close Menu"
+              >
+                <X className="w-5 h-5" />
+              </button>
 
-          {/* Collapse button on desktop */}
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden lg:flex items-center justify-center w-7 h-7 rounded-lg text-teal-200 dark:text-slate-400 hover:text-white dark:hover:text-slate-100 hover:bg-white/10 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-          >
-            {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-          </button>
+              {/* Collapse button on desktop */}
+              <button
+                onClick={() => setIsCollapsed(true)}
+                className="hidden lg:flex items-center justify-center w-7 h-7 rounded-lg text-teal-200 dark:text-slate-400 hover:text-white dark:hover:text-slate-100 hover:bg-white/10 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+                title="Collapse Sidebar"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            </>
+          )}
         </div>
 
         {/* Categorized Navigation Sections */}
