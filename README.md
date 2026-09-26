@@ -1,7 +1,7 @@
 <div align="center">
   <img src="frontend/public/logo.png" alt="Tulsi Mart Logo" width="180" style="border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.15);" />
   
-  # 🌿 Tulsi Mart (તુલસી માર્ટ) 🛒
+  # 🌿 Tulsi Mart 🛒
   
   **Next-Gen Retail POS, Live Gulla Drawer Currency Management & Supermarket ERP**
   
@@ -33,7 +33,7 @@ Built using **Django REST Framework** on the backend and **React 19 + Vite** on 
   - Automatically calculates optimal physical note/coin breakdown (`₹500`, `₹200`, `₹100`, `₹50`, `₹20`, `₹10`, `₹5`, `₹2`, `₹1`) for tendered cash and change.
   - **Gulla Live Drawer Note Availability Check**: Skips 0-count drawer notes automatically when calculating customer change.
   - **Change Note Amount & Fit Validation**: Automatically disables note buttons larger than the remaining change needed to prevent cashier error.
-  - **Out-of-Stock Note Warning**: Displays red `⚠️ Out of Stock (નોટ નથી)` badges and triggers `GullaAlertModal` alerts.
+  - **Out-of-Stock Note Warning**: Displays red `⚠️ Out of Stock` badges and triggers `GullaAlertModal` alerts.
 - **GST & Discount Engine**: Automatic extraction of inclusive retail GST (CGST + SGST) and promotional coupon code validation.
 - **Thermal Printing & OTP Email Receipts**: Instant browser receipt printing and automated Nodemailer / Django email delivery.
 
@@ -42,7 +42,7 @@ Built using **Django REST Framework** on the backend and **React 19 + Vite** on 
 - **Physical Note Breakdown Grid**: Live 9-denomination matrix displaying exact note counts currently inside the cash register.
 - **Day-End Auto Cash Sweep (`EOD_SWEEP`)**: One-click Day-End closing action that sweeps net register cash to the **Home Safe Vault** while maintaining desired float for tomorrow.
 
-### 🏡 3. Home Safe Cash Vault (ઘરે રાખેલ તિજોરી કેશ)
+### 🏡 3. Home Safe Cash Vault
 - **Centralized Home Safe Balance**: Real-time tracking of `StoreSetting.home_cash_amount`.
 - **Manual Deposits & Withdrawals**: Modals with physical note counters (`₹500`, `₹200`, `₹100`, `₹50`, `₹20`, `₹10`, `₹5`, `₹1`).
 - **Complete Audit History Ledger**: Comprehensive transaction log displaying Date, Entry Type (`DEPOSIT`, `WITHDRAWAL`, `SWEEP`), Note Breakdown (`2×₹500 + 5×₹200`), Balance After, User Name, and Reference Notes.

@@ -31,7 +31,7 @@ export const Badge = ({ children, variant = 'default', size = 'sm', className = 
   }
 
   return (
-    <span className={`inline-flex items-center font-medium rounded-full border ${sizeStyles[size]} ${variantStyles[computedVariant] || variantStyles.default} ${className}`}>
+    <span className={`inline-flex items-center font-medium rounded-full border whitespace-nowrap ${sizeStyles[size]} ${variantStyles[computedVariant] || variantStyles.default} ${className}`}>
       {children}
     </span>
   );

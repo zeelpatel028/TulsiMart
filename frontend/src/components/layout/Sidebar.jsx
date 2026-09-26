@@ -1,21 +1,21 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  ShoppingBag, 
-  Layers, 
-  ShoppingCart, 
-  Users, 
-  TrendingUp, 
-  BarChart3, 
-  Tag, 
-  Truck, 
-  CreditCard, 
-  Receipt, 
-  Bell, 
-  ShieldCheck, 
-  FileText, 
-  Settings, 
+import {
+  LayoutDashboard,
+  ShoppingBag,
+  Layers,
+  ShoppingCart,
+  Users,
+  TrendingUp,
+  BarChart3,
+  Tag,
+  Truck,
+  CreditCard,
+  Receipt,
+  Bell,
+  ShieldCheck,
+  FileText,
+  Settings,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -28,8 +28,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 
 export const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen }) => {
-  const { user, logout, isRole } = useAuth();
-  const { unreadCount } = useNotification();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -39,77 +38,75 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
 
   const navSections = [
     {
-      title: 'Daily Store Operations',
+      title: 'DAILY STORE OPERATIONS',
       items: [
-        { label: 'POS Billing Counter', path: '/billing', icon: Store, isPrimary: true, badge: 'COUNTER' },
-        { label: 'Gulla Management', path: '/gulla', icon: Wallet, badge: 'CASH' },
+        { label: "Make Bills (POS)", path: '/billing', icon: Store, isPrimary: true, badge: 'COUNTER' },
+        { label: "Today's Collection", path: '/gulla', icon: Wallet, badge: 'CASH' },
         { label: 'Store Dashboard', path: '/', icon: LayoutDashboard },
         { label: 'Bill Management', path: '/orders', icon: ShoppingCart },
       ]
     },
     {
-      title: 'Store Catalog & Stock',
+      title: 'STORE CATALOG & STOCK',
       items: [
-        { label: 'Products', path: '/products', icon: ShoppingBag },
+        { label: 'Add Product', path: '/products', icon: ShoppingBag },
         { label: 'Stock & Inventory', path: '/inventory', icon: Layers },
         { label: 'Customers', path: '/customers', icon: Users },
+        { label: 'Suppliers', path: '/suppliers', icon: Truck },
         { label: 'Offers & Coupons', path: '/offers', icon: Tag },
       ]
     },
     {
-      title: 'Accounts & Reports',
+      title: 'ACCOUNTS & REPORTS',
       items: [
         { label: 'Store Expenses', path: '/expenses', icon: Receipt },
         { label: 'Sales & Revenue', path: '/sales-revenue', icon: TrendingUp },
-        { label: 'Financial Reports', path: '/reports', icon: FileText },
+        { label: 'Reports & Analytics', path: '/reports', icon: FileText },
       ]
     },
     {
-      title: 'Admin & Store Settings',
+      title: 'STAFF & STORE SETTINGS',
       items: [
-        { label: 'Suppliers', path: '/suppliers', icon: Truck },
-        { label: 'Store Staff', path: '/staff', icon: ShieldCheck },
-        { label: 'Settings', path: '/settings', icon: Settings },
-        { label: 'Logout System', path: '#logout', icon: LogOut, isLogout: true },
+        { label: 'Staff', path: '/staff', icon: ShieldCheck, badge: 'ADMIN' },
+        { label: 'Store Settings', path: '/settings', icon: Settings },
       ]
     }
   ];
-
 
   return (
     <>
       {/* Mobile Backdrop */}
       {isMobileOpen && (
-        <div 
-          className="fixed inset-0 bg-[#00695C]/70 backdrop-blur-xs z-40 lg:hidden animate-in fade-in"
+        <div
+          className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-40 lg:hidden animate-in fade-in"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
 
       {/* Sidebar Main */}
-      <aside 
-        className={`fixed inset-y-0 left-0 z-50 h-screen bg-[#00695C] dark:bg-slate-900 text-white flex flex-col justify-between transition-all duration-300 ease-in-out border-r border-[#00695C]/50 dark:border-slate-800 shadow-2xl lg:shadow-xl lg:sticky lg:top-0 shrink-0 ${
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 h-screen bg-[#004d40] dark:bg-slate-900 text-white flex flex-col justify-between transition-all duration-300 ease-in-out border-r border-[#00695c]/50 dark:border-slate-800 shadow-2xl lg:shadow-xl lg:sticky lg:top-0 shrink-0 font-sans ${
           isCollapsed ? 'w-20' : 'w-64'
         } ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
         {/* Brand Header */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-white/10 shrink-0">
+        <div className="h-16 flex items-center justify-between px-4 border-b border-white/10 dark:border-slate-800 shrink-0">
           <div className="flex items-center gap-3 overflow-hidden cursor-pointer" onClick={() => { navigate('/'); setIsMobileOpen(false); }}>
-            <div className="w-10 h-10 rounded-xl bg-white/10 p-1 flex items-center justify-center shrink-0 border border-white/15 shadow-inner">
-              <img 
-                src="/logo.png" 
-                alt="Tulsi Mart TM Logo" 
-                className="w-full h-full object-contain drop-shadow-sm" 
+            <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 p-1 flex items-center justify-center shrink-0 border border-white/20 dark:border-slate-700 shadow-sm">
+              <img
+                src="/logo.png"
+                alt="Tulsi Mart Logo"
+                className="w-full h-full object-contain"
                 onError={(e) => { e.target.src = '/logo.png'; }}
               />
             </div>
             {(!isCollapsed || isMobileOpen) && (
               <div className="truncate">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-extrabold text-base tracking-wide text-white font-heading">Tulsi Mart</span>
-                  <span className="bg-[#4DB6AC] text-[#00695C] text-[9px] font-black px-1.5 py-0.5 rounded-sm uppercase tracking-wider">PRO</span>
+                  <span className="font-extrabold text-base tracking-wide text-white dark:text-slate-100 font-heading">Tulsi Mart</span>
+                  <span className="bg-teal-400 dark:bg-teal-500 text-slate-950 font-black text-[9px] px-1.5 py-0.5 rounded-md uppercase tracking-wider shadow-xs">POS</span>
                 </div>
-                <p className="text-[10px] text-[#E0F2F1]/80 truncate font-medium">Grocery Management</p>
+                <p className="text-[10px] text-teal-200/80 dark:text-slate-400 truncate font-medium">Grocery POS & Mart</p>
               </div>
             )}
           </div>
@@ -117,7 +114,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
           {/* Close button on mobile */}
           <button
             onClick={() => setIsMobileOpen(false)}
-            className="flex lg:hidden items-center justify-center w-8 h-8 rounded-lg text-[#E0F2F1] hover:text-white hover:bg-white/10 transition-colors"
+            className="flex lg:hidden items-center justify-center w-8 h-8 rounded-lg text-teal-200 dark:text-slate-400 hover:text-white dark:hover:text-slate-100 hover:bg-white/10 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             title="Close Menu"
           >
             <X className="w-5 h-5" />
@@ -126,7 +123,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
           {/* Collapse button on desktop */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden lg:flex items-center justify-center w-7 h-7 rounded-lg text-[#E0F2F1] hover:text-white hover:bg-white/10 transition-colors"
+            className="hidden lg:flex items-center justify-center w-7 h-7 rounded-lg text-teal-200 dark:text-slate-400 hover:text-white dark:hover:text-slate-100 hover:bg-white/10 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
             {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
@@ -138,7 +135,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
           {navSections.map((section, sIdx) => (
             <div key={sIdx} className="space-y-1">
               {!isCollapsed && (
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[#E0F2F1]/60 px-3 pt-1 pb-0.5 select-none">
+                <p className="text-[10px] font-extrabold uppercase tracking-wider text-teal-300/80 dark:text-slate-400/90 px-3 pt-2.5 pb-1 select-none">
                   {section.title}
                 </p>
               )}
@@ -147,50 +144,45 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
                 return (
                   <NavLink
                     key={item.path}
-                    to={item.isLogout ? '#' : item.path}
-                    onClick={(e) => {
-                      if (item.isLogout) {
-                        e.preventDefault();
-                        handleLogout();
-                      } else {
-                        setIsMobileOpen(false);
-                      }
-                    }}
+                    to={item.path}
+                    onClick={() => setIsMobileOpen(false)}
                     className={({ isActive }) =>
-                      `flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 group relative ${
-                        item.isLogout
-                          ? 'bg-rose-500/15 text-rose-200 hover:bg-rose-500/25 hover:text-white border border-rose-400/20 font-bold'
-                          : item.isPrimary && !isActive
-                          ? 'bg-[#4DB6AC]/20 text-[#E0F2F1] border border-[#4DB6AC]/40 hover:bg-[#4DB6AC]/30 hover:text-white'
-                          : isActive
-                          ? 'bg-[#009688] text-white font-bold shadow-md shadow-[#009688]/30'
-                          : 'text-slate-100/90 hover:bg-white/10 hover:text-white'
+                      `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 group relative ${
+                        isActive
+                          ? 'bg-teal-600 text-white font-black shadow-md shadow-[#00332c]/50 dark:shadow-slate-950/60 border-l-4 border-teal-300 dark:border-teal-400'
+                          : 'text-teal-50/90 dark:text-slate-300 hover:bg-white/10 dark:hover:bg-slate-800/80 hover:text-white dark:hover:text-slate-100'
                       } ${isCollapsed ? 'justify-center' : ''}`
                     }
                     title={isCollapsed ? item.label : undefined}
                   >
-                    <Icon className={`w-4.5 h-4.5 shrink-0 transition-transform group-hover:scale-110 ${
-                      item.isLogout ? 'text-rose-300' : item.isPrimary ? 'text-[#4DB6AC]' : ''
-                    }`} />
-                    
+                    <Icon className="w-4.5 h-4.5 shrink-0 transition-transform group-hover:scale-110" />
+
                     {!isCollapsed && (
                       <span className="truncate flex-1 tracking-wide">{item.label}</span>
                     )}
 
                     {item.badge && !isCollapsed && (
                       <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider shrink-0 ${
-                        item.badge === 'COUNTER' 
-                          ? 'bg-[#4DB6AC] text-[#00695C] shadow-2xs font-extrabold' 
-                          : 'bg-[#E53935] text-white animate-pulse'
-                      }`}>
+                          item.badge === 'COUNTER'
+                            ? 'bg-teal-300 text-slate-950 font-black'
+                            : item.badge === 'ADMIN'
+                            ? 'bg-amber-400 text-slate-950 font-black'
+                            : item.badge === 'CASH'
+                            ? 'bg-emerald-400 text-slate-950 font-black'
+                            : 'bg-rose-500 text-white font-black'
+                        }`}>
                         {item.badge}
                       </span>
                     )}
 
                     {item.badge && isCollapsed && (
                       <span className={`absolute top-2 right-2 w-2 h-2 rounded-full ${
-                        item.badge === 'COUNTER' ? 'bg-[#4DB6AC]' : 'bg-[#E53935]'
-                      }`} />
+                          item.badge === 'COUNTER' 
+                            ? 'bg-teal-300' 
+                            : item.badge === 'ADMIN'
+                            ? 'bg-amber-400'
+                            : 'bg-emerald-400'
+                        }`} />
                     )}
                   </NavLink>
                 );
@@ -200,40 +192,40 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
         </div>
 
         {/* User Card & Logout Footer */}
-        <div className="p-3 pb-24 lg:pb-3 border-t border-white/10 bg-black/30 shrink-0 z-10">
+        <div className="p-3 pb-24 lg:pb-3 border-t border-white/10 dark:border-slate-800 bg-black/20 dark:bg-slate-950/60 shrink-0 z-10">
           {!isCollapsed ? (
-            <div className="flex items-center justify-between gap-2 p-2.5 rounded-2xl bg-white/10 border border-white/15 hover:border-white/25 transition-all">
+            <div className="flex items-center justify-between gap-2 p-2 rounded-2xl bg-white/10 dark:bg-slate-800/80 border border-white/10 dark:border-slate-700/60">
               <div className="flex items-center gap-2.5 overflow-hidden min-w-0">
-                <div className="w-9.5 h-9.5 rounded-xl bg-gradient-to-br from-[#009688] to-[#004D40] text-white flex items-center justify-center font-bold text-sm shrink-0 border border-white/20 shadow-xs">
-                  {user?.first_name ? user.first_name[0] : (user?.username?.[0] || 'A')}
+                <div className="w-8 h-8 rounded-xl bg-teal-500 text-slate-950 flex items-center justify-center font-black text-xs shrink-0 border border-white/30 dark:border-slate-600 shadow-xs">
+                  {user?.first_name ? user.first_name[0].toUpperCase() : (user?.username?.[0]?.toUpperCase() || 'T')}
                 </div>
                 <div className="truncate text-left min-w-0">
-                  <p className="text-xs font-bold text-white truncate leading-tight">
-                    {user?.first_name ? `${user.first_name} ${user.last_name || ''}` : (user?.username || 'Admin')}
+                  <p className="text-xs font-black text-white dark:text-slate-100 truncate leading-tight">
+                    {user?.username || user?.first_name || 'Tulsi Admin'}
                   </p>
-                  <span className="inline-block text-[10px] text-[#E0F2F1]/80 font-medium tracking-wide truncate">
-                    {user?.role?.replace('_', ' ') || 'Admin'}
+                  <span className="inline-block text-[9px] text-teal-200/90 dark:text-slate-400 font-extrabold uppercase tracking-wider truncate">
+                    {user?.role?.replace('_', ' ') || 'STORE MANAGER'}
                   </span>
                 </div>
               </div>
 
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/35 text-rose-200 hover:text-white border border-rose-400/30 transition-all cursor-pointer shrink-0 font-bold text-xs"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/35 text-rose-200 dark:text-rose-300 border border-rose-400/30 transition-all cursor-pointer shrink-0 font-bold text-xs"
                 title="Logout Account"
               >
-                <LogOut className="w-4 h-4 text-rose-300" />
-                <span className="text-[11px]">Logout</span>
+                <LogOut className="w-3.5 h-3.5 text-rose-300" />
+                <span className="text-[10px] font-extrabold">Logout</span>
               </button>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#009688] to-[#004D40] text-white flex items-center justify-center font-bold text-xs border border-white/20 shadow-xs">
-                {user?.first_name ? user.first_name[0] : (user?.username?.[0] || 'A')}
+              <div className="w-8 h-8 rounded-xl bg-teal-500 text-slate-950 flex items-center justify-center font-black text-xs border border-white/30 dark:border-slate-600 shadow-xs">
+                {user?.first_name ? user.first_name[0].toUpperCase() : (user?.username?.[0]?.toUpperCase() || 'T')}
               </div>
               <button
                 onClick={handleLogout}
-                className="p-2 rounded-xl bg-rose-500/20 text-rose-200 hover:text-white hover:bg-rose-500/35 transition-colors"
+                className="p-2 rounded-xl bg-rose-500/20 text-rose-200 dark:text-rose-300 hover:bg-rose-500/35 transition-colors cursor-pointer"
                 title="Logout"
               >
                 <LogOut className="w-4 h-4 text-rose-300" />
@@ -242,9 +234,9 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
           )}
         </div>
       </aside>
-
     </>
   );
 };
 
 export default Sidebar;
+

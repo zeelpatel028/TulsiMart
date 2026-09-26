@@ -144,7 +144,7 @@ export const InvoiceModal = ({ isOpen, onClose, order, store }) => {
         {/* Top Header with TM Logo */}
         <div className="flex flex-col sm:flex-row items-start justify-between gap-4 sm:gap-6 pb-4 sm:pb-6 border-b border-[#B2DFDB]/60">
           <div className="flex items-start gap-3 sm:gap-4">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-[#E0F2F1] p-2 flex items-center justify-center border border-[#B2DFDB] shrink-0">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-white p-2 flex items-center justify-center border border-[#B2DFDB] shrink-0 shadow-xs">
               <img src="/logo.png" alt="Tulsi Mart" className="w-full h-full object-contain" />
             </div>
             <div>

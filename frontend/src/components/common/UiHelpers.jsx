@@ -154,7 +154,7 @@ export const ConfirmDialog = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#00695C]/40 dark:bg-black/70 backdrop-blur-xs animate-in fade-in">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 bg-[#004D40]/60 dark:bg-black/80 backdrop-blur-xs animate-in fade-in">
       <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl border border-[#B2DFDB] dark:border-slate-800 animate-in zoom-in-95">
         <h3 className="text-base sm:text-lg font-bold text-[#263238] dark:text-slate-100 font-heading">{title}</h3>
         <p className="text-xs sm:text-sm text-[#607D8B] dark:text-slate-300 mt-2 leading-relaxed">{message}</p>

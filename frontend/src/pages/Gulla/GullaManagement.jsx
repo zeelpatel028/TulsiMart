@@ -359,77 +359,87 @@ export const GullaManagement = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6 text-slate-800 dark:text-slate-100 font-sans pb-12">
-      {/* ================= PAGE HEADER ================= */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-[#00695C] text-white flex items-center justify-center shadow-md shrink-0">
-            <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-[#E0F2F1]" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-lg sm:text-xl md:text-2xl font-black text-[#263238] dark:text-slate-100 tracking-tight">
-                Gulla Cash Register Management
-              </h1>
-              <Badge variant="primary" className="bg-[#00695C] text-white text-[10px] font-mono shrink-0">
-                POS CASH REGISTER
-              </Badge>
+      {/* 🌟 Tulsi Mart Top Header Banner - Full Width Edge-to-Edge Background */}
+      <div className="-mx-3 -mt-3 sm:-mx-5 sm:-mt-5 lg:-mx-8 lg:-mt-8 mb-4 bg-gradient-to-r from-teal-50/90 via-emerald-50/60 to-teal-50/90 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 text-slate-800 dark:text-white p-3.5 sm:p-5 lg:px-8 border-b border-teal-200/70 dark:border-slate-800 relative overflow-hidden shadow-2xs">
+        {/* Subtle Decorative Background Glow */}
+        <div className="absolute -top-12 -left-12 w-40 h-40 bg-teal-300/20 dark:bg-teal-900/10 rounded-full blur-2xl pointer-events-none" />
+
+        {/* Banner Grid Layout */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 relative z-10">
+          {/* Left: Icon & Title with Status Badge */}
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-[#00796b] to-[#004d40] text-white p-2.5 sm:p-3 border border-[#004d40]/20 flex items-center justify-center shrink-0 shadow-md shadow-teal-900/10">
+              <Wallet className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
             </div>
-            <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Live cash drawer balance, denomination counter, cash float & register closing audit
-            </p>
+
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white font-heading">
+                  Today's <span className="text-[#00796b] dark:text-[#80cbc4]">Collection</span>
+                </h1>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-teal-100/90 text-[#00695c] dark:bg-teal-950/80 dark:text-teal-300 border border-teal-200 dark:border-teal-800/50 shadow-2xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Live Register Active
+                </span>
+              </div>
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                Live cash drawer balance, denomination counter & cash float audit
+              </p>
+            </div>
           </div>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchGullaData}
-            loading={refreshing}
-            className="flex items-center justify-center gap-1.5 text-xs border-slate-300 dark:border-slate-700 px-3 py-2 flex-1 sm:flex-initial"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
-          </Button>
+          {/* Right Action Buttons */}
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchGullaData}
+              loading={refreshing}
+              className="flex items-center justify-center gap-1.5 text-xs border-teal-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 px-3 py-2 flex-1 sm:flex-initial font-bold"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
+            </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleOpenEntryModal('CASH_IN')}
-            className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300 text-xs flex items-center justify-center gap-1.5 px-3 py-2 flex-1 sm:flex-initial"
-          >
-            <Plus className="w-3.5 h-3.5 shrink-0" />
-            <span>Add Cash</span>
-          </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleOpenEntryModal('CASH_IN')}
+              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300 text-xs font-bold flex items-center justify-center gap-1.5 px-3 py-2 flex-1 sm:flex-initial"
+            >
+              <Plus className="w-3.5 h-3.5 shrink-0" />
+              <span>Add Cash</span>
+            </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleOpenEntryModal('CASH_OUT')}
-            className="bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-300 text-xs flex items-center justify-center gap-1.5 px-3 py-2 flex-1 sm:flex-initial"
-          >
-            <Minus className="w-3.5 h-3.5 shrink-0" />
-            <span>Withdraw</span>
-          </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleOpenEntryModal('CASH_OUT')}
+              className="bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-300 text-xs font-bold flex items-center justify-center gap-1.5 px-3 py-2 flex-1 sm:flex-initial"
+            >
+              <Minus className="w-3.5 h-3.5 shrink-0" />
+              <span>Withdraw</span>
+            </Button>
 
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setIsEodModalOpen(true)}
-            className="bg-[#00695C] hover:bg-[#004D40] text-white font-bold text-xs flex items-center justify-center gap-1.5 px-3.5 py-2 shadow-sm cursor-pointer flex-1 sm:flex-initial"
-          >
-            <Store className="w-3.5 h-3.5 shrink-0" />
-            <span>Day-End Home Sweep</span>
-          </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setIsEodModalOpen(true)}
+              className="bg-[#00796b] hover:bg-[#004d40] text-white font-bold text-xs flex items-center justify-center gap-1.5 px-3.5 py-2 shadow-xs cursor-pointer flex-1 sm:flex-initial"
+            >
+              <Store className="w-3.5 h-3.5 shrink-0" />
+              <span>Day-End Home Sweep</span>
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* ================= DATE FILTER BAR ================= */}
-      <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-xs">
+      <div className="-mx-3 sm:-mx-5 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-2.5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-3 mb-4">
         <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200">
-          <Calendar className="w-4 h-4 text-[#00695C] dark:text-[#4DB6AC] shrink-0" />
+          <Calendar className="w-4 h-4 text-[#00796b] dark:text-[#80cbc4] shrink-0" />
           <span>Gulla Register Date:</span>
-          <span className="bg-[#00695C] text-white px-2.5 py-1 rounded-lg text-xs font-mono">
+          <span className="bg-[#00796b] text-white px-2.5 py-1 rounded-lg text-xs font-medium">
             {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
           </span>
         </div>
@@ -437,9 +447,9 @@ export const GullaManagement = () => {
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <button
             onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
-            className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all flex-1 sm:flex-initial text-center cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex-1 sm:flex-initial text-center cursor-pointer ${
               selectedDate === new Date().toISOString().split('T')[0]
-                ? 'bg-[#00695C] text-white shadow-xs'
+                ? 'bg-[#00796b] text-white shadow-xs'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
             }`}
           >
@@ -451,9 +461,9 @@ export const GullaManagement = () => {
               d.setDate(d.getDate() - 1);
               setSelectedDate(d.toISOString().split('T')[0]);
             }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all flex-1 sm:flex-initial text-center cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex-1 sm:flex-initial text-center cursor-pointer ${
               selectedDate === new Date(Date.now() - 86400000).toISOString().split('T')[0]
-                ? 'bg-[#00695C] text-white shadow-xs'
+                ? 'bg-[#00796b] text-white shadow-xs'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
             }`}
           >
@@ -463,7 +473,7 @@ export const GullaManagement = () => {
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs focus:ring-2 focus:ring-[#384959] outline-none flex-1 sm:flex-initial"
+            className="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs focus:ring-2 focus:ring-[#00796b] outline-hidden flex-1 sm:flex-initial font-medium"
           />
         </div>
       </div>
@@ -871,62 +881,74 @@ export const GullaManagement = () => {
                 const getBadgeColor = (type) => {
                   switch (type) {
                     case 'BILL_SALE':
-                      return 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700/60';
+                      return 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60';
                     case 'BILL_SALE_DIGITAL':
-                      return 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700/60';
+                      return 'bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/60';
                     case 'KHATA_PAYMENT':
-                      return 'bg-teal-100 dark:bg-teal-900/40 text-teal-800 dark:text-teal-300 border-teal-300 dark:border-teal-700/60';
+                      return 'bg-teal-50 dark:bg-teal-950/80 text-[#00796b] dark:text-[#80cbc4] border-teal-200 dark:border-teal-800/60';
                     case 'SUPPLIER_PAYMENT':
-                      return 'bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700/60';
+                      return 'bg-amber-50 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60';
                     case 'EXPENSE':
-                      return 'bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300 border-purple-300 dark:border-purple-700/60';
+                      return 'bg-purple-50 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/60';
                     case 'OPENING_FLOAT':
-                      return 'bg-sky-100 dark:bg-sky-900/40 text-sky-800 dark:text-sky-300 border-sky-300 dark:border-sky-700/60';
+                      return 'bg-sky-50 dark:bg-sky-950/80 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800/60';
                     case 'CASH_IN':
-                      return 'bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700/60';
+                      return 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60';
                     case 'CASH_OUT':
-                      return 'bg-rose-100 dark:bg-rose-900/40 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-700/60';
+                      return 'bg-rose-50 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/60';
                     default:
                       return 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700';
                   }
                 };
 
                 return (
-                  <div key={e.id} className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700/70 space-y-2 shadow-2xs">
+                  <div key={e.id} className="p-3.5 sm:p-4 bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 space-y-2.5 shadow-2xs hover:shadow-xs transition-all">
+                    {/* Top Row: Type Badge + Amount */}
                     <div className="flex items-center justify-between gap-2">
-                      <span className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider border ${getBadgeColor(e.entry_type)}`}>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide border shadow-2xs ${getBadgeColor(e.entry_type)}`}>
                         {e.entry_type_label || e.entry_type.replace(/_/g, ' ')}
                       </span>
-                      <span className={`font-mono font-black text-sm ${isPositive ? 'text-[#00695C] dark:text-[#4DB6AC]' : 'text-[#E53935] dark:text-rose-400'}`}>
+                      <span className={`font-black text-sm sm:text-base tracking-tight ${isPositive ? 'text-[#00796b] dark:text-[#80cbc4]' : 'text-rose-600 dark:text-rose-400'}`}>
                         {isPositive ? `+₹${parseFloat(e.amount).toFixed(2)}` : `-₹${parseFloat(e.amount).toFixed(2)}`}
                       </span>
                     </div>
 
-                    <div className="text-xs font-medium text-slate-800 dark:text-slate-200 leading-snug">
+                    {/* Transaction Notes / Title */}
+                    <div className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-100 leading-snug">
                       {e.notes || 'Routine Gulla cash transaction'}
                     </div>
 
-                    <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1.5 border-t border-slate-200/60 dark:border-slate-700/60 flex-wrap gap-1">
-                      <div className="flex items-center gap-1.5 font-mono">
-                        <span>{new Date(e.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</span>
-                        <Clock className="w-3 h-3 text-slate-400" />
-                        <span>{new Date(e.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
-                        <span className="bg-slate-200/70 dark:bg-slate-700 px-1.5 py-0.2 rounded text-slate-700 dark:text-slate-300">{e.reference_id || e.id}</span>
+                    {/* Metadata Row: Date, Clock, Reference ID, User */}
+                    <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-700/80 flex-wrap gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-semibold text-[11px] text-slate-600 dark:text-slate-300">
+                          {new Date(e.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                        </span>
+                        <div className="flex items-center gap-1 text-[11px] font-medium text-slate-400">
+                          <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                          <span>{new Date(e.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
+                        </div>
+                        {e.reference_id && (
+                          <span className="bg-slate-100 dark:bg-slate-700/80 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-md font-mono text-[10px] font-bold border border-slate-200/60 dark:border-slate-600/60">
+                            {e.reference_id}
+                          </span>
+                        )}
                       </div>
-                      <span>• {e.user_name || 'Staff'}</span>
+                      <span className="text-[11px] font-medium text-slate-400 truncate">• {e.user_name || 'Staff'}</span>
                     </div>
 
+                    {/* Tendered & Change Summary Pill Badges */}
                     {(e.tendered_summary || e.change_summary) && (
-                      <div className="flex flex-wrap items-center gap-1.5 text-[10px] pt-1 font-mono">
+                      <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                         {e.tendered_summary && (
-                          <span className="inline-flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-200 px-2 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-700/60 font-bold">
-                            <ArrowDownLeft className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                          <span className="inline-flex items-center gap-1.5 bg-emerald-50/90 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-200 px-2.5 py-1 rounded-xl border border-emerald-200 dark:border-emerald-700/60 text-xs font-semibold shadow-2xs">
+                            <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                             {e.tendered_summary}
                           </span>
                         )}
                         {e.change_summary && (
-                          <span className="inline-flex items-center gap-1 bg-rose-50 dark:bg-rose-950/80 text-rose-800 dark:text-rose-200 px-2 py-0.5 rounded-lg border border-rose-200 dark:border-rose-700/60 font-bold">
-                            <ArrowUpRight className="w-3 h-3 text-rose-600 dark:text-rose-400 shrink-0" />
+                          <span className="inline-flex items-center gap-1.5 bg-rose-50/90 dark:bg-rose-950/80 text-rose-800 dark:text-rose-200 px-2.5 py-1 rounded-xl border border-rose-200 dark:border-rose-700/60 text-xs font-semibold shadow-2xs">
+                            <ArrowUpRight className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
                             {e.change_summary}
                           </span>
                         )}

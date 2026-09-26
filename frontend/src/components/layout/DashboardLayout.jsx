@@ -50,7 +50,7 @@ export const DashboardLayout = () => {
         </div>
 
         {/* Page Content Container - includes safe padding for Mobile Header & Mobile Bottom Navigation */}
-        <main className="flex-1 p-3 sm:p-5 lg:p-8 max-w-7xl w-full mx-auto animate-in fade-in duration-300 pt-16 lg:pt-8 pb-24 lg:pb-8">
+        <main className="flex-1 p-3 sm:p-5 lg:p-8 max-w-7xl w-full mx-auto animate-in fade-in duration-300 pt-24 lg:pt-8 pb-32 lg:pb-8">
           <Outlet context={{ openQuickOrder: () => setIsQuickOrderOpen(true) }} />
         </main>
 

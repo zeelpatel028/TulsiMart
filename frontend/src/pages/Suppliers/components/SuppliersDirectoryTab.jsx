@@ -81,6 +81,7 @@ export const SuppliersDirectoryTab = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredSuppliers.map((s) => {
             const pendingBal = Number(s.pending_balance || 0);
+            const supName = s.company_name || s.name || '';
 
             return (
               <div

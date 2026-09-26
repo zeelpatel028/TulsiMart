@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
             name='HomeCashTransaction',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('entry_type', models.CharField(choices=[('DEPOSIT', 'Manual Cash Deposit (ઘરે રોકડ જમા)'), ('WITHDRAWAL', 'Manual Cash Withdrawal (ઘરેથી રોકડ ઉપાડ)'), ('SWEEP', 'Auto EOD Sweep from Gulla (ગલ્લામાંથી ઓટો ટ્રાન્સફર)')], max_length=30)),
+                ('entry_type', models.CharField(choices=[('DEPOSIT', 'Manual Cash Deposit'), ('WITHDRAWAL', 'Manual Cash Withdrawal'), ('SWEEP', 'Auto EOD Sweep from Gulla')], max_length=30)),
                 ('amount', models.DecimalField(decimal_places=2, max_digits=12)),
                 ('denomination_counts', models.JSONField(blank=True, default=dict, null=True)),
                 ('notes', models.TextField(blank=True, null=True)),

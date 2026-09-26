@@ -72,7 +72,7 @@ export const ExpenseList = () => {
     notes: '',
   });
 
-  const PALETTE_COLORS = ['#384959', '#6A89A7', '#88BDF2', '#BDDDFC', '#2E3D4B', '#53708C'];
+  const PALETTE_COLORS = ['#00796b', '#004d40', '#4db6ac', '#80cbc4', '#00695c', '#26a69a'];
 
   useEffect(() => {
     loadData();
@@ -180,30 +180,83 @@ export const ExpenseList = () => {
     }));
 
   return (
-    <div className="space-y-6 font-sans">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-black text-[#384959] dark:text-slate-100 tracking-tight font-heading">
-            Store Expense Management
-          </h1>
-          <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Track operational store overheads, rent, utilities, employee payroll, delivery costs, and vendor payouts.
-          </p>
-        </div>
+    <div className="space-y-6 font-sans text-slate-800 dark:text-slate-100 selection:bg-[#80cbc4] selection:text-[#004d40]">
+      {/* 🌟 Tulsi Mart POS Top Header Banner - Full Width Edge-to-Edge Background like Bill Page */}
+      <div className="-mx-3 -mt-3 sm:-mx-5 sm:-mt-5 lg:-mx-8 lg:-mt-8 mb-6 bg-gradient-to-r from-teal-50/90 via-emerald-50/60 to-teal-50/90 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 text-slate-800 dark:text-white p-3.5 sm:p-5 lg:px-8 border-b border-teal-200/70 dark:border-slate-800 relative overflow-hidden shadow-2xs">
+        {/* Subtle Decorative Background Glow */}
+        <div className="absolute -top-12 -left-12 w-40 h-40 bg-teal-300/20 dark:bg-teal-900/10 rounded-full blur-2xl pointer-events-none" />
+        
+        {/* Banner Grid Layout */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
+          {/* Left: Receipt Icon & Title with Status Badge */}
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-[#00796b] to-[#004d40] text-white p-2.5 sm:p-3 border border-[#004d40]/20 flex items-center justify-center shrink-0 shadow-md shadow-teal-900/10">
+              <Receipt className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+            </div>
 
-        <Button 
-          variant="primary" 
-          size="sm" 
-          icon={Plus} 
-          onClick={() => {
-            setFormData({ ...formData, category: categories[0]?.id || '' });
-            setIsModalOpen(true);
-          }} 
-          className="self-start sm:self-auto"
-        >
-          Record New Expense
-        </Button>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white font-heading">
+                  Store <span className="text-[#00796b] dark:text-[#80cbc4]">Expenses</span>
+                </h1>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-teal-100/90 text-[#00695c] dark:bg-teal-950/80 dark:text-teal-300 border border-teal-200 dark:border-teal-800/50 shadow-2xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Overheads Active
+                </span>
+              </div>
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
+                Track operational store overheads, rent, utilities, employee payroll & vendor payouts
+              </p>
+            </div>
+          </div>
+
+          {/* Right: Quick Stat Cards & Record Expense Button */}
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0 w-full lg:w-auto">
+            <div className="grid grid-cols-2 gap-2.5 flex-1 sm:flex-initial">
+              {/* Stat Card 1: Today's Outflow */}
+              <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-xs border border-teal-100 dark:border-slate-700/80 rounded-2xl p-2 sm:px-3 sm:py-2 shadow-2xs flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-teal-100/80 dark:bg-teal-950/80 text-[#00796b] dark:text-[#80cbc4] flex items-center justify-center shrink-0">
+                  <Receipt className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block leading-none mb-1 whitespace-nowrap">
+                    TODAY'S OUTFLOW
+                  </span>
+                  <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100 font-heading leading-none block whitespace-nowrap">
+                    ₹{Number(summary?.today_expenses || 0).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Stat Card 2: This Month's Expenses */}
+              <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-xs border border-teal-100 dark:border-slate-700/80 rounded-2xl p-2 sm:px-3 sm:py-2 shadow-2xs flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-emerald-100/80 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                  <Calculator className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block leading-none mb-1 whitespace-nowrap">
+                    THIS MONTH
+                  </span>
+                  <span className="text-xs sm:text-sm font-black text-[#00796b] dark:text-[#80cbc4] leading-none block whitespace-nowrap">
+                    ₹{Number(summary?.monthly_expenses || 0).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Record Expense Action Button */}
+            <button
+              onClick={() => {
+                setFormData({ ...formData, category: categories[0]?.id || '' });
+                setIsModalOpen(true);
+              }}
+              className="w-full sm:w-auto px-4 py-2.5 bg-[#00796b] hover:bg-[#004d40] text-white font-bold rounded-2xl shadow-md border border-[#004d40]/20 flex items-center justify-center gap-2 text-xs sm:text-sm transition-all cursor-pointer shrink-0 whitespace-nowrap active:scale-[0.99]"
+            >
+              <Plus className="w-4 h-4 text-white" />
+              <span>Record Expense</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* 3 Summary Cards */}
@@ -213,21 +266,21 @@ export const ExpenseList = () => {
           value={summary?.today_expenses || 0}
           prefix="₹"
           icon={Receipt}
-          color="navy"
+          color="emerald"
         />
         <StatCard
           title="This Month's Total Expenses"
           value={summary?.monthly_expenses || 0}
           prefix="₹"
           icon={Receipt}
-          color="slate"
+          color="teal"
         />
         <StatCard
           title="All-Time Recorded Expenses"
           value={summary?.total_expenses || 0}
           prefix="₹"
           icon={Receipt}
-          color="light"
+          color="amber"
         />
       </div>
 
@@ -293,36 +346,140 @@ export const ExpenseList = () => {
         </div>
 
         {/* Expenses List Table (8 cols) */}
-        <div className="lg:col-span-8">
-          <Card className="p-0 overflow-hidden">
-            {/* Filter Bar */}
-            <div className="p-3.5 sm:p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-3 bg-slate-50/70 dark:bg-slate-900">
-              <div className="w-full sm:w-64">
-                <SearchInput
-                  value={search}
-                  onChange={setSearch}
-                  placeholder="Search description..."
-                />
+        <div className="lg:col-span-8 space-y-4">
+          {/* Responsive View: Mobile Cards (block md:hidden) & Desktop Table (hidden md:block) */}
+          <div className="md:hidden space-y-3">
+            {/* Category Pipeline Tabs for Mobile */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar touch-pan pb-1 text-xs">
+              <button
+                onClick={() => setSelectedCategory('')}
+                className={`px-3 py-1.5 rounded-xl font-bold shrink-0 transition-all cursor-pointer ${
+                  selectedCategory === ''
+                    ? 'bg-[#00796b] text-white shadow-xs font-extrabold'
+                    : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+                }`}
+              >
+                All ({expenses.length})
+              </button>
+              {categories.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => setSelectedCategory(String(c.id))}
+                  className={`px-3 py-1.5 rounded-xl font-bold shrink-0 transition-all cursor-pointer ${
+                    String(selectedCategory) === String(c.id)
+                      ? 'bg-[#00796b] text-white shadow-xs font-extrabold'
+                      : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
+
+            {expenses.length === 0 ? (
+              <EmptyState
+                icon={Receipt}
+                title="No Expense Records"
+                description="No expenses match your search or category filter."
+              />
+            ) : (
+              expenses.map((e) => (
+                <div
+                  key={e.id}
+                  className="bg-white dark:bg-slate-900 rounded-2xl border border-[#B2DFDB] dark:border-slate-800 p-3.5 space-y-2.5 shadow-xs"
+                >
+                  {/* Top Row: Title & Amount */}
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 leading-snug">
+                      {e.title}
+                    </span>
+                    <span className="text-sm font-black text-[#00695C] dark:text-[#4DB6AC] font-heading shrink-0">
+                      ₹{Number(e.amount).toFixed(2)}
+                    </span>
+                  </div>
+
+                  {/* Middle Row: Category Pill & Payment Method + Date */}
+                  <div className="flex items-center justify-between text-xs pt-2 border-t border-[#E0F2F1] dark:border-slate-800 gap-2">
+                    <div className="space-y-0.5">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E0F2F1] text-[#00695C] dark:bg-teal-950/80 dark:text-teal-300 border border-[#B2DFDB] dark:border-teal-800/60 whitespace-nowrap">
+                        {e.category_name || 'General'}
+                      </span>
+                      {e.paid_to && e.paid_to !== '-' && (
+                        <p className="text-[10px] text-slate-500 font-medium">Paid to: {e.paid_to}</p>
+                      )}
+                    </div>
+
+                    <div className="text-right space-y-0.5 shrink-0">
+                      <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-[#E0F2F1] text-[#00695C] dark:bg-teal-950/80 dark:text-teal-300 border border-[#B2DFDB] uppercase">
+                        {e.payment_method}
+                      </span>
+                      <span className="block text-[10px] text-slate-400 font-mono">{e.date}</span>
+                    </div>
+                  </div>
+
+                  {/* Bottom Row: Record ID & Action Button */}
+                  <div className="flex items-center justify-between pt-1.5 border-t border-[#E0F2F1] dark:border-slate-800 text-xs">
+                    <span className="text-[10px] text-slate-400 font-mono">ID #{e.id}</span>
+                    <button
+                      onClick={() => handleDeleteExpense(e.id)}
+                      className="px-2.5 py-1 text-rose-600 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-950/40 font-bold text-[11px] rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-rose-500" /> Delete
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop Table View (hidden md:block) */}
+          <Card className="p-0 overflow-hidden hidden md:block">
+            {/* Filter & Category Pipeline Bar */}
+            <div className="p-3.5 sm:p-4 border-b border-[#B2DFDB]/60 dark:border-slate-800 bg-[#F0FAF9]/80 dark:bg-slate-900 space-y-3">
+              {/* Category Pipeline Tabs like Bill Management */}
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar touch-pan pb-1 text-xs">
+                <button
+                  onClick={() => setSelectedCategory('')}
+                  className={`px-3 py-1.5 rounded-xl font-bold shrink-0 transition-all cursor-pointer ${
+                    selectedCategory === ''
+                      ? 'bg-[#00796b] text-white shadow-xs font-extrabold'
+                      : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 border border-[#B2DFDB] dark:border-slate-700'
+                  }`}
+                >
+                  All Categories ({expenses.length})
+                </button>
+                {categories.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => setSelectedCategory(String(c.id))}
+                    className={`px-3 py-1.5 rounded-xl font-bold shrink-0 transition-all cursor-pointer ${
+                      String(selectedCategory) === String(c.id)
+                        ? 'bg-[#00796b] text-white shadow-xs font-extrabold'
+                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 border border-[#B2DFDB] dark:border-slate-700'
+                    }`}
+                  >
+                    {c.name}
+                  </button>
+                ))}
               </div>
 
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full sm:w-auto px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium text-[#384959] dark:text-slate-100 outline-hidden focus:border-[#88BDF2]"
-              >
-                <option value="">All Categories ({categories.length})</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+              {/* Search Bar */}
+              <div className="pt-2 border-t border-[#B2DFDB]/50 dark:border-slate-800 flex items-center gap-3">
+                <div className="flex-1">
+                  <SearchInput
+                    value={search}
+                    onChange={setSearch}
+                    placeholder="Search expenses by description, payee or notes..."
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="overflow-x-auto max-h-[640px] overflow-y-auto custom-scrollbar touch-pan">
               <table className="w-full min-w-[650px] text-left text-xs border-collapse">
-                <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-800 shadow-xs">
-                  <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px]">
-                    <th className="py-3 px-4">Expense Title</th>
-
+                <thead className="sticky top-0 z-10 bg-[#F0FAF9] dark:bg-slate-800 shadow-xs">
+                  <tr className="bg-[#F0FAF9] dark:bg-slate-800 border-b border-[#B2DFDB] dark:border-slate-800 text-[#607D8B] dark:text-slate-400 font-bold uppercase tracking-wider text-[11px]">
+                    <th className="py-3 px-4">Expense Title & Method</th>
                     <th className="py-3 px-4">Category</th>
                     <th className="py-3 px-4">Paid To</th>
                     <th className="py-3 px-4">Date</th>
@@ -352,25 +509,28 @@ export const ExpenseList = () => {
                       }}
                     />
                   ) : (
-
                     expenses.map((e) => (
-                      <tr key={e.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/60 transition-colors">
+                      <tr key={e.id} className="hover:bg-[#E0F2F1]/50 dark:hover:bg-slate-800/60 transition-colors">
                         <td className="py-3 px-4">
-                          <p className="font-bold text-[#384959] dark:text-slate-100">{e.title}</p>
-                          <p className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">Paid via {e.payment_method}</p>
+                          <p className="font-bold text-slate-900 dark:text-slate-100">{e.title}</p>
+                          <p className="text-[10px] text-[#00695C] dark:text-[#4DB6AC] font-mono font-semibold">
+                            Paid via {e.payment_method}
+                          </p>
                         </td>
-                        <td className="py-3 px-4">
-                          <Badge variant="sky" size="xs">{e.category_name || 'General'}</Badge>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#E0F2F1] text-[#00695C] dark:bg-teal-950/80 dark:text-teal-300 border border-[#B2DFDB] dark:border-teal-800/60 whitespace-nowrap">
+                            {e.category_name || 'General'}
+                          </span>
                         </td>
-                        <td className="py-3 px-4 text-slate-600 dark:text-slate-300">{e.paid_to || '-'}</td>
-                        <td className="py-3 px-4 text-slate-500 dark:text-slate-400">{e.date}</td>
-                        <td className="py-3 px-4 text-right font-extrabold text-[#384959] dark:text-[#88BDF2]">
+                        <td className="py-3 px-4 text-slate-700 dark:text-slate-300 font-medium">{e.paid_to || '-'}</td>
+                        <td className="py-3 px-4 text-slate-500 dark:text-slate-400 font-mono">{e.date}</td>
+                        <td className="py-3 px-4 text-right font-black text-[#00695C] dark:text-[#4DB6AC] text-sm font-heading">
                           ₹{Number(e.amount || 0).toFixed(2)}
                         </td>
                         <td className="py-3 px-4 text-right">
                           <button
                             onClick={() => handleDeleteExpense(e.id)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer"
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-colors cursor-pointer"
                             title="Delete Expense"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -394,13 +554,22 @@ export const ExpenseList = () => {
         subtitle="Log store expenses and recurring bills for net profit calculation"
         maxWidth="max-w-lg w-full"
         footer={
-          <div className="flex items-center justify-end gap-2">
-            <Button variant="outline" size="md" onClick={() => setIsModalOpen(false)}>
+          <div className="flex items-center justify-end gap-3 w-full">
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              className="px-4 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+            >
               Cancel
-            </Button>
-            <Button variant="primary" size="md" onClick={handleCreateExpense} loading={submitting}>
-              Save Expense
-            </Button>
+            </button>
+            <button
+              type="button"
+              onClick={handleCreateExpense}
+              disabled={submitting}
+              className="px-5 py-2.5 bg-[#00796b] hover:bg-[#004d40] text-white font-bold rounded-xl shadow-xs border border-[#004d40]/20 flex items-center justify-center gap-2 text-xs transition-all cursor-pointer disabled:opacity-50"
+            >
+              {submitting ? 'Saving...' : 'Save Expense'}
+            </button>
           </div>
         }
       >
@@ -481,7 +650,7 @@ export const ExpenseList = () => {
               <div className="flex items-center justify-between">
                 <span className="font-extrabold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
                   <Calculator className="w-3.5 h-3.5 text-emerald-600" />
-                  Rupee Note Denomination Calculator (ચલણી નોટ ગણતરી)
+                  Rupee Note Denomination Calculator
                 </span>
                 <button
                   type="button"
@@ -532,7 +701,7 @@ export const ExpenseList = () => {
               <div className="flex items-center justify-between">
                 <span className="font-extrabold text-[#384959] dark:text-[#88BDF2] flex items-center gap-1.5">
                   <Truck className="w-3.5 h-3.5 text-[#88BDF2]" />
-                  Link Delivery & Transport to Order / PO (ઓર્ડર/પો લિંક કરો)
+                  Link Delivery & Transport to Order / PO
                 </span>
               </div>
 

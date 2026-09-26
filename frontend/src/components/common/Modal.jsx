@@ -24,15 +24,15 @@ export const Modal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-2.5 sm:p-4 md:p-6 overflow-y-auto">
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-[#00695C]/40 backdrop-blur-xs transition-opacity animate-in fade-in"
+        className="fixed inset-0 bg-[#004D40]/50 dark:bg-slate-950/80 backdrop-blur-xs transition-opacity animate-in fade-in"
         onClick={onClose}
       />
 
       {/* Modal Box */}
-      <div className={`relative w-full ${maxWidth} bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl border border-[#B2DFDB] dark:border-slate-800 overflow-hidden z-10 transition-all transform animate-in zoom-in-95 my-2 sm:my-6 max-h-[94vh] flex flex-col`}>
+      <div className={`relative w-full ${maxWidth} bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl border border-[#B2DFDB] dark:border-slate-800 overflow-hidden z-10 transition-all transform animate-in zoom-in-95 my-auto max-h-[90vh] sm:max-h-[92vh] flex flex-col`}>
         {/* Header */}
         <div className="px-4 py-3.5 sm:px-6 sm:py-4.5 border-b border-[#B2DFDB]/60 dark:border-slate-800 flex items-center justify-between bg-[#F0FAF9] dark:bg-slate-800/80 gap-2">
           <div className="min-w-0 pr-2">

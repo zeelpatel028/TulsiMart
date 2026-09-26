@@ -484,7 +484,7 @@ def create_gulla_entry(entry_type, amount_raw, notes='', user=None, supplier_id=
                     if requested_cnt > 0:
                         avail_cnt = max(0, int(net_notes.get(str(denom_str)) or net_notes.get(int(denom_str) if str(denom_str).isdigit() else denom_str) or 0))
                         if requested_cnt > avail_cnt:
-                            raise ValueError(f"⚠️ Gulla Alert: ગુલ્લામાં ₹{denom_str} ની નોટ ઉપલબ્ધ નથી! (પ્રાપ્ય: {avail_cnt}, જરૂરિયાત: {requested_cnt}). કૃપા કરીને Opening Float અથવા Cash In વડે નોટો ઉમેરો.")
+                            raise ValueError(f"⚠️ Gulla Alert: Insufficient ₹{denom_str} notes in Gulla! (Available: {avail_cnt}, Requested: {requested_cnt}). Please add notes via Opening Float or Cash In.")
                 except ValueError as ve:
                     if "Gulla Alert" in str(ve):
                         raise ve
@@ -668,7 +668,7 @@ def perform_eod_cash_sweep(user=None, keep_float=Decimal('5000.00'), custom_amou
     entry = CashRegisterEntry.objects.create(
         entry_type='CASH_OUT',
         amount=sweep_amount,
-        notes=f"Auto EOD Cash Sweep to Home Safe (ઘરે રોકડ મોકલી) [Ref: EOD-{ts_str}]",
+        notes=f"Auto EOD Cash Sweep to Home Safe [Ref: EOD-{ts_str}]",
         created_by_name=created_by_str
     )
 

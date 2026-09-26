@@ -1,84 +1,64 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, ShoppingCart, User, MapPin, Zap, Menu } from 'lucide-react';
+import { Menu, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-export const MobileHeader = ({ onMenuClick, cartCount = 0, onOpenSearch }) => {
+export const MobileHeader = ({ onMenuClick }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
   return (
-    <header className="fixed top-0 inset-x-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-[#B2DFDB] dark:border-slate-800 px-3.5 py-2.5 lg:hidden shadow-xs">
+    <header className="fixed top-0 inset-x-0 z-40 h-20 sm:h-22 bg-gradient-to-r from-[#e0f2f1] via-[#f0faf9] to-[#e0f2f1] dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 border-b border-[#b2dfdb] dark:border-slate-800 px-4 sm:px-6 lg:hidden shadow-xs flex items-center justify-between gap-3 sm:gap-4">
+      {/* Left: Hamburger Menu Icon + Store Logo & APP Badge */}
+      <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
+        <button
+          type="button"
+          onClick={onMenuClick}
+          className="w-12 h-12 rounded-2xl bg-[#e0f2f1] dark:bg-slate-800 text-[#00695c] dark:text-[#80cbc4] hover:bg-[#b2dfdb] transition-colors cursor-pointer shrink-0 flex items-center justify-center shadow-2xs border border-white/60 dark:border-slate-700"
+          title="Open Menu Drawer"
+        >
+          <Menu className="w-6 h-6 stroke-[2.5]" />
+        </button>
 
-      <div className="flex items-center justify-between gap-2">
-        {/* Left: Store Brand & Delivery Pill */}
-        <div className="flex items-center gap-2.5 min-w-0">
-          <button
-            type="button"
-            onClick={onMenuClick}
-            className="p-2 rounded-xl bg-[#E0F2F1] dark:bg-slate-800 text-[#00695C] dark:text-[#4DB6AC] hover:bg-[#B2DFDB] transition-colors cursor-pointer shrink-0"
-            title="Open Drawer Menu"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-
-          <div 
-            onClick={() => navigate('/')} 
-            className="flex items-center gap-2 cursor-pointer min-w-0"
-          >
-            <div className="w-8 h-8 rounded-xl bg-[#00695C] p-1 flex items-center justify-center shrink-0 shadow-xs">
-              <img 
-                src="/logo.png" 
-                alt="Tulsi Mart" 
-                className="w-full h-full object-contain"
-                onError={(e) => { e.target.src = '/logo.png'; }}
-              />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1">
-                <span className="font-black text-sm text-[#263238] dark:text-slate-100 font-heading leading-tight truncate">
-                  Tulsi Mart
-                </span>
-                <span className="bg-[#009688] text-white text-[8px] font-black px-1 rounded-xs uppercase">
-                  APP
-                </span>
-              </div>
-
-              {/* Delivery Location Pill */}
-              <div className="flex items-center gap-1 text-[10px] font-bold text-[#00695C] dark:text-[#4DB6AC] truncate leading-tight">
-                <Zap className="w-2.5 h-2.5 text-amber-500 fill-amber-500 shrink-0" />
-                <span className="truncate">10 Mins • Store Outlet</span>
-              </div>
+        <div 
+          onClick={() => navigate('/')} 
+          className="flex items-center gap-3 cursor-pointer min-w-0"
+        >
+          <div className="w-12 h-12 sm:w-13 sm:h-13 rounded-2xl bg-white p-1.5 flex items-center justify-center shrink-0 border border-white/90 shadow-xs">
+            <img 
+              src="/logo.png" 
+              alt="Tulsi Mart" 
+              className="w-full h-full object-contain"
+              onError={(e) => { e.target.src = '/logo.png'; }}
+            />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-black text-xl sm:text-2xl text-slate-900 dark:text-white tracking-tight leading-none font-heading">
+                Tulsi Mart
+              </span>
+              <span className="bg-[#00796b] text-white text-xs font-black px-2 py-0.5 rounded-lg uppercase tracking-wider shadow-2xs">
+                APP
+              </span>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Right: Quick POS Cart & Profile Button */}
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={() => navigate('/billing')}
-            className="relative p-2 bg-[#00695C] hover:bg-[#004D40] text-white rounded-xl shadow-xs transition-transform active:scale-95 cursor-pointer flex items-center gap-1.5"
-            title="Cart & POS Billing"
-          >
-            <ShoppingCart className="w-4 h-4" />
-            <span className="text-xs font-black">POS</span>
-            {cartCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-[#E53935] text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white dark:border-slate-900 animate-pulse">
-                {cartCount}
-              </span>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => navigate('/settings')}
-            className="w-8 h-8 rounded-xl bg-[#E0F2F1] dark:bg-slate-800 border border-[#B2DFDB] dark:border-slate-700 text-[#00695C] dark:text-[#4DB6AC] font-bold text-xs flex items-center justify-center cursor-pointer"
-            title="Profile & Settings"
-          >
-            {user?.first_name ? user.first_name[0] : (user?.username?.[0] || 'A')}
-          </button>
-        </div>
+      {/* Right: Vertical Separator & User Profile Circle Dropdown */}
+      <div className="flex items-center gap-3 shrink-0">
+        <div className="h-8 w-px bg-[#b2dfdb] dark:bg-slate-700" />
+        <button
+          type="button"
+          onClick={() => navigate('/settings')}
+          className="flex items-center gap-1.5 cursor-pointer"
+          title="User Profile & Account Settings"
+        >
+          <div className="w-11 h-11 rounded-full bg-[#e0f2f1] dark:bg-slate-800 border border-[#b2dfdb] dark:border-slate-700 text-[#00695c] dark:text-[#80cbc4] font-black text-lg flex items-center justify-center shadow-2xs">
+            {user?.first_name ? user.first_name[0].toLowerCase() : (user?.username?.[0]?.toLowerCase() || 't')}
+          </div>
+          <ChevronDown className="w-5 h-5 text-[#00695c] dark:text-[#80cbc4] stroke-[2.5]" />
+        </button>
       </div>
     </header>
   );

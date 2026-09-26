@@ -217,46 +217,48 @@ export const Dashboard = () => {
 
   return (
     <div className="space-y-6 font-sans">
-      {/* 1. APP TOP BAR & DELIVERY LOCATION BADGE */}
-      <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-3xl border border-[#B2DFDB] dark:border-slate-800 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="bg-[#00695C] text-white p-1.5 rounded-xl">
-              <Zap className="w-4 h-4 text-[#4DB6AC] fill-[#4DB6AC]" />
-            </span>
+      {/* 1. APP TOP BAR & POS HEADER BANNER */}
+      <div className="-mx-3 -mt-3 sm:-mx-5 sm:-mt-5 lg:-mx-8 lg:-mt-8 mb-6 bg-gradient-to-r from-teal-50/90 via-emerald-50/60 to-teal-50/90 dark:from-slate-900 dark:via-slate-800/80 dark:to-slate-900 border-b border-teal-100/80 dark:border-slate-800 p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-teal-600 text-white flex items-center justify-center shadow-md shadow-teal-600/20 shrink-0">
+              <Zap className="w-6 h-6 text-teal-200 fill-teal-200" />
+            </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-black uppercase text-[#00695C] dark:text-[#4DB6AC] tracking-wider">
-                  ⚡ 10 MINUTES DELIVERY
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                  Tulsi Mart Store Dashboard
+                </h1>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-teal-100 dark:bg-teal-950/80 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800 uppercase tracking-wider">
+                  ⚡ 10 Min Delivery
                 </span>
-                <span className="w-1.5 h-1.5 rounded-full bg-[#009688] animate-pulse" />
               </div>
-              <h1 className="text-base sm:text-lg font-black text-[#263238] dark:text-slate-100 font-heading">
-                Tulsi Mart Outlet • Main Sector Store
-              </h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Real-time counter sales, popular grocery items, inventory alerts, and recent store bills.
+              </p>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="primary"
-            size="md"
-            icon={Store}
-            onClick={() => navigate('/billing')}
-            className="flex-1 sm:flex-initial font-bold shadow-sm bg-[#00695C] hover:bg-[#004D40]"
-          >
-            ⚡ Start Billing (POS)
-          </Button>
-          <Button
-            variant="outline"
-            size="md"
-            icon={ShoppingBag}
-            onClick={() => navigate('/products')}
-            className="flex-1 sm:flex-initial"
-          >
-            All Products
-          </Button>
+          <div className="flex items-center gap-2.5 self-start md:self-center">
+            <Button
+              variant="primary"
+              size="md"
+              icon={Store}
+              onClick={() => navigate('/billing')}
+              className="bg-teal-600 hover:bg-teal-700 text-white font-extrabold shadow-md shadow-teal-600/20"
+            >
+              Start Billing (POS)
+            </Button>
+            <Button
+              variant="outline"
+              size="md"
+              icon={ShoppingBag}
+              onClick={() => navigate('/products')}
+              className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold"
+            >
+              All Products
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -307,42 +309,7 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      {/* 3. CIRCULAR GROCERY CATEGORIES GRID */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-black text-[#263238] dark:text-slate-100 font-heading flex items-center gap-2">
-            <span>Explore Grocery Categories</span>
-            <span className="text-xs font-normal text-[#607D8B]">({categoriesList.length || 9} Categories)</span>
-          </h2>
-          <button
-            onClick={() => navigate('/products')}
-            className="text-xs font-bold text-[#00695C] dark:text-[#4DB6AC] hover:underline flex items-center gap-1 cursor-pointer"
-          >
-            See All Categories <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
 
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-9 gap-2.5 sm:gap-3">
-          {(categoriesList.length > 0 ? categoriesList : defaultCategoryIcons).map((cat, idx) => {
-            const iconObj = defaultCategoryIcons[idx % defaultCategoryIcons.length];
-            const name = cat.name || cat;
-            return (
-              <div
-                key={idx}
-                onClick={() => navigate('/products')}
-                className="bg-white dark:bg-slate-900 rounded-2xl border border-[#B2DFDB]/60 dark:border-slate-800 p-3 flex flex-col items-center justify-center text-center cursor-pointer hover:border-[#009688] hover:shadow-md transition-all touch-active group"
-              >
-                <div className={`w-12 h-12 rounded-full ${iconObj.color} flex items-center justify-center text-xl shadow-xs group-hover:scale-110 transition-transform mb-2`}>
-                  {iconObj.icon}
-                </div>
-                <span className="text-[11px] font-bold text-[#263238] dark:text-slate-200 line-clamp-1 leading-tight font-heading">
-                  {name}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
 
       {/* 4. POPULAR & TRENDING PRODUCTS GRID */}
       <div className="space-y-3">
@@ -536,19 +503,19 @@ export const Dashboard = () => {
         }
       >
         <div className="overflow-x-auto touch-pan">
-          <table className="w-full min-w-[620px] text-left text-xs border-collapse">
+          <table className="w-full min-w-[700px] text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-[#B2DFDB] dark:border-slate-800 text-[#607D8B] uppercase font-bold text-[10px] tracking-wider">
-                <th className="pb-3">Order ID</th>
-                <th className="pb-3">Customer</th>
-                <th className="pb-3">Amount</th>
-                <th className="pb-3">Payment</th>
-                <th className="pb-3">Status</th>
-                <th className="pb-3">Date</th>
-                <th className="pb-3 text-right">Invoice</th>
+              <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 uppercase font-bold text-[11px] tracking-wider whitespace-nowrap bg-slate-50/70 dark:bg-slate-800/60">
+                <th className="py-3 px-4">Order ID</th>
+                <th className="py-3 px-4">Customer</th>
+                <th className="py-3 px-4">Amount</th>
+                <th className="py-3 px-4">Payment</th>
+                <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4">Date</th>
+                <th className="py-3 px-4 text-right">Invoice</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E0F2F1] dark:divide-slate-800 font-medium">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
               {recent_orders.length === 0 ? (
                 <EmptyState
                   variant="table"
@@ -559,26 +526,26 @@ export const Dashboard = () => {
                 />
               ) : (
                 recent_orders.map((o) => (
-                  <tr key={o.id} className="hover:bg-[#F0FAF9] dark:hover:bg-slate-800/60 transition-colors">
-                    <td className="py-3 font-mono font-bold text-[#263238] dark:text-slate-100">{o.order_number}</td>
-                    <td className="py-3 font-semibold text-[#263238] dark:text-slate-300">{o.customer_name}</td>
-                    <td className="py-3 font-extrabold text-[#00695C] dark:text-[#4DB6AC]">₹{Number(o.total_amount).toFixed(2)}</td>
-                    <td className="py-3">
-                      <span className="inline-flex items-center gap-1 text-[#263238] dark:text-slate-300">
+                  <tr key={o.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/60 transition-colors whitespace-nowrap">
+                    <td className="py-3 px-4 font-mono font-bold text-slate-900 dark:text-slate-100">{o.order_number}</td>
+                    <td className="py-3 px-4 font-semibold text-slate-800 dark:text-slate-200">{o.customer_name}</td>
+                    <td className="py-3 px-4 font-extrabold text-teal-700 dark:text-teal-400">₹{Number(o.total_amount).toFixed(2)}</td>
+                    <td className="py-3 px-4">
+                      <span className="inline-flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-semibold">
                         {o.payment_method}
-                        <span className={`w-1.5 h-1.5 rounded-full ${o.payment_status === 'PAID' ? 'bg-[#009688]' : 'bg-[#FBC02D]'}`} />
+                        <span className={`w-1.5 h-1.5 rounded-full ${o.payment_status === 'PAID' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
                       </span>
                     </td>
-                    <td className="py-3">
+                    <td className="py-3 px-4">
                       <Badge variant="default" size="xs">{o.status}</Badge>
                     </td>
-                    <td className="py-3 text-[#607D8B] dark:text-slate-500">
+                    <td className="py-3 px-4 text-slate-500 dark:text-slate-400">
                       {new Date(o.created_at).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </td>
-                    <td className="py-3 text-right">
+                    <td className="py-3 px-4 text-right">
                       <button
                         onClick={() => setSelectedOrderForInvoice(o)}
-                        className="p-1.5 text-[#607D8B] hover:text-[#00695C] dark:hover:text-white hover:bg-[#E0F2F1] dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                        className="p-1.5 text-slate-500 hover:text-teal-700 dark:hover:text-white hover:bg-teal-50 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
                         title="View Tax Invoice"
                       >
                         <Eye className="w-4 h-4" />

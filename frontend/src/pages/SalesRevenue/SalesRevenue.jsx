@@ -127,33 +127,52 @@ export const SalesRevenue = () => {
   };
 
   return (
-    <div className="space-y-6 font-sans">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-black text-[#263238] dark:text-slate-100 tracking-tight font-heading">
-            Sales & Revenue Analytics
-          </h1>
-          <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Analyze revenue performance, net operating profit margins, and sales growth across daily, weekly, monthly, and yearly timeframes.
-          </p>
-        </div>
+    <div className="space-y-6 font-sans text-slate-800 dark:text-slate-100 selection:bg-[#80cbc4] selection:text-[#004d40]">
+      {/* 🌟 Tulsi Mart POS Top Header Banner - Full Width Edge-to-Edge Background like Bill Page */}
+      <div className="-mx-3 -mt-3 sm:-mx-5 sm:-mt-5 lg:-mx-8 lg:-mt-8 mb-6 bg-gradient-to-r from-teal-50/90 via-emerald-50/60 to-teal-50/90 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 text-slate-800 dark:text-white p-3.5 sm:p-5 lg:px-8 border-b border-teal-200/70 dark:border-slate-800 relative overflow-hidden shadow-2xs">
+        {/* Subtle Decorative Background Glow */}
+        <div className="absolute -top-12 -left-12 w-40 h-40 bg-teal-300/20 dark:bg-teal-900/10 rounded-full blur-2xl pointer-events-none" />
+        
+        {/* Banner Grid Layout */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
+          {/* Left: TrendingUp Icon & Title with Status Badge */}
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-[#00796b] to-[#004d40] text-white p-2.5 sm:p-3 border border-[#004d40]/20 flex items-center justify-center shrink-0 shadow-md shadow-teal-900/10">
+              <TrendingUp className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+            </div>
 
-        {/* Period Selector (Day, Week, Month, Year) */}
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl text-xs font-bold self-start sm:self-auto overflow-x-auto no-scrollbar touch-pan border border-slate-200/60 dark:border-slate-700/50">
-          {periods.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => setTimeframe(p.id)}
-              className={`px-3.5 sm:px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
-                timeframe === p.id 
-                  ? 'bg-[#00695C] dark:bg-[#009688] text-white dark:text-white shadow-sm' 
-                  : 'text-slate-600 dark:text-slate-400 hover:text-[#00695C] dark:hover:text-white'
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white font-heading">
+                  Sales & <span className="text-[#00796b] dark:text-[#80cbc4]">Revenue</span>
+                </h1>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-teal-100/90 text-[#00695c] dark:bg-teal-950/80 dark:text-teal-300 border border-teal-200 dark:border-teal-800/50 shadow-2xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Analytics Live
+                </span>
+              </div>
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
+                Analyze revenue performance, net operating profit margins & sales growth trends
+              </p>
+            </div>
+          </div>
+
+          {/* Right: Period Selector Pill */}
+          <div className="flex items-center gap-1 bg-white/90 dark:bg-slate-800/90 p-1.5 rounded-2xl text-xs font-bold shrink-0 border border-teal-100 dark:border-slate-700/80 shadow-2xs self-start lg:self-center">
+            {periods.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => setTimeframe(p.id)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer shrink-0 ${
+                  timeframe === p.id 
+                    ? 'bg-[#00796b] text-white shadow-2xs' 
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -166,14 +185,14 @@ export const SalesRevenue = () => {
           change={14.6}
           isPositive={true}
           icon={IndianRupee}
-          color="navy"
+          color="emerald"
         />
         <StatCard
           title="Net Operating Margin"
           value={`${overallMargin}%`}
           trendLabel={`₹${totalProfit.toLocaleString('en-IN')} net profit`}
           icon={Percent}
-          color="sky"
+          color="teal"
         />
         <StatCard
           title="Operating Expenses"
@@ -181,7 +200,7 @@ export const SalesRevenue = () => {
           prefix="₹"
           trendLabel="total operational cost"
           icon={Receipt}
-          color="slate"
+          color="amber"
         />
         <StatCard
           title="Average Order (AOV)"
@@ -190,7 +209,7 @@ export const SalesRevenue = () => {
           change={5.2}
           isPositive={true}
           icon={TrendingUp}
-          color="light"
+          color="teal"
         />
       </div>
 

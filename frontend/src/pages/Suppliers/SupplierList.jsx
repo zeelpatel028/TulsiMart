@@ -12,7 +12,8 @@ import {
   Receipt, 
   BarChart3, 
   RefreshCw,
-  Wallet
+  Wallet,
+  Truck
 } from 'lucide-react';
 
 // API
@@ -385,53 +386,81 @@ export const SupplierList = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6 pb-12 animate-fade-in font-sans">
-      {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-900/90 dark:to-slate-900 p-4 sm:p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-black text-[#263238] dark:text-slate-100 font-heading">
-              Supplier & Procurement Suite
-            </h1>
-            <Badge variant="accent" size="sm" className="font-mono uppercase tracking-wider font-bold">v3.5 Enterprise</Badge>
-          </div>
-          <p className="text-xs text-[#607D8B] dark:text-slate-400 mt-1 font-medium">
-            Wholesale vendor management, Order-wise Payouts, Gulla Cash Register Outflow & GRN Ledger
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
-          {/* Live Gulla Cash Register Indicator */}
-          {gullaSummary && (
-            <div className="flex items-center gap-2 px-3.5 py-2 bg-[#E0F2F1] border border-[#B2DFDB] rounded-2xl text-[#00695C] dark:text-teal-300 text-xs font-black shadow-xs">
-              <div className="w-2 h-2 rounded-full bg-[#009688] animate-ping"></div>
-              <Wallet className="w-3.5 h-3.5 text-[#009688]" />
-              <span>Gulla: ₹{Number(gullaSummary.cash_in_hand ?? gullaSummary.net_cash_in_gulla ?? 0).toLocaleString('en-IN')}</span>
+      {/* 🌟 Tulsi Mart POS Top Header Banner - Full Width Edge-to-Edge Background like Bill Page */}
+      <div className="-mx-3 -mt-3 sm:-mx-5 sm:-mt-5 lg:-mx-8 lg:-mt-8 mb-6 bg-gradient-to-r from-teal-50/90 via-emerald-50/60 to-teal-50/90 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 text-slate-800 dark:text-white p-3.5 sm:p-5 lg:px-8 border-b border-teal-200/70 dark:border-slate-800 relative overflow-hidden shadow-2xs">
+        {/* Subtle Decorative Background Glow */}
+        <div className="absolute -top-12 -left-12 w-40 h-40 bg-teal-300/20 dark:bg-teal-900/10 rounded-full blur-2xl pointer-events-none" />
+        
+        {/* Banner Grid Layout */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+          {/* Left: Truck Icon & Title with Status Badge */}
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-[#00796b] to-[#004d40] text-white p-2.5 sm:p-3 border border-[#004d40]/20 flex items-center justify-center shrink-0 shadow-md shadow-teal-900/10">
+              <Truck className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
             </div>
-          )}
 
-          <Button variant="outline" size="sm" icon={RefreshCw} onClick={fetchProcurementData} className="rounded-xl font-bold">
-            Sync
-          </Button>
-          <Button variant="outline" size="sm" icon={FileText} onClick={() => setIsPoModalOpen(true)} className="rounded-xl font-bold">
-            Create PO
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            icon={Plus}
-            onClick={() => {
-              setEditingSupplier(null);
-              setSupplierForm({
-                name: '', company_name: '', phone: '', email: '', gstin: '',
-                address: '', city: 'Mumbai', category: 'FMCG & Branded Grocery',
-                payment_terms: 'Net 15', credit_limit: 100000, rating: 5, notes: ''
-              });
-              setIsSupplierModalOpen(true);
-            }}
-            className="bg-[#009688] hover:bg-[#00695C] text-white font-black rounded-xl shadow-sm border-none"
-          >
-            Add Supplier
-          </Button>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white font-heading">
+                  Supplier & <span className="text-[#00796b] dark:text-[#80cbc4]">Procurement</span>
+                </h1>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-teal-100/90 text-[#00695c] dark:bg-teal-950/80 dark:text-teal-300 border border-teal-200 dark:border-teal-800/50 shadow-2xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Vendors & PO
+                </span>
+              </div>
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
+                Wholesale vendor management, Purchase Orders, Gulla Cash payouts & GRN Stock receiving
+              </p>
+            </div>
+          </div>
+
+          {/* Right Action Buttons & Gulla Register */}
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
+            {gullaSummary && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/90 dark:bg-slate-800/90 border border-teal-200 dark:border-slate-700/80 rounded-xl text-[#00796b] dark:text-[#80cbc4] text-xs font-black shadow-2xs">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                <Wallet className="w-3.5 h-3.5 text-[#00796b] dark:text-[#80cbc4]" />
+                <span>Gulla: ₹{Number(gullaSummary.cash_in_hand ?? gullaSummary.net_cash_in_gulla ?? 0).toLocaleString('en-IN')}</span>
+              </div>
+            )}
+
+            <Button 
+              variant="outline" 
+              size="sm" 
+              icon={RefreshCw} 
+              onClick={fetchProcurementData} 
+              className="border-teal-300 dark:border-slate-700 text-[#00796b] dark:text-[#80cbc4] hover:bg-teal-50 dark:hover:bg-slate-800 font-bold rounded-xl shadow-2xs cursor-pointer"
+            >
+              Sync
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              icon={FileText} 
+              onClick={() => setIsPoModalOpen(true)} 
+              className="border-teal-300 dark:border-slate-700 text-[#00796b] dark:text-[#80cbc4] hover:bg-teal-50 dark:hover:bg-slate-800 font-bold rounded-xl shadow-2xs cursor-pointer"
+            >
+              Create PO
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              icon={Plus}
+              onClick={() => {
+                setEditingSupplier(null);
+                setSupplierForm({
+                  name: '', company_name: '', phone: '', email: '', gstin: '',
+                  address: '', city: 'Mumbai', category: 'FMCG & Branded Grocery',
+                  payment_terms: 'Net 15', credit_limit: 100000, rating: 5, notes: ''
+                });
+                setIsSupplierModalOpen(true);
+              }}
+              className="bg-gradient-to-r from-[#00796b] to-[#004d40] hover:from-[#00695c] hover:to-[#00382e] text-white font-extrabold shadow-sm shadow-teal-900/20 rounded-xl cursor-pointer"
+            >
+              Add Supplier
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -439,7 +468,7 @@ export const SupplierList = () => {
       <ProcurementKpiCards kpis={kpis} />
 
       {/* Tabs */}
-      <div className="bg-slate-100/80 dark:bg-slate-900/80 p-1.5 rounded-2xl border border-[#B2DFDB] dark:border-slate-800 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+      <div className="bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-teal-100 dark:border-slate-800 flex items-center gap-1.5 overflow-x-auto no-scrollbar shadow-2xs">
         {[
           { id: 'suppliers', label: 'Suppliers Directory', icon: Building2, count: suppliers.length },
           { id: 'orders', label: 'Purchase Orders', icon: FileText, count: purchaseOrders.length },
@@ -454,16 +483,16 @@ export const SupplierList = () => {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2.5 text-xs font-extrabold rounded-xl transition-all duration-200 cursor-pointer whitespace-nowrap ${
                 isActive
-                  ? 'bg-white dark:bg-slate-800 text-[#00695C] dark:text-[#4DB6AC] shadow-xs'
-                  : 'text-[#607D8B] dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-800/40'
+                  ? 'bg-[#00796b] text-white shadow-sm shadow-teal-900/20'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-teal-50/70 dark:hover:bg-slate-800'
               }`}
             >
-              <tab.icon className={`w-4 h-4 ${isActive ? 'text-[#009688] dark:text-[#4DB6AC]' : 'text-slate-400'}`} />
+              <tab.icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
               <span>{tab.label}</span>
               {tab.count !== undefined && (
                 <span className={`px-2 py-0.5 rounded-md text-[10px] font-black font-mono ${
                   isActive
-                    ? 'bg-[#E0F2F1] text-[#00695C] dark:bg-teal-950 dark:text-teal-300'
+                    ? 'bg-teal-800 text-teal-100'
                     : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                 }`}>
                   {tab.count}

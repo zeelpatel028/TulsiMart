@@ -36,21 +36,21 @@ DEFAULT_UNITS = [
 ]
 
 DEFAULT_CATEGORIES = [
-    ('Atta, Rice & Grains (આટો, ચોખા અને અનાજ)', 'ShoppingBag'),
-    ('Dal & Pulses (કઠોળ અને દાળ)', 'ShoppingBag'),
-    ('Edible Oils & Ghee (તેલ અને ઘી)', 'Droplet'),
-    ('Spices, Masala & Salt (મસાલા અને મીઠું)', 'Flame'),
-    ('Sugar, Jaggery & Sweeteners (ખાંડ અને ગોળ)', 'Heart'),
-    ('Snacks, Namkeen & Chips (નાસ્તો અને વેફર્સ)', 'Cookie'),
-    ('Biscuits, Bakery & Cookies (બિસ્કિટ અને બેકરી)', 'Cookie'),
-    ('Beverages, Tea & Coffee (ચા, કોફી અને પીણા)', 'Coffee'),
-    ('Dairy, Milk & Butter (દૂધ અને ડેરી પ્રોડક્ટ્સ)', 'Milk'),
-    ('Dry Fruits, Nuts & Seeds (ડ્રાય ફ્રૂટ્સ)', 'Nut'),
-    ('Sauces, Spreads & Ketchup (સોસ અને કેચઅપ)', 'Bottle'),
-    ('Personal Care & Soap (સાબુ અને પર્સનલ કેર)', 'Sparkles'),
-    ('Cleaning & Household (સફાઈ અને હાઉસહોલ્ડ)', 'Sparkles'),
-    ('Pooja Needs & Agarbatti (પૂજા સામગ્રી)', 'Flame'),
-    ('Chocolates & Sweets (ચોકલેટ અને સ્વીટ્સ)', 'Heart'),
+    ('Atta, Rice & Grains', 'ShoppingBag'),
+    ('Dal & Pulses', 'ShoppingBag'),
+    ('Edible Oils & Ghee', 'Droplet'),
+    ('Spices, Masala & Salt', 'Flame'),
+    ('Sugar, Jaggery & Sweeteners', 'Heart'),
+    ('Snacks, Namkeen & Chips', 'Cookie'),
+    ('Biscuits, Bakery & Cookies', 'Cookie'),
+    ('Beverages, Tea & Coffee', 'Coffee'),
+    ('Dairy, Milk & Butter', 'Milk'),
+    ('Dry Fruits, Nuts & Seeds', 'Nut'),
+    ('Sauces, Spreads & Ketchup', 'Bottle'),
+    ('Personal Care & Soap', 'Sparkles'),
+    ('Cleaning & Household', 'Sparkles'),
+    ('Pooja Needs & Agarbatti', 'Flame'),
+    ('Chocolates & Sweets', 'Heart'),
 ]
 
 def ensure_grocery_defaults():

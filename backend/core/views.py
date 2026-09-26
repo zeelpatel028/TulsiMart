@@ -326,17 +326,17 @@ def home_cash_vault_api(request):
         try:
             amt = Decimal(str(amount_raw))
         except (ValueError, TypeError):
-            return Response({'detail': 'માપદંડ પ્રમાણે માન્ય રકમ દાખલ કરો.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'Please enter a valid amount.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if amt <= 0:
-            return Response({'detail': 'રકમ ₹0 કરતાં વધારે હોવી જોઈએ.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'Amount must be greater than ₹0.'}, status=status.HTTP_400_BAD_REQUEST)
 
         current_balance = Decimal(str(setting.home_cash_amount or 0))
 
         if entry_type == 'WITHDRAWAL':
             if amt > current_balance:
                 return Response({
-                    'detail': f"⚠️ Home Safe Warning: ઘરે રાખેલ તિજોરીમાં માત્ર ₹{current_balance:.2f} જ કેશ ઉપલબ્ધ છે! (તમે ₹{amt:.2f} વિથડ્રો કરવાનો પ્રયાસ કર્યો)."
+                    'detail': f"⚠️ Home Safe Warning: Only ₹{current_balance:.2f} available in Home Safe! (Attempted to withdraw ₹{amt:.2f})."
                 }, status=status.HTTP_400_BAD_REQUEST)
             new_balance = current_balance - amt
         else:

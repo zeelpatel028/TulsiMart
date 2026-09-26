@@ -179,9 +179,9 @@ class LoginAccount(models.Model):
 
 class HomeCashTransaction(models.Model):
     ENTRY_TYPES = (
-        ('DEPOSIT', 'Manual Cash Deposit (ઘરે રોકડ જમા)'),
-        ('WITHDRAWAL', 'Manual Cash Withdrawal (ઘરેથી રોકડ ઉપાડ)'),
-        ('SWEEP', 'Auto EOD Sweep from Gulla (ગલ્લામાંથી ઓટો ટ્રાન્સફર)'),
+        ('DEPOSIT', 'Manual Cash Deposit'),
+        ('WITHDRAWAL', 'Manual Cash Withdrawal'),
+        ('SWEEP', 'Auto EOD Sweep from Gulla'),
     )
 
     entry_type = models.CharField(max_length=30, choices=ENTRY_TYPES)

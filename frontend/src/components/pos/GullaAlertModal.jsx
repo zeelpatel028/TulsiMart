@@ -31,7 +31,7 @@ export const GullaAlertModal = ({
             onClick={onClose}
             className="text-[#607D8B] dark:text-slate-300 border-[#B2DFDB] dark:border-slate-700"
           >
-            હું સમજ્યો (Close)
+            Close
           </Button>
 
           <Button
@@ -48,7 +48,7 @@ export const GullaAlertModal = ({
             className="bg-[#E53935] hover:bg-[#c62828] text-white font-bold flex items-center gap-1.5 cursor-pointer shadow-sm border-none"
           >
             <PlusCircle className="w-4 h-4" />
-            <span>ગલ્લામાં કેશ એડ કરો (Add Cash In)</span>
+            <span>Add Cash In</span>
           </Button>
         </div>
       }
@@ -61,10 +61,10 @@ export const GullaAlertModal = ({
           </div>
           <div className="space-y-1 min-w-0">
             <h4 className="text-xs font-black text-[#E53935] dark:text-rose-200 uppercase tracking-wider font-heading">
-              નોટ ગલ્લા (Gulla) માં પ્રાપ્ય નથી!
+              Insufficient Notes in Gulla!
             </h4>
             <p className="text-xs text-[#263238] dark:text-rose-300 font-bold leading-relaxed">
-              {message || `તમારી પાસે ગલ્લામાં આપવા માટે પૂરતી નોટો નથી. કૃપા કરીને ઓપનિંગ ફ્લોટ અથવા Cash In વડે નોટો એડ કરો.`}
+              {message || `You do not have enough notes in Gulla drawer. Please add notes via Opening Float or Cash In.`}
             </p>
           </div>
         </div>
@@ -72,7 +72,7 @@ export const GullaAlertModal = ({
         {/* Live Drawer Breakdown Snapshot */}
         <div className="bg-[#F0FAF9] dark:bg-slate-800/60 p-3 rounded-2xl border border-[#B2DFDB] dark:border-slate-700 space-y-2">
           <span className="text-[10px] font-extrabold text-[#607D8B] uppercase tracking-wider block">
-            ગલ્લામાં વર્તમાન નોટોની સ્થિતિ (Live Drawer Breakdown):
+            Live Drawer Breakdown:
           </span>
 
           <div className="grid grid-cols-4 gap-1.5 text-xs font-bold">

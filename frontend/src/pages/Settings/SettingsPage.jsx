@@ -317,12 +317,12 @@ export const SettingsPage = () => {
     e?.preventDefault();
     const totalAmt = calculateHomeNoteTotal(homeNoteCounts);
     if (totalAmt <= 0) {
-      showToast('⚠️ કૃપા કરીને રકમ ગણવા માટે નોટો ની સંખ્યા એન્ટર કરો.', 'error');
+      showToast('⚠️ Please enter note quantities to calculate amount.', 'error');
       return;
     }
 
     if (homeCashModalType === 'WITHDRAWAL' && totalAmt > homeCashData.home_cash_amount) {
-      showToast(`⚠️ Home Safe Warning: ઘરે રાખેલ તિજોરીમાં માત્ર ₹${homeCashData.home_cash_amount.toFixed(2)} જ કેશ ઉપલબ્ધ છે!`, 'error');
+      showToast(`⚠️ Home Safe Warning: Only ₹${homeCashData.home_cash_amount.toFixed(2)} available in Home Safe!`, 'error');
       return;
     }
 
@@ -371,44 +371,37 @@ export const SettingsPage = () => {
   ];
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
+    <div className="space-y-6 font-sans">
       {/* Store & Profile Hero Header */}
-      <div className="bg-[#00695C] text-white p-5 sm:p-8 rounded-3xl shadow-xl relative overflow-hidden">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-          <div className="space-y-2">
-            {/* User Profile Card Badge */}
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-white text-lg font-black shrink-0">
-                {user?.first_name ? user.first_name[0] : (user?.username?.[0] || 'A')}
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight font-heading text-white">
-                    {user?.first_name ? `${user.first_name} ${user.last_name || ''}` : (user?.username || 'Admin')}
-                  </h1>
-                  <span className="bg-[#4DB6AC] text-[#00695C] text-[10px] font-black px-2 py-0.5 rounded-md uppercase">
-                    {user?.role?.replace('_', ' ') || 'Admin'}
-                  </span>
-                </div>
-                <p className="text-xs text-[#E0F2F1]/80 font-medium">
-                  {user?.email || 'admin@tulsimart.com'} • Active Session
-                </p>
-              </div>
+      <div className="-mx-3 -mt-3 sm:-mx-5 sm:-mt-5 lg:-mx-8 lg:-mt-8 mb-6 bg-gradient-to-r from-teal-50/90 via-emerald-50/60 to-teal-50/90 dark:from-slate-900 dark:via-slate-800/80 dark:to-slate-900 border-b border-teal-100/80 dark:border-slate-800 p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-teal-600 text-white flex items-center justify-center font-black text-lg shadow-md shadow-teal-600/20 shrink-0">
+              {user?.first_name ? user.first_name[0] : (user?.username?.[0] || 'A')}
             </div>
-
-            <p className="text-slate-200 text-xs sm:text-sm max-w-xl pt-1">
-              Configure store identity, user login credentials, OTP delivery emails, GST structures, and security settings.
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                  {user?.first_name ? `${user.first_name} ${user.last_name || ''}` : (user?.username || 'Admin')}
+                </h1>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-teal-100 dark:bg-teal-950/80 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800 uppercase tracking-wider">
+                  {user?.role?.replace('_', ' ') || 'Admin'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Configure store identity, user credentials, OTP delivery emails, GST structures, and security settings.
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3 self-start md:self-center">
+          <div className="flex items-center gap-2.5 self-start md:self-center">
             <Button
-              variant="secondary"
+              variant="outline"
               size="sm"
               icon={RotateCcw}
               onClick={fetchSettings}
               disabled={saving}
-              className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+              className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold"
             >
               Reset
             </Button>
@@ -418,7 +411,7 @@ export const SettingsPage = () => {
               icon={Save}
               onClick={handleSubmit}
               loading={saving}
-              className="bg-[#009688] hover:bg-[#00695C] text-white font-extrabold shadow-lg"
+              className="bg-teal-600 hover:bg-teal-700 text-white font-extrabold shadow-md shadow-teal-600/20"
             >
               Save All Changes
             </Button>
@@ -427,7 +420,7 @@ export const SettingsPage = () => {
       </div>
 
       {/* Tabs Navigation */}
-      <div className="flex overflow-x-auto touch-pan pb-2 gap-2 border-b border-slate-200 dark:border-slate-800 scrollbar-none">
+      <div className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-800/80 p-1 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs overflow-x-auto no-scrollbar touch-pan mb-6">
         {tabs.map((t) => {
           const Icon = t.icon;
           const isActive = activeTab === t.id;
@@ -435,16 +428,14 @@ export const SettingsPage = () => {
             <button
               key={t.id}
               onClick={() => setActiveTab(t.id)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all shrink-0 font-medium text-xs sm:text-sm ${
+              className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl transition-all shrink-0 font-bold text-xs cursor-pointer ${
                 isActive
-                  ? 'bg-[#00695C] text-white dark:bg-[#009688] dark:text-white font-bold shadow-md'
-                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700'
+                  ? 'bg-teal-600 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/50'
               }`}
             >
               <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-              <div className="text-left">
-                <div>{t.label}</div>
-              </div>
+              <span>{t.label}</span>
             </button>
           );
         })}
@@ -456,11 +447,11 @@ export const SettingsPage = () => {
           <Card className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-[#E0F2F1] dark:bg-[#00695C]/30 text-[#00695C] dark:text-[#4DB6AC] rounded-xl">
+                <div className="p-2.5 bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-400 rounded-xl border border-teal-100 dark:border-teal-900/50">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-800 dark:text-slate-100 text-base">User Login Credentials Directory</h3>
+                  <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">User Login Credentials Directory</h3>
                   <p className="text-slate-500 dark:text-slate-400 text-xs">Manage accounts, update emails for OTP delivery, and create new users.</p>
                 </div>
               </div>
@@ -470,7 +461,7 @@ export const SettingsPage = () => {
                 size="sm"
                 icon={UserPlus}
                 onClick={handleOpenCreateAccountModal}
-                className="bg-[#00695C] hover:bg-[#004D40] text-white font-bold self-start sm:self-auto"
+                className="bg-teal-600 hover:bg-teal-700 text-white font-bold self-start sm:self-auto shadow-xs"
               >
                 Add New Login Account
               </Button>
@@ -486,9 +477,9 @@ export const SettingsPage = () => {
               </div>
             ) : (
               <div className="overflow-x-auto touch-pan">
-                <table className="w-full text-left text-xs border-collapse min-w-[640px]">
+                <table className="w-full text-left text-xs border-collapse min-w-[700px]">
                   <thead>
-                    <tr className="border-b-2 border-[#00695C] text-[#263238] dark:text-slate-200 font-bold uppercase tracking-wider text-[11px]">
+                    <tr className="border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px] whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">
                       <th className="py-3 px-3">User / Full Name</th>
                       <th className="py-3 px-3">Username</th>
                       <th className="py-3 px-3">OTP Delivery Email</th>
@@ -503,12 +494,12 @@ export const SettingsPage = () => {
                     {loginAccounts.map((acc) => {
                       const isShowPass = !!showPasswordMap[acc.id];
                       return (
-                        <tr key={acc.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
+                        <tr key={acc.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/60 transition-colors whitespace-nowrap">
                           <td className="py-3.5 px-3">
-                            <p className="font-bold text-slate-800 dark:text-slate-100">{acc.full_name}</p>
+                            <p className="font-bold text-slate-900 dark:text-slate-100">{acc.full_name}</p>
                             <span className="text-[10px] text-slate-400">ID: #{acc.id}</span>
                           </td>
-                          <td className="py-3.5 px-3 font-mono font-bold text-[#00695C] dark:text-[#4DB6AC]">
+                          <td className="py-3.5 px-3 font-mono font-bold text-teal-700 dark:text-teal-400">
                             {acc.username}
                           </td>
                           <td className="py-3.5 px-3 text-slate-600 dark:text-slate-300 font-medium">
@@ -752,7 +743,7 @@ export const SettingsPage = () => {
                 <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700 space-y-3">
                   <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Invoice Header Live Preview</p>
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-700 p-1.5 border border-slate-200 flex items-center justify-center shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-white p-1.5 border border-slate-200 flex items-center justify-center shrink-0 shadow-xs">
                       <img src={formData.store_logo || '/logo.png'} alt="Logo" className="w-full h-full object-contain" onError={(e) => { e.target.src = '/logo.png'; }} />
                     </div>
                     <div>
@@ -1218,38 +1209,6 @@ export const SettingsPage = () => {
             </div>
           )}
 
-          {/* Bottom Actions Bar */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-3.5 sm:p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-md gap-3 overflow-hidden">
-            <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium shrink-0">
-              <span>Last Updated:</span>
-              <span className="font-semibold text-slate-700 dark:text-slate-300">
-                {formData.updated_at ? new Date(formData.updated_at).toLocaleString('en-IN') : 'Just now'}
-              </span>
-            </div>
-            <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end flex-wrap sm:flex-nowrap">
-              <Button
-                type="button"
-                variant="outline"
-                size="md"
-                icon={RotateCcw}
-                onClick={fetchSettings}
-                disabled={saving}
-                className="flex-1 sm:flex-initial justify-center text-xs sm:text-sm font-semibold whitespace-nowrap"
-              >
-                Reset
-              </Button>
-              <Button
-                type="submit"
-                variant="primary"
-                size="md"
-                icon={Save}
-                loading={saving}
-                className="flex-1 sm:flex-initial justify-center bg-[#00695C] hover:bg-[#004D40] text-white text-xs sm:text-sm font-bold whitespace-nowrap shadow-xs"
-              >
-                Save Settings
-              </Button>
-            </div>
-          </div>
         </form>
       )}
 
@@ -1366,7 +1325,7 @@ export const SettingsPage = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
               <div className="space-y-2">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold uppercase tracking-wider border border-emerald-500/30">
-                  <Landmark className="w-3.5 h-3.5 text-emerald-400" /> Home Cash Vault (ઘરે રાખેલ તિજોરી કેશ)
+                  <Landmark className="w-3.5 h-3.5 text-emerald-400" /> Home Cash Vault
                 </div>
                 <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white font-heading">
                   ₹{homeCashData.home_cash_amount.toFixed(2)}
@@ -1453,7 +1412,7 @@ export const SettingsPage = () => {
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <h3 className="text-base font-bold text-[#384959] dark:text-slate-100 flex items-center gap-2">
                 <Wallet className="w-5 h-5 text-[#88BDF2]" />
-                Live Physical Notes Breakdown (ઘરે રાખેલ નોટો નો હિસાબ)
+                Live Physical Notes Breakdown
               </h3>
               <Badge variant="info">Automated Net Note Audit</Badge>
             </div>
@@ -1485,7 +1444,7 @@ export const SettingsPage = () => {
               <div>
                 <h3 className="text-base font-bold text-[#384959] dark:text-slate-100 flex items-center gap-2">
                   <History className="w-5 h-5 text-[#88BDF2]" />
-                  Home Safe Transaction Audit History (ઘરે તિજોરી નો સંપૂર્ણ હિસાબ)
+                  Home Safe Transaction Audit History
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                   Complete history of Day-End Gulla Sweeps, manual home deposits & withdrawals with note breakdown.
@@ -1494,8 +1453,8 @@ export const SettingsPage = () => {
             </div>
 
             <div className="table-scroll-container border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden max-h-96 custom-scrollbar">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 font-bold sticky top-0 uppercase tracking-wider text-[10px]">
+              <table className="w-full text-left text-xs min-w-[750px]">
+                <thead className="bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 font-bold sticky top-0 uppercase tracking-wider text-[10px] whitespace-nowrap">
                   <tr>
                     <th className="py-3 px-4">Date & Time</th>
                     <th className="py-3 px-4">Entry Type</th>
@@ -1506,7 +1465,7 @@ export const SettingsPage = () => {
                     <th className="py-3 px-4">Notes / Purpose</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
                   {homeCashData.history.length === 0 ? (
                     <tr>
                       <td colSpan="7" className="py-8 text-center text-slate-400 font-medium">
@@ -1518,7 +1477,7 @@ export const SettingsPage = () => {
                       const isSweep = tx.entry_type === 'SWEEP';
                       const isDeposit = tx.entry_type === 'DEPOSIT';
                       return (
-                        <tr key={tx.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
+                        <tr key={tx.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/60 transition-colors whitespace-nowrap">
                           <td className="py-3 px-4 font-mono font-medium text-slate-600 dark:text-slate-300 whitespace-nowrap">
                             {tx.created_at}
                           </td>
@@ -1565,7 +1524,7 @@ export const SettingsPage = () => {
       <Modal
         isOpen={isHomeCashModalOpen}
         onClose={() => setIsHomeCashModalOpen(false)}
-        title={homeCashModalType === 'DEPOSIT' ? 'Deposit Cash to Home Safe (ઘરે રોકડ ઉમેરો/જમા કરો)' : 'Withdraw Cash from Home Safe (ઘરેથી રોકડ ઉપાડ)'}
+        title={homeCashModalType === 'DEPOSIT' ? 'Deposit Cash to Home Safe' : 'Withdraw Cash from Home Safe'}
         subtitle={homeCashModalType === 'DEPOSIT' ? 'Record physical currency notes added to home safe' : `Record cash withdrawn from home safe (Current balance: ₹${homeCashData.home_cash_amount.toFixed(2)})`}
         maxWidth="max-w-lg"
         footer={
@@ -1602,7 +1561,7 @@ export const SettingsPage = () => {
           {/* Notes Denominations Inputs */}
           <div className="space-y-2 max-h-72 overflow-y-auto pr-1 custom-scrollbar">
             <label className="text-xs font-bold text-[#384959] dark:text-slate-200 block">
-              Enter Physical Note Counts (નોટોની સંખ્યા એન્ટર કરો):
+              Enter Physical Note Counts:
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[500, 200, 100, 50, 20, 10, 5, 2, 1].map((amt) => {
@@ -1632,7 +1591,7 @@ export const SettingsPage = () => {
 
           <div>
             <label className="text-xs font-bold text-[#384959] dark:text-slate-200 block mb-1">
-              Transaction Reason / Reference Note (કારણ / વિગત):
+              Transaction Reason / Reference Note:
             </label>
             <input
               type="text"
