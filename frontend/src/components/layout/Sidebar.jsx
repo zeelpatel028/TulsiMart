@@ -122,7 +122,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
                 </div>
                 <div className="truncate">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-extrabold text-base tracking-wide text-white dark:text-slate-100 font-heading">Tulsi Mart</span>
+                    <span className="font-extrabold text-base tracking-wide text-white dark:text-slate-100 font-heading">Tulsi <span className="text-teal-300 dark:text-teal-400">Mart</span></span>
                     <span className="bg-teal-400 dark:bg-teal-500 text-slate-950 font-black text-[9px] px-1.5 py-0.5 rounded-md uppercase tracking-wider shadow-xs">POS</span>
                   </div>
                   <p className="text-[10px] text-teal-200/80 dark:text-slate-400 truncate font-medium">Grocery POS & Mart</p>

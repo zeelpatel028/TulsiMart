@@ -36,7 +36,7 @@ export const DashboardLayout = () => {
         {/* Desktop / Tablet Top Navbar */}
         <div className="hidden lg:block">
           <Navbar
-            onMenuClick={() => setIsMobileOpen(true)}
+            onMenuClick={() => setIsCollapsed(prev => !prev)}
             onOpenQuickOrder={() => setIsQuickOrderOpen(true)}
           />
         </div>

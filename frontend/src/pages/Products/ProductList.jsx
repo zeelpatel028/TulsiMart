@@ -451,7 +451,7 @@ export const ProductList = () => {
       </div>
 
       {/* 📦 Main Add Product Form Card */}
-      <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
+      <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
         {(() => {
           const costNum = parseFloat(formData.cost_price) || 0;
           const sellingNum = parseFloat(formData.selling_price) || 0;
@@ -466,33 +466,50 @@ export const ProductList = () => {
           const exceedsMrp = mrpNum > 0 && sellingNum > mrpNum;
 
           return (
-            <form onSubmit={handleFormSubmit} className="space-y-5 text-xs font-sans">
+            <form onSubmit={handleFormSubmit} className="space-y-4 sm:space-y-5 text-xs font-sans">
+              {/* Active Edit Banner */}
+              {editingProduct && (
+                <div className="p-3 bg-teal-50 dark:bg-teal-950/40 rounded-xl border border-teal-200 dark:border-teal-800 text-[#00796b] dark:text-[#80cbc4] text-xs font-bold flex items-center justify-between gap-2 animate-in fade-in">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Sparkles className="w-4 h-4 shrink-0 text-amber-500" />
+                    <span className="truncate">Editing Product: <strong>{editingProduct.name}</strong></span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleResetForm}
+                    className="px-2.5 py-1 text-[11px] font-bold bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg border border-teal-200 dark:border-slate-700 shrink-0 cursor-pointer shadow-2xs"
+                  >
+                    Cancel Edit
+                  </button>
+                </div>
+              )}
+
               {/* Navigation Tabs Header */}
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 gap-2">
+                <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto custom-scrollbar-thin">
                   <button
                     type="button"
                     onClick={() => setActiveFormTab('quick')}
-                    className={`px-4 py-2.5 text-xs font-extrabold rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
+                    className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-extrabold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer flex-1 sm:flex-initial ${
                       activeFormTab === 'quick'
                         ? 'bg-[#00796b] text-white shadow-xs'
                         : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                     }`}
                   >
-                    <Zap className={`w-4 h-4 shrink-0 ${activeFormTab === 'quick' ? 'text-emerald-300' : 'text-slate-500'}`} />
+                    <Zap className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${activeFormTab === 'quick' ? 'text-emerald-300' : 'text-slate-500'}`} />
                     <span className="whitespace-nowrap">Core Info & Pricing</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setActiveFormTab('advanced')}
-                    className={`px-4 py-2.5 text-xs font-extrabold rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
+                    className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-extrabold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer flex-1 sm:flex-initial ${
                       activeFormTab === 'advanced'
                         ? 'bg-[#00796b] text-white shadow-xs'
                         : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                     }`}
                   >
-                    <Sliders className={`w-4 h-4 shrink-0 ${activeFormTab === 'advanced' ? 'text-emerald-300' : 'text-slate-500'}`} />
+                    <Sliders className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${activeFormTab === 'advanced' ? 'text-emerald-300' : 'text-slate-500'}`} />
                     <span className="whitespace-nowrap">Tax, Batch & Media</span>
                     {(formData.gst_percent > 0 || formData.image || formData.batch_number) && (
                       <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
@@ -500,7 +517,7 @@ export const ProductList = () => {
                   </button>
                 </div>
 
-                <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-semibold text-slate-400">
+                <div className="hidden md:flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 shrink-0">
                   <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                   <span>Fill essentials in seconds</span>
                 </div>
@@ -508,9 +525,9 @@ export const ProductList = () => {
 
               {/* ================= TAB 1: QUICK CORE DETAILS & PRICING ================= */}
               {activeFormTab === 'quick' && (
-                <div className="space-y-4">
+                <div className="space-y-3.5 sm:space-y-4">
                   {/* 1. Product Name */}
-                  <div className="bg-slate-50/70 dark:bg-slate-850 p-3.5 rounded-2xl border border-slate-200/70 dark:border-slate-800 space-y-1.5">
+                  <div className="bg-slate-50/70 dark:bg-slate-850 p-3 sm:p-3.5 rounded-2xl border border-slate-200/70 dark:border-slate-800 space-y-1.5">
                     <label className="block font-extrabold text-slate-800 dark:text-slate-100 uppercase tracking-wider text-[11px] font-heading">
                       Product Name *
                     </label>
@@ -521,7 +538,7 @@ export const ProductList = () => {
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="e.g. Fortune Refined Sunflower Oil 1L / Amul Taaza Milk 500ml"
-                      className="w-full px-3.5 py-2.5 text-sm font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00796b] focus:ring-2 focus:ring-[#00796b]/30 outline-hidden text-slate-800 dark:text-slate-100 placeholder:text-slate-400 shadow-2xs"
+                      className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00796b] focus:ring-2 focus:ring-[#00796b]/30 outline-hidden text-slate-800 dark:text-slate-100 placeholder:text-slate-400 shadow-2xs"
                     />
                   </div>
 
@@ -535,7 +552,7 @@ export const ProductList = () => {
                         required
                         value={formData.category}
                         onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                        className="w-full px-3 py-2 text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00796b] outline-hidden text-slate-800 dark:text-slate-100 shadow-2xs cursor-pointer"
+                        className="w-full px-3 py-2 text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00796b] outline-hidden text-slate-800 dark:text-slate-100 shadow-2xs cursor-pointer truncate"
                       >
                         <option value="">-- Select Category --</option>
                         {categories.map((c) => (
@@ -552,7 +569,7 @@ export const ProductList = () => {
                         required
                         value={formData.unit}
                         onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                        className="w-full px-3 py-2 text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00796b] outline-hidden text-slate-800 dark:text-slate-100 shadow-2xs cursor-pointer"
+                        className="w-full px-3 py-2 text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00796b] outline-hidden text-slate-800 dark:text-slate-100 shadow-2xs cursor-pointer truncate"
                       >
                         <option value="">-- Select Unit (kg, g, L, ml, pc, pkt, box) --</option>
                         {units.map((u) => (
@@ -563,15 +580,15 @@ export const ProductList = () => {
                   </div>
 
                   {/* 3. Pricing Section */}
-                  <div className="bg-teal-50/40 dark:bg-slate-850 p-4 rounded-2xl border border-teal-100 dark:border-slate-800 space-y-3 shadow-2xs">
-                    <div className="flex items-center justify-between">
+                  <div className="bg-teal-50/40 dark:bg-slate-850 p-3 sm:p-4 rounded-2xl border border-teal-100 dark:border-slate-800 space-y-3 shadow-2xs">
+                    <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2">
                       <div className="flex items-center gap-2 text-xs font-extrabold text-[#00796b] dark:text-[#80cbc4] uppercase tracking-wider font-heading">
-                        <TrendingUp className="w-4 h-4" />
+                        <TrendingUp className="w-4 h-4 shrink-0" />
                         <span>Pricing & Margins</span>
                       </div>
                       
                       {sellingNum > 0 && costNum > 0 && (
-                        <div className={`px-2.5 py-1 rounded-full text-[11px] font-bold font-mono border flex items-center gap-1 ${
+                        <div className={`px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-bold font-mono border flex items-center gap-1 ${
                           grossProfit >= 0
                             ? 'bg-emerald-100/80 dark:bg-teal-950/70 text-[#00796b] dark:text-[#80cbc4] border-emerald-200'
                             : 'bg-rose-100/80 dark:bg-rose-950/70 text-rose-600 border-rose-200'
@@ -597,7 +614,7 @@ export const ProductList = () => {
                             value={formData.cost_price}
                             onChange={(e) => handleCostPriceChange(e.target.value)}
                             placeholder="0.00"
-                            className="w-full pl-7 pr-3 py-1.5 text-sm font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg outline-hidden focus:border-[#00796b] text-slate-800 dark:text-slate-100"
+                            className="w-full pl-7 pr-3 py-1.5 text-xs sm:text-sm font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg outline-hidden focus:border-[#00796b] text-slate-800 dark:text-slate-100"
                           />
                         </div>
                       </div>
@@ -617,7 +634,7 @@ export const ProductList = () => {
                             value={formData.selling_price}
                             onChange={(e) => handleSellingPriceChange(e.target.value)}
                             placeholder="0.00"
-                            className="w-full pl-7 pr-3 py-1.5 text-sm font-black bg-white dark:bg-slate-800 border border-teal-200 dark:border-slate-600 rounded-lg outline-hidden focus:border-[#00796b] text-[#00796b] dark:text-[#80cbc4]"
+                            className="w-full pl-7 pr-3 py-1.5 text-xs sm:text-sm font-black bg-white dark:bg-slate-800 border border-teal-200 dark:border-slate-600 rounded-lg outline-hidden focus:border-[#00796b] text-[#00796b] dark:text-[#80cbc4]"
                           />
                         </div>
                       </div>
@@ -636,7 +653,7 @@ export const ProductList = () => {
                             value={formData.mrp}
                             onChange={(e) => handleMrpChange(e.target.value)}
                             placeholder="0.00"
-                            className="w-full pl-7 pr-3 py-1.5 text-sm font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg outline-hidden focus:border-[#00796b] text-slate-800 dark:text-slate-100"
+                            className="w-full pl-7 pr-3 py-1.5 text-xs sm:text-sm font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg outline-hidden focus:border-[#00796b] text-slate-800 dark:text-slate-100"
                           />
                         </div>
                       </div>
@@ -644,21 +661,21 @@ export const ProductList = () => {
                   </div>
 
                   {/* 4. Stock & Barcode */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="bg-slate-50/70 dark:bg-slate-850 p-3.5 rounded-2xl border border-slate-200/70 dark:border-slate-800 space-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="bg-slate-50/70 dark:bg-slate-850 p-3 sm:p-3.5 rounded-2xl border border-slate-200/70 dark:border-slate-800 space-y-2">
                       <label className="font-extrabold text-slate-800 dark:text-slate-100 uppercase tracking-wider text-[11px] font-heading block">
                         Stock Quantity *
                       </label>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <input
                           type="number"
                           required
                           min="0"
                           value={formData.stock_quantity}
                           onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
-                          className="w-28 px-3 py-2 text-sm font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-hidden focus:border-[#00796b] text-slate-800 dark:text-slate-100 shadow-2xs"
+                          className="w-full xs:w-28 px-3 py-2 text-sm font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-hidden focus:border-[#00796b] text-slate-800 dark:text-slate-100 shadow-2xs"
                         />
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 flex-wrap">
                           {[10, 25, 50, 100].map((qty) => (
                             <button
                               key={qty}
@@ -666,15 +683,15 @@ export const ProductList = () => {
                               onClick={() => setFormData({ ...formData, stock_quantity: qty })}
                               className="px-2.5 py-1 text-[11px] font-bold bg-white dark:bg-slate-800 hover:bg-teal-50 text-slate-700 dark:text-slate-200 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer shadow-2xs"
                             >
-                              {qty}
+                              +{qty}
                             </button>
                           ))}
                         </div>
                       </div>
                     </div>
 
-                    <div className="bg-slate-50/70 dark:bg-slate-850 p-3.5 rounded-2xl border border-slate-200/70 dark:border-slate-800 space-y-2">
-                      <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-slate-50/70 dark:bg-slate-850 p-3 sm:p-3.5 rounded-2xl border border-slate-200/70 dark:border-slate-800 space-y-2">
+                      <div className="grid grid-cols-1 xs:grid-cols-2 gap-2">
                         <div>
                           <div className="flex items-center justify-between mb-1">
                             <label className="font-extrabold text-slate-800 dark:text-slate-100 uppercase tracking-wider text-[10px] font-heading">
@@ -726,7 +743,7 @@ export const ProductList = () => {
 
               {/* ================= TAB 2: ADVANCED DETAILS ================= */}
               {activeFormTab === 'advanced' && (
-                <div className="space-y-4">
+                <div className="space-y-3.5 sm:space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="bg-slate-50/70 dark:bg-slate-850 p-3 rounded-2xl border border-slate-200/70 dark:border-slate-800 space-y-1">
                       <label className="block font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider text-[10px]">
@@ -735,7 +752,7 @@ export const ProductList = () => {
                       <select
                         value={formData.brand}
                         onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                        className="w-full px-3 py-2 text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-hidden focus:border-[#00796b] text-slate-800 dark:text-slate-100 shadow-2xs cursor-pointer"
+                        className="w-full px-3 py-2 text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-hidden focus:border-[#00796b] text-slate-800 dark:text-slate-100 shadow-2xs cursor-pointer truncate"
                       >
                         <option value="">-- Select Brand --</option>
                         {brands.map((b) => (
@@ -751,7 +768,7 @@ export const ProductList = () => {
                       <select
                         value={formData.gst_percent}
                         onChange={(e) => setFormData({ ...formData, gst_percent: parseFloat(e.target.value) })}
-                        className="w-full px-3 py-2 text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-hidden focus:border-[#00796b] text-slate-800 dark:text-slate-100 shadow-2xs cursor-pointer"
+                        className="w-full px-3 py-2 text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-hidden focus:border-[#00796b] text-slate-800 dark:text-slate-100 shadow-2xs cursor-pointer truncate"
                       >
                         <option value="0">0% (Tax Exempted)</option>
                         <option value="5">5% GST (Grocery Essentials)</option>
@@ -802,6 +819,35 @@ export const ProductList = () => {
                       />
                     </div>
                   </div>
+
+                  {/* Image URL & Description */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="bg-slate-50/70 dark:bg-slate-850 p-3 rounded-2xl border border-slate-200/70 dark:border-slate-800 space-y-1">
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider text-[10px]">
+                        Product Image URL
+                      </label>
+                      <input
+                        type="url"
+                        value={formData.image}
+                        onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                        placeholder="https://example.com/product-image.jpg"
+                        className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-hidden focus:border-[#00796b] text-slate-800 dark:text-slate-100 shadow-2xs"
+                      />
+                    </div>
+
+                    <div className="bg-slate-50/70 dark:bg-slate-850 p-3 rounded-2xl border border-slate-200/70 dark:border-slate-800 space-y-1">
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider text-[10px]">
+                        Short Description / Notes
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        placeholder="Product notes, features, or details"
+                        className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-hidden focus:border-[#00796b] text-slate-800 dark:text-slate-100 shadow-2xs"
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -825,11 +871,11 @@ export const ProductList = () => {
               )}
 
               {/* Bottom Action Footer Row */}
-              <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800 gap-3">
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800 gap-2.5 sm:gap-3">
                 <button
                   type="button"
                   onClick={handleResetForm}
-                  className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+                  className="w-full sm:w-auto px-4 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer text-center"
                 >
                   Clear Form
                 </button>
@@ -837,10 +883,10 @@ export const ProductList = () => {
                 <button
                   type="submit"
                   disabled={formSubmitting}
-                  className="px-6 py-2.5 rounded-xl text-xs font-bold bg-[#00796b] hover:bg-[#004d40] text-white flex items-center gap-2 shadow-xs transition-all cursor-pointer"
+                  className="w-full sm:w-auto px-6 py-3 rounded-xl text-xs font-bold bg-[#00796b] hover:bg-[#004d40] text-white flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer disabled:opacity-50 active:scale-[0.99]"
                 >
-                  <CheckCircle2 className="w-4 h-4 text-white" />
-                  <span>{formSubmitting ? 'Saving Product...' : 'Create & Save Product'}</span>
+                  <CheckCircle2 className="w-4 h-4 text-white shrink-0" />
+                  <span>{formSubmitting ? 'Saving Product...' : (editingProduct ? 'Update Product' : 'Create & Save Product')}</span>
                 </button>
               </div>
             </form>

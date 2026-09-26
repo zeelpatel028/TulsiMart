@@ -87,12 +87,39 @@ export const Navbar = ({ onMenuClick, onOpenQuickOrder }) => {
 
   return (
     <header className="h-20 bg-gradient-to-r from-[#e0f2f1] via-[#f0faf9] to-[#e0f2f1] dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 backdrop-blur-md border-b border-[#B2DFDB] dark:border-slate-800 px-3 sm:px-6 sticky top-0 z-30 flex items-center justify-between gap-2 sm:gap-4 shadow-xs">
-      {/* Left: Mobile Toggle & Page Title / Quick Search */}
-      <div className="flex items-center gap-2 sm:gap-3 flex-1 max-w-xl min-w-0">
+      {/* Left: Brand Logo & App Name + Menu Toggle + Quick Search */}
+      <div className="flex items-center gap-2 sm:gap-3 flex-1 max-w-2xl min-w-0">
+        {/* Logo & App Name shifted to left side */}
+        <div 
+          onClick={() => navigate('/')} 
+          className="flex items-center gap-2.5 cursor-pointer shrink-0 mr-1 sm:mr-2"
+          title="Tulsi Mart Dashboard"
+        >
+          <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 p-1 flex items-center justify-center shrink-0 border border-white/80 dark:border-slate-700 shadow-xs">
+            <img 
+              src="/logo.png" 
+              alt="Tulsi Mart Logo" 
+              className="w-full h-full object-contain"
+              onError={(e) => { e.target.src = '/logo.png'; }}
+            />
+          </div>
+          <div className="hidden sm:block truncate">
+            <div className="flex items-center gap-1.5">
+              <span className="font-extrabold text-base tracking-tight text-slate-900 dark:text-slate-100 font-heading">
+                Tulsi <span className="text-[#00796b] dark:text-[#4DB6AC]">Mart</span>
+              </span>
+              <span className="bg-[#00796b] text-white text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider shadow-2xs">
+                POS
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* 3-line Menu Icon (moved after Logo & App Name) */}
         <button
           onClick={onMenuClick}
-          className="lg:hidden p-2 rounded-xl text-[#00695C] dark:text-slate-200 hover:bg-[#E0F2F1] dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
-          title="Open Menu"
+          className="p-2 sm:p-2.5 rounded-xl bg-white/80 dark:bg-slate-800 hover:bg-[#E0F2F1] dark:hover:bg-slate-700 text-[#00695C] dark:text-[#80cbc4] border border-[#B2DFDB]/60 dark:border-slate-700 transition-colors shrink-0 cursor-pointer shadow-2xs"
+          title="Toggle Navigation Menu"
         >
           <Menu className="w-5 h-5" />
         </button>
