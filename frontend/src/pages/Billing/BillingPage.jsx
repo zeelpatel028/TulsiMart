@@ -364,9 +364,9 @@ export const BillingPage = () => {
     try {
       setLoadingCatalog(true);
       const [prodRes, catRes, custRes, coupRes, gullaRes, suppRes, expCatRes] = await Promise.allSettled([
-        inventoryApi.getProducts({ page_size: 100 }),
+        inventoryApi.getProducts({ page_size: 30 }),
         inventoryApi.getCategories(),
-        customersApi.getCustomers({ page_size: 100 }),
+        customersApi.getCustomers({ page_size: 30 }),
         offersApi.getCoupons(),
         gullaApi.getGullaSummary(),
         suppliersApi.getSuppliers(),
@@ -513,15 +513,82 @@ export const BillingPage = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [cartItems, submittingOrder, currentCart, paymentMethod, cashTendered]);
 
-  // Barcode Submission Handler
-  const handleBarcodeSubmit = (e) => {
-    e.preventDefault();
-    if (!barcodeInput.trim()) return;
+  // Debounced Product Search & Category Selection for Make Bill POS
+  const searchTimeoutRef = useRef(null);
 
-    const query = barcodeInput.trim().toLowerCase();
-    const matchedProduct = products.find(
-      (p) => (p.barcode && p.barcode.toLowerCase() === query) || (p.sku && p.sku.toLowerCase() === query)
+  const handleSearchInputChange = (e) => {
+    const val = e.target.value;
+    setSearchQuery(val);
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        setLoadingCatalog(true);
+        const params = { page_size: 30 };
+        if (val.trim()) params.search = val.trim();
+        if (selectedCategory && selectedCategory !== 'ALL') params.category = selectedCategory;
+
+        const res = await inventoryApi.getProducts(params);
+        setProducts(res.data?.results || res.data || []);
+      } catch (err) {
+        console.error('Failed to search billing products', err);
+      } finally {
+        setLoadingCatalog(false);
+      }
+    }, 300);
+  };
+
+  const handleSelectCategory = async (catName) => {
+    setSelectedCategory(catName);
+    try {
+      setLoadingCatalog(true);
+      const params = { page_size: 30 };
+      if (catName !== 'ALL') params.category = catName;
+      if (searchQuery.trim()) params.search = searchQuery.trim();
+
+      const res = await inventoryApi.getProducts(params);
+      setProducts(res.data?.results || res.data || []);
+    } catch (err) {
+      console.error('Failed to filter by category', err);
+    } finally {
+      setLoadingCatalog(false);
+    }
+  };
+
+  // Barcode Submission Handler (Fast B-Tree Indexed Lookup)
+  const handleBarcodeSubmit = async (e) => {
+    e.preventDefault();
+    const query = barcodeInput.trim();
+    if (!query) return;
+
+    // 1. Instant check in currently loaded products state
+    let matchedProduct = products.find(
+      (p) => (p.barcode && p.barcode.toLowerCase() === query.toLowerCase()) || 
+             (p.sku && p.sku.toLowerCase() === query.toLowerCase())
     );
+
+    // 2. If not found in loaded 30 products, perform fast exact indexed backend lookup
+    if (!matchedProduct) {
+      try {
+        const res = await inventoryApi.getProducts({ barcode: query, page_size: 1 });
+        const items = res.data?.results || res.data || [];
+        if (items.length > 0) {
+          matchedProduct = items[0];
+        } else {
+          // Fallback to SKU lookup
+          const skuRes = await inventoryApi.getProducts({ sku: query, page_size: 1 });
+          const skuItems = skuRes.data?.results || skuRes.data || [];
+          if (skuItems.length > 0) {
+            matchedProduct = skuItems[0];
+          }
+        }
+      } catch (err) {
+        console.error('Barcode lookup error:', err);
+      }
+    }
 
     if (matchedProduct) {
       handleAddToCart(matchedProduct);
@@ -1050,7 +1117,7 @@ export const BillingPage = () => {
       <div className="-mx-3 sm:-mx-5 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-2.5 bg-white dark:bg-slate-900 border-y border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-2 mb-3">
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar touch-pan flex-1">
           <button
-            onClick={() => setSelectedCategory('ALL')}
+            onClick={() => handleSelectCategory('ALL')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
               selectedCategory === 'ALL'
                 ? 'bg-[#00796b] text-white shadow-xs font-extrabold'
@@ -1072,7 +1139,7 @@ export const BillingPage = () => {
             return (
               <button
                 key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
+                onClick={() => handleSelectCategory(cat.id)}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
                   isActive
                     ? 'bg-[#00796b] text-white shadow-xs font-extrabold'
@@ -1087,7 +1154,7 @@ export const BillingPage = () => {
           {categories.filter(c => !['Atta', 'Oil', 'Dairy', 'Snacks', 'Beverages', 'Household'].includes(c.name)).map((c) => (
             <button
               key={c.id}
-              onClick={() => setSelectedCategory(c.name)}
+              onClick={() => handleSelectCategory(c.name)}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
                 selectedCategory === c.name
                   ? 'bg-[#00796b] text-white shadow-xs font-extrabold'
@@ -1180,7 +1247,7 @@ export const BillingPage = () => {
                 <input
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={handleSearchInputChange}
                   placeholder="Search product name, brand..."
                   className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-[#00796b] rounded-xl text-xs outline-hidden text-slate-800 dark:text-slate-100 placeholder:text-slate-400 font-medium"
                 />

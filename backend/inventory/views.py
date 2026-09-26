@@ -113,23 +113,24 @@ class UnitViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.AllowAny]
 
 
+from rest_framework.pagination import PageNumberPagination
+
+class ProductPagination(PageNumberPagination):
+    page_size = 30
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all().select_related('category', 'brand', 'unit')
     serializer_class = ProductSerializer
     permission_classes = [permissions.AllowAny]
-
-    def list(self, request, *args, **kwargs):
-        q = request.META.get('QUERY_STRING', '')
-        cache_key = f'inv_prod_list_{q}'
-        cached = cache.get(cache_key)
-        if cached is not None:
-            return Response(cached)
-        res = super().list(request, *args, **kwargs)
-        cache.set(cache_key, res.data, 30)
-        return res
+    pagination_class = ProductPagination
 
     def get_queryset(self):
         qs = super().get_queryset()
+        barcode = self.request.query_params.get('barcode')
+        sku = self.request.query_params.get('sku')
         category_id = self.request.query_params.get('category')
         brand_id = self.request.query_params.get('brand')
         stock_status = self.request.query_params.get('stock_status')
@@ -137,9 +138,15 @@ class ProductViewSet(viewsets.ModelViewSet):
         is_active = self.request.query_params.get('is_active')
         expiry = self.request.query_params.get('expiry') # 'expired', 'near_expiry'
 
-        if category_id:
+        # Fast path for exact barcode/SKU scanner lookups
+        if barcode:
+            return qs.filter(barcode__iexact=barcode.strip())
+        if sku:
+            return qs.filter(sku__iexact=sku.strip())
+
+        if category_id and category_id != 'ALL':
             qs = qs.filter(category_id=category_id)
-        if brand_id:
+        if brand_id and brand_id != 'ALL':
             qs = qs.filter(brand_id=brand_id)
         if is_active is not None:
             qs = qs.filter(is_active=(is_active == 'true'))
@@ -159,13 +166,22 @@ class ProductViewSet(viewsets.ModelViewSet):
             qs = qs.filter(expiry_date__gte=today, expiry_date__lte=near_date)
 
         if search:
-            qs = qs.filter(
-                Q(name__icontains=search) |
-                Q(sku__icontains=search) |
-                Q(barcode__icontains=search) |
-                Q(category__name__icontains=search) |
-                Q(brand__name__icontains=search)
-            )
+            search_clean = search.strip()
+            # If search string looks like a numeric barcode/SKU, prioritize exact barcode lookup first
+            if search_clean.isdigit() and len(search_clean) >= 6:
+                qs = qs.filter(
+                    Q(barcode__iexact=search_clean) |
+                    Q(sku__iexact=search_clean) |
+                    Q(name__icontains=search_clean)
+                )
+            else:
+                qs = qs.filter(
+                    Q(name__icontains=search_clean) |
+                    Q(sku__icontains=search_clean) |
+                    Q(barcode__icontains=search_clean) |
+                    Q(category__name__icontains=search_clean) |
+                    Q(brand__name__icontains=search_clean)
+                )
         return qs
 
     def perform_create(self, serializer):
