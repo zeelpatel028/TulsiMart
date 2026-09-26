@@ -85,12 +85,18 @@ class MainActivity : AppCompatActivity() {
         webSettings.allowFileAccess = true
         webSettings.allowContentAccess = true
 
-        // Viewport & Responsive Display
+        // Viewport & Responsive Display for all mobile screen sizes
         webSettings.useWideViewPort = true
-        webSettings.loadWithOverviewMode = true
-        webSettings.setSupportZoom(true)
+        webSettings.loadWithOverviewMode = false
+        webSettings.textZoom = 100
+        webSettings.setSupportZoom(false)
         webSettings.builtInZoomControls = false
         webSettings.displayZoomControls = false
+
+        // Status bar styling
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            window.statusBarColor = androidx.core.content.ContextCompat.getColor(this, R.color.deep_teal)
+        }
 
         // Media & Performance Settings
         webSettings.mediaPlaybackRequiresUserGesture = false

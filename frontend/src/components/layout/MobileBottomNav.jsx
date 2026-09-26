@@ -44,7 +44,10 @@ export const MobileBottomNav = ({ cartCount = 0 }) => {
   ];
 
   return (
-    <nav className="fixed bottom-3 left-1/2 -translate-x-1/2 w-[calc(100%-24px)] max-w-[420px] z-50 lg:hidden pointer-events-auto">
+    <nav 
+      className="fixed left-1/2 -translate-x-1/2 w-[calc(100%-24px)] max-w-[420px] z-50 lg:hidden pointer-events-auto"
+      style={{ bottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
+    >
       {/* Floating Pill Card Outer Box */}
       <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200/80 dark:border-slate-800 rounded-[28px] sm:rounded-[32px] shadow-2xl px-1.5 sm:px-2.5 py-1.5 sm:py-2 flex items-center justify-between relative w-full">
         {navItems.map((item) => {
