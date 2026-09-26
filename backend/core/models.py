@@ -45,6 +45,7 @@ class CashRegisterEntry(models.Model):
 class BankTransaction(models.Model):
     TRANSACTION_TYPES = (
         ('UPI_IN', 'POS UPI / Customer Payment'),
+        ('CARD_IN', 'POS Card / Terminal Payment'),
         ('SUPPLIER_PAYOUT', 'Supplier Bank / UPI Payout'),
         ('EXPENSE_PAYOUT', 'Store Bank / UPI Expense'),
         ('DEPOSIT', 'Admin Capital / Cash Deposit to Bank'),
@@ -135,6 +136,7 @@ class StoreSetting(models.Model):
     security_require_otp = models.BooleanField(default=False)
     security_session_timeout = models.IntegerField(default=30)
     home_cash_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    auto_1130_sweep_enabled = models.BooleanField(default=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

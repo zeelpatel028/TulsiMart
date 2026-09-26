@@ -11,6 +11,7 @@ from .views import (
     gulla_entry_create_view,
     calculate_denomination_api,
     eod_cash_sweep_api,
+    toggle_auto_1130_sweep_api,
     home_cash_vault_api,
     login_auth_view,
     verify_otp_auth_view,
@@ -35,6 +36,7 @@ urlpatterns = [
     path('gulla/', gulla_summary_view, name='gulla-summary'),
     path('gulla/entry/', gulla_entry_create_view, name='gulla-entry'),
     path('gulla/eod-sweep/', eod_cash_sweep_api, name='gulla-eod-sweep'),
+    path('gulla/toggle-auto-sweep/', toggle_auto_1130_sweep_api, name='gulla-toggle-auto-sweep'),
     path('gulla/calculate-notes/', calculate_denomination_api, name='gulla-calc-notes'),
     path('', include(router.urls)),
 ]

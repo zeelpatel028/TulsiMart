@@ -41,14 +41,17 @@ import {
   PlusCircle,
   ArrowDownRight,
   ArrowUpRight,
-  History
+  ArrowDownLeft,
+  History,
+  Search,
+  Clock
 } from 'lucide-react';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
 import { Modal } from '../../components/common/Modal';
 import { CartLoader } from '../../components/common/CartLoader';
-import { settingsApi, authApi, loginAccountsApi, homeCashApi } from '../../api';
+import { settingsApi, authApi, loginAccountsApi, homeCashApi, bankApi } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -95,6 +98,14 @@ export const SettingsPage = () => {
   const [homeNoteCounts, setHomeNoteCounts] = useState({ 500: '', 200: '', 100: '', 50: '', 20: '', 10: '', 5: '', 2: '', 1: '' });
   const [homeNotesReason, setHomeNotesReason] = useState('');
   const [submittingHomeCash, setSubmittingHomeCash] = useState(false);
+  const [historyFilter, setHistoryFilter] = useState('ALL'); // ALL, SWEEP, DEPOSIT, WITHDRAWAL
+  const [historySearch, setHistorySearch] = useState('');
+  const [loginsFilter, setLoginsFilter] = useState('ALL'); // ALL, ADMIN, STORE_MANAGER, CASHIER
+  const [loginsSearch, setLoginsSearch] = useState('');
+  const [bankTransactions, setBankTransactions] = useState([]);
+  const [loadingBankTx, setLoadingBankTx] = useState(false);
+  const [bankFilter, setBankFilter] = useState('ALL');
+  const [bankSearch, setBankSearch] = useState('');
 
   // Form State initialized with defaults
   const [formData, setFormData] = useState({
@@ -291,9 +302,23 @@ export const SettingsPage = () => {
     }
   };
 
+  const fetchBankTransactions = async () => {
+    setLoadingBankTx(true);
+    try {
+      const res = await bankApi.getTransactions();
+      setBankTransactions(res.data?.results || res.data || []);
+    } catch (err) {
+      console.error('Failed to fetch bank transactions:', err);
+    } finally {
+      setLoadingBankTx(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'home_cash') {
       fetchHomeCashData();
+    } else if (activeTab === 'banking') {
+      fetchBankTransactions();
     }
   }, [activeTab]);
 
@@ -444,117 +469,111 @@ export const SettingsPage = () => {
       {/* TAB 6: LOGIN ACCOUNTS & CREDENTIALS */}
       {activeTab === 'logins' && (
         <div className="space-y-6">
-          <Card className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-400 rounded-xl border border-teal-100 dark:border-teal-900/50">
+          <Card className="p-4 sm:p-6 space-y-4">
+            {/* Header + Toolbar */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-400 border border-teal-100 dark:border-teal-900/50 shrink-0">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">User Login Credentials Directory</h3>
-                  <p className="text-slate-500 dark:text-slate-400 text-xs">Manage accounts, update emails for OTP delivery, and create new users.</p>
-                </div>
+                <h3 className="text-base font-black text-[#384959] dark:text-slate-100 font-heading">
+                  User Login Credentials Directory
+                </h3>
               </div>
 
-              <Button
-                variant="primary"
-                size="sm"
-                icon={UserPlus}
-                onClick={handleOpenCreateAccountModal}
-                className="bg-teal-600 hover:bg-teal-700 text-white font-bold self-start sm:self-auto shadow-xs"
-              >
-                Add New Login Account
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Role Filter Tabs */}
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl text-[11px] font-bold border border-slate-200/60 dark:border-slate-700/60">
+                  {['ALL', 'ADMIN', 'STORE_MANAGER', 'CASHIER'].map((role) => (
+                    <button
+                      key={role}
+                      type="button"
+                      onClick={() => setLoginsFilter(role)}
+                      className={`px-3 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                        loginsFilter === role
+                          ? 'bg-teal-600 text-white shadow-xs font-black'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                      }`}
+                    >
+                      {role === 'ALL' ? 'All' : role === 'ADMIN' ? 'Admins' : role === 'STORE_MANAGER' ? 'Managers' : 'Cashiers'}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Search Bar */}
+                <div className="relative shrink-0">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search accounts..."
+                    value={loginsSearch}
+                    onChange={(e) => setLoginsSearch(e.target.value)}
+                    className="pl-8 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-teal-500 outline-none w-36 sm:w-44 font-medium dark:text-slate-200"
+                  />
+                </div>
+
+                {/* Add New Login Account Button */}
+                <Button
+                  variant="primary"
+                  size="sm"
+                  icon={UserPlus}
+                  onClick={handleOpenCreateAccountModal}
+                  className="bg-teal-600 hover:bg-teal-700 text-white font-extrabold shadow-xs"
+                >
+                  Add Account
+                </Button>
+              </div>
             </div>
 
             {loadingAccounts ? (
-              <div className="py-8 flex justify-center">
+              <div className="py-12 flex justify-center">
                 <CartLoader text="Loading Login Accounts..." size="sm" />
               </div>
-            ) : loginAccounts.length === 0 ? (
-              <div className="text-center py-8 text-slate-500 text-xs">
-                No custom login accounts found in `login` table. Click "Add New Login Account" to create one.
-              </div>
-            ) : (
-              <div className="overflow-x-auto touch-pan">
-                <table className="w-full text-left text-xs border-collapse min-w-[700px]">
-                  <thead>
-                    <tr className="border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px] whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">
-                      <th className="py-3 px-3">User / Full Name</th>
-                      <th className="py-3 px-3">Username</th>
-                      <th className="py-3 px-3">OTP Delivery Email</th>
-                      <th className="py-3 px-3">Password</th>
-                      <th className="py-3 px-3">Role</th>
-                      <th className="py-3 px-3 text-center">OTP Verification</th>
-                      <th className="py-3 px-3 text-center">Status</th>
-                      <th className="py-3 px-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {loginAccounts.map((acc) => {
+            ) : (() => {
+              const filteredAccounts = (loginAccounts || []).filter((acc) => {
+                if (loginsFilter !== 'ALL' && acc.role !== loginsFilter) return false;
+                if (loginsSearch.trim()) {
+                  const q = loginsSearch.toLowerCase();
+                  const matchName = (acc.full_name || '').toLowerCase().includes(q);
+                  const matchUser = (acc.username || '').toLowerCase().includes(q);
+                  const matchEmail = (acc.email || '').toLowerCase().includes(q);
+                  const matchRole = (acc.role || '').toLowerCase().includes(q);
+                  return matchName || matchUser || matchEmail || matchRole;
+                }
+                return true;
+              });
+
+              if (filteredAccounts.length === 0) {
+                return (
+                  <div className="py-12 text-center space-y-2">
+                    <Users className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto" />
+                    <p className="text-sm font-bold text-slate-600 dark:text-slate-300">No Login Accounts Found</p>
+                    <p className="text-xs text-slate-400">Try adjusting your search filter or click "Add Account" to create a new login credential.</p>
+                  </div>
+                );
+              }
+
+              return (
+                <>
+                  {/* 1. Mobile Cards View (< md screens) */}
+                  <div className="block md:hidden space-y-3 max-h-[500px] overflow-y-auto pr-1">
+                    {filteredAccounts.map((acc) => {
                       const isShowPass = !!showPasswordMap[acc.id];
                       return (
-                        <tr key={acc.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/60 transition-colors whitespace-nowrap">
-                          <td className="py-3.5 px-3">
-                            <p className="font-bold text-slate-900 dark:text-slate-100">{acc.full_name}</p>
-                            <span className="text-[10px] text-slate-400">ID: #{acc.id}</span>
-                          </td>
-                          <td className="py-3.5 px-3 font-mono font-bold text-teal-700 dark:text-teal-400">
-                            {acc.username}
-                          </td>
-                          <td className="py-3.5 px-3 text-slate-600 dark:text-slate-300 font-medium">
+                        <div
+                          key={acc.id}
+                          className="p-3.5 bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 space-y-2.5 shadow-2xs hover:shadow-xs transition-all"
+                        >
+                          {/* Top Row: Name + Actions */}
+                          <div className="flex items-center justify-between gap-2">
+                            <div>
+                              <p className="font-extrabold text-sm text-slate-900 dark:text-slate-100">{acc.full_name}</p>
+                              <span className="text-[10px] text-slate-400 font-mono">ID: #{acc.id}</span>
+                            </div>
                             <div className="flex items-center gap-1.5">
-                              <Mail className="w-3.5 h-3.5 text-slate-400" />
-                              <span>{acc.email || 'N/A'}</span>
-                            </div>
-                          </td>
-                          <td className="py-3.5 px-3 font-mono">
-                            <div className="flex items-center gap-2">
-                              <span>{isShowPass ? acc.password : '••••••••'}</span>
-                              <button
-                                onClick={() => togglePasswordVisibility(acc.id)}
-                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                                title={isShowPass ? "Hide password" : "Show password"}
-                              >
-                                {isShowPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                              </button>
-                            </div>
-                          </td>
-                          <td className="py-3.5 px-3">
-                            <Badge variant={acc.role === 'ADMIN' ? 'primary' : 'secondary'} size="sm">
-                              {acc.role_label || acc.role}
-                            </Badge>
-                          </td>
-                          <td className="py-3.5 px-3 text-center">
-                            <span
-                              onClick={() => handleToggleAccountOtp(acc.id, acc.username)}
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold cursor-pointer transition-transform hover:scale-105 ${
-                                acc.require_otp
-                                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
-                                  : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
-                              }`}
-                              title="Click to toggle OTP requirement for this account"
-                            >
-                              {acc.require_otp ? '🔒 OTP Required' : '🔑 Password Only'}
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-3 text-center">
-                            <span
-                              onClick={() => handleToggleAccountStatus(acc.id)}
-                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold cursor-pointer transition-transform hover:scale-105 ${
-                                acc.is_active
-                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
-                                  : 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300'
-                              }`}
-                            >
-                              ● {acc.is_active ? 'Active' : 'Disabled'}
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-3 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
                               <button
                                 onClick={() => handleOpenEditAccountModal(acc)}
-                                className="p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                                className="p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
                                 title="Edit Credentials"
                               >
                                 <Edit className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -567,14 +586,169 @@ export const SettingsPage = () => {
                                 <Trash2 className="w-4 h-4 text-rose-600 dark:text-rose-400" />
                               </button>
                             </div>
-                          </td>
-                        </tr>
+                          </div>
+
+                          {/* Username & Role Badges */}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="px-2.5 py-0.5 rounded-lg bg-teal-50 dark:bg-teal-950/80 text-teal-800 dark:text-teal-300 font-mono font-bold text-xs border border-teal-200 dark:border-teal-800">
+                              @{acc.username}
+                            </span>
+                            <Badge variant={acc.role === 'ADMIN' ? 'primary' : 'secondary'} size="sm">
+                              {acc.role_label || acc.role}
+                            </Badge>
+                          </div>
+
+                          {/* Email & Password */}
+                          <div className="space-y-1 bg-slate-50 dark:bg-slate-900/60 p-2.5 rounded-xl border border-slate-200/60 dark:border-slate-700/60 text-xs">
+                            <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+                              <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span className="truncate">{acc.email || 'N/A'}</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-2 font-mono text-xs pt-1 border-t border-slate-200/50 dark:border-slate-800">
+                              <span className="text-slate-500">Password:</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-bold">{isShowPass ? acc.password : '••••••••'}</span>
+                                <button
+                                  onClick={() => togglePasswordVisibility(acc.id)}
+                                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                                >
+                                  {isShowPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Toggles Row */}
+                          <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100 dark:border-slate-700/80">
+                            <span
+                              onClick={() => handleToggleAccountOtp(acc.id, acc.username)}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold cursor-pointer transition-transform hover:scale-105 ${
+                                acc.require_otp
+                                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
+                                  : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                              }`}
+                            >
+                              {acc.require_otp ? '🔒 OTP Required' : '🔑 Password Only'}
+                            </span>
+
+                            <span
+                              onClick={() => handleToggleAccountStatus(acc.id)}
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold cursor-pointer transition-transform hover:scale-105 ${
+                                acc.is_active
+                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
+                                  : 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300'
+                              }`}
+                            >
+                              ● {acc.is_active ? 'Active' : 'Disabled'}
+                            </span>
+                          </div>
+                        </div>
                       );
                     })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                  </div>
+
+                  {/* 2. Desktop & Tablet View Table (>= md screens) */}
+                  <div className="hidden md:block max-h-[480px] overflow-y-auto rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-950/60 shadow-xs custom-scrollbar">
+                    <table className="w-full text-left text-xs min-w-[800px]">
+                      <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 uppercase tracking-wider font-extrabold border-b border-slate-200 dark:border-slate-700 shadow-xs">
+                        <tr>
+                          <th className="py-3.5 px-4 whitespace-nowrap">User / Full Name</th>
+                          <th className="py-3.5 px-4 whitespace-nowrap">Username</th>
+                          <th className="py-3.5 px-4 whitespace-nowrap">OTP Delivery Email</th>
+                          <th className="py-3.5 px-4 whitespace-nowrap">Password</th>
+                          <th className="py-3.5 px-4 whitespace-nowrap">Role</th>
+                          <th className="py-3.5 px-4 text-center whitespace-nowrap">OTP Verification</th>
+                          <th className="py-3.5 px-4 text-center whitespace-nowrap">Status</th>
+                          <th className="py-3.5 px-4 text-right whitespace-nowrap">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                        {filteredAccounts.map((acc) => {
+                          const isShowPass = !!showPasswordMap[acc.id];
+                          return (
+                            <tr key={acc.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors whitespace-nowrap">
+                              <td className="py-3.5 px-4">
+                                <p className="font-extrabold text-slate-900 dark:text-slate-100">{acc.full_name}</p>
+                                <span className="text-[10px] text-slate-400 font-mono">ID: #{acc.id}</span>
+                              </td>
+                              <td className="py-3.5 px-4 font-mono font-bold text-teal-700 dark:text-teal-400">
+                                @{acc.username}
+                              </td>
+                              <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300 font-medium">
+                                <div className="flex items-center gap-1.5">
+                                  <Mail className="w-3.5 h-3.5 text-slate-400" />
+                                  <span>{acc.email || 'N/A'}</span>
+                                </div>
+                              </td>
+                              <td className="py-3.5 px-4 font-mono">
+                                <div className="flex items-center gap-2">
+                                  <span>{isShowPass ? acc.password : '••••••••'}</span>
+                                  <button
+                                    onClick={() => togglePasswordVisibility(acc.id)}
+                                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                                    title={isShowPass ? "Hide password" : "Show password"}
+                                  >
+                                    {isShowPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                  </button>
+                                </div>
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <Badge variant={acc.role === 'ADMIN' ? 'primary' : 'secondary'} size="sm">
+                                  {acc.role_label || acc.role}
+                                </Badge>
+                              </td>
+                              <td className="py-3.5 px-4 text-center">
+                                <span
+                                  onClick={() => handleToggleAccountOtp(acc.id, acc.username)}
+                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold cursor-pointer transition-transform hover:scale-105 ${
+                                    acc.require_otp
+                                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
+                                      : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                                  }`}
+                                  title="Click to toggle OTP requirement for this account"
+                                >
+                                  {acc.require_otp ? '🔒 OTP Required' : '🔑 Password Only'}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-4 text-center">
+                                <span
+                                  onClick={() => handleToggleAccountStatus(acc.id)}
+                                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold cursor-pointer transition-transform hover:scale-105 ${
+                                    acc.is_active
+                                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
+                                      : 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300'
+                                  }`}
+                                >
+                                  ● {acc.is_active ? 'Active' : 'Disabled'}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-4 text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <button
+                                    onClick={() => handleOpenEditAccountModal(acc)}
+                                    className="p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                                    title="Edit Credentials"
+                                  >
+                                    <Edit className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteAccount(acc.id, acc.username)}
+                                    className="p-1.5 text-slate-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"
+                                    title="Delete Account"
+                                  >
+                                    <Trash2 className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              );
+            })()}
           </Card>
         </div>
       )}
@@ -1029,6 +1203,275 @@ export const SettingsPage = () => {
                   </div>
                 </div>
               </Card>
+
+              {/* Bank & Digital Payment Transaction Audit History Table */}
+              <Card className="lg:col-span-2 p-4 sm:p-6 space-y-4">
+                <div className="space-y-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+                  {/* Top Row: Title & Refresh Button */}
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-xl bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-400 border border-teal-100 dark:border-teal-900/50 shrink-0">
+                        <Landmark className="w-5 h-5" />
+                      </div>
+                      <h3 className="text-base font-black text-[#384959] dark:text-slate-100 font-heading">
+                        Bank & Digital Payment Transaction Audit History
+                      </h3>
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={fetchBankTransactions}
+                      className="bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 shrink-0"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${loadingBankTx ? 'animate-spin' : ''}`} /> Refresh
+                    </Button>
+                  </div>
+
+                  {/* Bottom Row: Filter Tabs & Search Bar */}
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+                    {/* Filter Tabs */}
+                    <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl text-[11px] font-bold border border-slate-200/60 dark:border-slate-700/60 overflow-x-auto custom-scrollbar max-w-full">
+                      {['ALL', 'UPI_IN', 'CARD_IN', 'SUPPLIER_PAYOUT', 'EXPENSE_PAYOUT', 'DEPOSIT', 'WITHDRAWAL'].map((type) => (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => setBankFilter(type)}
+                          className={`px-3 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                            bankFilter === type
+                              ? 'bg-teal-600 text-white shadow-xs font-black'
+                              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                          }`}
+                        >
+                          {type === 'ALL'
+                            ? 'All'
+                            : type === 'UPI_IN'
+                            ? 'UPI Sales'
+                            : type === 'CARD_IN'
+                            ? 'Card Sales'
+                            : type === 'SUPPLIER_PAYOUT'
+                            ? 'Supplier Payouts'
+                            : type === 'EXPENSE_PAYOUT'
+                            ? 'Expenses'
+                            : type === 'DEPOSIT'
+                            ? 'Bank Deposits'
+                            : 'Withdrawals'}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Search Bar */}
+                    <div className="relative w-full lg:w-56 shrink-0">
+                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        placeholder="Search bank logs..."
+                        value={bankSearch}
+                        onChange={(e) => setBankSearch(e.target.value)}
+                        className="pl-8 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-teal-500 outline-none w-full font-medium dark:text-slate-200"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {loadingBankTx ? (
+                  <div className="py-12 flex justify-center">
+                    <CartLoader text="Loading Bank & Digital Logs..." size="sm" />
+                  </div>
+                ) : (() => {
+                  const filteredBankLogs = (bankTransactions || []).filter((tx) => {
+                    if (bankFilter !== 'ALL' && tx.transaction_type !== bankFilter) return false;
+                    if (bankSearch.trim()) {
+                      const q = bankSearch.toLowerCase();
+                      const matchType = (tx.transaction_type_display || tx.transaction_type || '').toLowerCase().includes(q);
+                      const matchRef = (tx.reference_number || '').toLowerCase().includes(q);
+                      const matchBank = (tx.bank_name || '').toLowerCase().includes(q);
+                      const matchNotes = (tx.notes || '').toLowerCase().includes(q);
+                      const matchUser = (tx.created_by_name || '').toLowerCase().includes(q);
+                      const matchAmt = String(tx.amount || '').includes(q);
+                      return matchType || matchRef || matchBank || matchNotes || matchUser || matchAmt;
+                    }
+                    return true;
+                  });
+
+                  if (filteredBankLogs.length === 0) {
+                    return (
+                      <div className="py-12 text-center space-y-2">
+                        <Landmark className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto" />
+                        <p className="text-sm font-bold text-slate-600 dark:text-slate-300">No Bank or Digital Transactions Logged</p>
+                        <p className="text-xs text-slate-400">All UPI sales, card receipts, supplier bank payouts & deposits will automatically appear here in real-time.</p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <>
+                      {/* 1. Mobile Cards View (< md screens) */}
+                      <div className="block md:hidden space-y-3 max-h-[500px] overflow-y-auto pr-1">
+                        {filteredBankLogs.map((tx) => {
+                          const isPositive = ['UPI_IN', 'CARD_IN', 'DEPOSIT'].includes(tx.transaction_type);
+                          const isUpi = tx.transaction_type === 'UPI_IN';
+                          const isCard = tx.transaction_type === 'CARD_IN';
+                          const isDeposit = tx.transaction_type === 'DEPOSIT';
+
+                          return (
+                            <div
+                              key={tx.id}
+                              className="p-3.5 bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 space-y-2.5 shadow-2xs hover:shadow-xs transition-all"
+                            >
+                              {/* Top Row: Type Badge + Amount */}
+                              <div className="flex items-center justify-between gap-2">
+                                <span
+                                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide border shadow-2xs ${
+                                    isUpi
+                                      ? 'bg-sky-50 dark:bg-sky-950/80 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800/60'
+                                      : isCard
+                                      ? 'bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/60'
+                                      : isDeposit
+                                      ? 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60'
+                                      : 'bg-rose-50 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/60'
+                                  }`}
+                                >
+                                  {isUpi && <QrCode className="w-3 h-3 text-sky-500" />}
+                                  {isCard && <CreditCard className="w-3 h-3 text-indigo-500" />}
+                                  {isDeposit && <ArrowDownLeft className="w-3 h-3 text-emerald-500" />}
+                                  {!isPositive && <ArrowUpRight className="w-3 h-3 text-rose-500" />}
+                                  {tx.transaction_type_display || tx.transaction_type?.replace('_', ' ')}
+                                </span>
+
+                                <span
+                                  className={`font-black text-sm sm:text-base font-mono tracking-tight ${
+                                    isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                                  }`}
+                                >
+                                  {isPositive ? '+' : '-'}₹{Number(tx.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                              </div>
+
+                              {/* Notes / Purpose */}
+                              <div className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-snug">
+                                {tx.notes || 'Store Digital / Banking Settlement'}
+                              </div>
+
+                              {/* Reference Number Pill */}
+                              {tx.reference_number && (
+                                <div className="flex items-center justify-between gap-2 bg-slate-50 dark:bg-slate-900/60 p-2 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reference No</span>
+                                  <span className="text-xs font-mono font-bold text-teal-700 dark:text-teal-400 truncate">
+                                    {tx.reference_number}
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* Footer Info */}
+                              <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-700/80 flex-wrap gap-2">
+                                <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                                  <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                                  <span>{tx.created_at ? new Date(tx.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : (tx.date || '-')}</span>
+                                </div>
+
+                                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">
+                                  • {tx.bank_name || 'HDFC Bank'}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* 2. Desktop & Tablet View Table (>= md screens) */}
+                      <div className="hidden md:block max-h-[480px] overflow-y-auto rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-950/60 shadow-xs custom-scrollbar">
+                        <table className="w-full text-left text-xs min-w-[850px]">
+                          <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 uppercase tracking-wider font-extrabold border-b border-slate-200 dark:border-slate-700 shadow-xs">
+                            <tr>
+                              <th className="py-3.5 px-4 whitespace-nowrap">Date & Time</th>
+                              <th className="py-3.5 px-4 whitespace-nowrap">Transaction Type</th>
+                              <th className="py-3.5 px-4 whitespace-nowrap">Reference No</th>
+                              <th className="py-3.5 px-4 text-right whitespace-nowrap min-w-[120px]">Amount</th>
+                              <th className="py-3.5 px-4 whitespace-nowrap">Bank / Channel</th>
+                              <th className="py-3.5 px-4">Notes & Settlement Details</th>
+                              <th className="py-3.5 px-4 whitespace-nowrap">Action By</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                            {filteredBankLogs.map((tx) => {
+                              const isPositive = ['UPI_IN', 'CARD_IN', 'DEPOSIT'].includes(tx.transaction_type);
+                              const isUpi = tx.transaction_type === 'UPI_IN';
+                              const isCard = tx.transaction_type === 'CARD_IN';
+                              const isDeposit = tx.transaction_type === 'DEPOSIT';
+
+                              return (
+                                <tr key={tx.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                                  {/* Date & Time */}
+                                  <td className="py-3.5 px-4 whitespace-nowrap">
+                                    <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-200 font-mono text-xs font-semibold">
+                                      <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                      {tx.created_at ? new Date(tx.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : (tx.date || '-')}
+                                    </div>
+                                  </td>
+
+                                  {/* Transaction Type Badge */}
+                                  <td className="py-3.5 px-4 whitespace-nowrap">
+                                    <span
+                                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wide border shadow-2xs ${
+                                        isUpi
+                                          ? 'bg-sky-100 dark:bg-sky-950/80 text-sky-800 dark:text-sky-300 border-sky-300 dark:border-sky-800/60'
+                                          : isCard
+                                          ? 'bg-indigo-100 dark:bg-indigo-950/80 text-indigo-800 dark:text-indigo-300 border-indigo-300 dark:border-indigo-800/60'
+                                          : isDeposit
+                                          ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800/60'
+                                          : 'bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-800/60'
+                                      }`}
+                                    >
+                                      {isUpi && <QrCode className="w-3 h-3 text-sky-600 dark:text-sky-400" />}
+                                      {isCard && <CreditCard className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />}
+                                      {isDeposit && <ArrowDownLeft className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />}
+                                      {!isPositive && <ArrowUpRight className="w-3 h-3 text-rose-600 dark:text-rose-400" />}
+                                      {tx.transaction_type_display || tx.transaction_type?.replace('_', ' ')}
+                                    </span>
+                                  </td>
+
+                                  {/* Reference No */}
+                                  <td className="py-3.5 px-4 whitespace-nowrap font-mono font-bold text-teal-700 dark:text-teal-400">
+                                    {tx.reference_number || 'N/A'}
+                                  </td>
+
+                                  {/* Amount */}
+                                  <td className={`py-3.5 px-4 text-right font-black font-mono text-sm tracking-tight whitespace-nowrap ${
+                                    isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                                  }`}>
+                                    {isPositive ? '+' : '-'}₹{Number(tx.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </td>
+
+                                  {/* Bank / Channel */}
+                                  <td className="py-3.5 px-4 whitespace-nowrap">
+                                    <span className="inline-block px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg font-mono text-xs font-bold border border-slate-200/80 dark:border-slate-700/80">
+                                      {tx.bank_name || 'HDFC Bank'}
+                                    </span>
+                                  </td>
+
+                                  {/* Notes / Details */}
+                                  <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300 max-w-xs truncate">
+                                    {tx.notes || 'N/A'}
+                                  </td>
+
+                                  {/* Performed By */}
+                                  <td className="py-3.5 px-4 whitespace-nowrap">
+                                    <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-semibold text-xs">
+                                      <UserCheck className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
+                                      <span>{tx.created_by_name || 'System Auto'}</span>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  );
+                })()}
+              </Card>
             </div>
           )}
 
@@ -1101,52 +1544,7 @@ export const SettingsPage = () => {
                     </Button>
                   </div>
 
-                  {/* Simple Color Palette Options */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2.5">
-                      Simple Brand Color Theme
-                    </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {(colorPresets || []).map((preset) => {
-                        const isSelected = colorTheme === preset.id;
-                        return (
-                          <button
-                            key={preset.id}
-                            type="button"
-                            onClick={() => {
-                              setColorTheme(preset.id);
-                              showToast(`Theme changed to ${preset.name}!`, 'info');
-                            }}
-                            className={`flex items-center gap-3 p-3.5 rounded-2xl border transition-all text-left ${
-                              isSelected
-                                ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/50 dark:bg-emerald-950/30'
-                                : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600'
-                            }`}
-                          >
-                            <div 
-                              className="w-8 h-8 rounded-xl shrink-0 flex items-center justify-center text-white shadow-xs font-bold text-xs"
-                              style={{ backgroundColor: preset.primaryColor }}
-                            >
-                              {isSelected ? <Check className="w-4 h-4 stroke-[3]" /> : null}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center justify-between gap-1">
-                                <span className="text-xs font-bold text-slate-800 dark:text-slate-100">
-                                  {preset.name}
-                                </span>
-                                {isSelected && (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-extrabold">
-                                    Active
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-[11px] text-slate-400 truncate">{preset.desc}</p>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+
                 </div>
               </Card>
             </div>
@@ -1364,158 +1762,379 @@ export const SettingsPage = () => {
             </div>
           </Card>
 
-          {/* Metric Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="p-4 flex items-center gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
-              <div className="p-3 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-xl">
-                <Landmark className="w-6 h-6" />
+          {/* Metric Cards Grid (Billing Page Style) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {/* Card 1: Home Cash Balance */}
+            <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl shadow-2xs hover:shadow-xs transition-all flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center shrink-0 shadow-2xs">
+                <Landmark className="w-5 h-5" />
               </div>
-              <div>
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block uppercase">Home Cash Balance</span>
-                <span className="text-xl font-black text-[#384959] dark:text-emerald-400 font-heading">₹{homeCashData.home_cash_amount.toFixed(2)}</span>
+              <div className="min-w-0">
+                <span className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 block truncate">
+                  Home Cash Balance
+                </span>
+                <span className="text-xl sm:text-2xl font-black text-[#384959] dark:text-emerald-400 font-heading tracking-tight block mt-0.5">
+                  ₹{homeCashData.home_cash_amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
               </div>
-            </Card>
+            </div>
 
-            <Card className="p-4 flex items-center gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
-              <div className="p-3 bg-sky-100 dark:bg-sky-950 text-sky-600 dark:text-sky-400 rounded-xl">
-                <ArrowUpRight className="w-6 h-6" />
+            {/* Card 2: Total Deposits & Sweeps */}
+            <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl shadow-2xs hover:shadow-xs transition-all flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-sky-100 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800 flex items-center justify-center shrink-0 shadow-2xs">
+                <ArrowUpRight className="w-5 h-5" />
               </div>
-              <div>
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block uppercase">Total Deposits & Sweeps</span>
-                <span className="text-xl font-black text-[#384959] dark:text-sky-400 font-heading">₹{homeCashData.total_deposits.toFixed(2)}</span>
+              <div className="min-w-0">
+                <span className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 block truncate">
+                  Total Deposits & Sweeps
+                </span>
+                <span className="text-xl sm:text-2xl font-black text-[#384959] dark:text-sky-400 font-heading tracking-tight block mt-0.5">
+                  ₹{homeCashData.total_deposits.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
               </div>
-            </Card>
+            </div>
 
-            <Card className="p-4 flex items-center gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
-              <div className="p-3 bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 rounded-xl">
-                <ArrowDownRight className="w-6 h-6" />
+            {/* Card 3: Total Home Withdrawals */}
+            <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl shadow-2xs hover:shadow-xs transition-all flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 flex items-center justify-center shrink-0 shadow-2xs">
+                <ArrowDownRight className="w-5 h-5" />
               </div>
-              <div>
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block uppercase">Total Home Withdrawals</span>
-                <span className="text-xl font-black text-[#384959] dark:text-rose-400 font-heading">₹{homeCashData.total_withdrawals.toFixed(2)}</span>
+              <div className="min-w-0">
+                <span className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 block truncate">
+                  Total Home Withdrawals
+                </span>
+                <span className="text-xl sm:text-2xl font-black text-[#384959] dark:text-rose-400 font-heading tracking-tight block mt-0.5">
+                  ₹{homeCashData.total_withdrawals.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
               </div>
-            </Card>
+            </div>
 
-            <Card className="p-4 flex items-center gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
-              <div className="p-3 bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400 rounded-xl">
-                <FileText className="w-6 h-6" />
+            {/* Card 4: Total Audit Entries */}
+            <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl shadow-2xs hover:shadow-xs transition-all flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 flex items-center justify-center shrink-0 shadow-2xs">
+                <FileText className="w-5 h-5" />
               </div>
-              <div>
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block uppercase">Total Audit Entries</span>
-                <span className="text-xl font-black text-[#384959] dark:text-amber-400 font-heading">{homeCashData.total_transactions} Entries</span>
+              <div className="min-w-0">
+                <span className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 block truncate">
+                  Total Audit Entries
+                </span>
+                <span className="text-xl sm:text-2xl font-black text-[#384959] dark:text-amber-400 font-heading tracking-tight block mt-0.5">
+                  {homeCashData.total_transactions} Entries
+                </span>
               </div>
-            </Card>
+            </div>
           </div>
 
           {/* Physical Notes Breakdown Cards */}
-          <Card className="p-6 space-y-4">
+          <Card className="p-4 sm:p-5 space-y-3.5">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-[#384959] dark:text-slate-100 flex items-center gap-2">
-                <Wallet className="w-5 h-5 text-[#88BDF2]" />
+              <h3 className="text-sm sm:text-base font-bold text-[#384959] dark:text-slate-100 flex items-center gap-2">
+                <Wallet className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-400" />
                 Live Physical Notes Breakdown
               </h3>
-              <Badge variant="info">Automated Net Note Audit</Badge>
+              <Badge variant="info" className="text-[10px]">Real-Time Note Audit</Badge>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3">
-              {[500, 200, 100, 50, 20, 10, 5, 2, 1].map((denom) => {
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-3.5">
+              {[
+                { denom: 500, label: '₹500 Note', color: 'border-emerald-200 dark:border-emerald-900 bg-emerald-50/60 dark:bg-emerald-950/30' },
+                { denom: 200, label: '₹200 Note', color: 'border-amber-200 dark:border-amber-900 bg-amber-50/60 dark:bg-amber-950/30' },
+                { denom: 100, label: '₹100 Note', color: 'border-sky-200 dark:border-sky-900 bg-sky-50/60 dark:bg-sky-950/30' },
+                { denom: 50, label: '₹50 Note', color: 'border-indigo-200 dark:border-indigo-900 bg-indigo-50/60 dark:bg-indigo-950/30' },
+                { denom: 20, label: '₹20 Note', color: 'border-orange-200 dark:border-orange-900 bg-orange-50/60 dark:bg-orange-950/30' },
+                { denom: 10, label: '₹10 Note', color: 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40' },
+                { denom: 5, label: '₹5 Note', color: 'border-teal-200 dark:border-teal-900 bg-teal-50/60 dark:bg-teal-950/30' },
+                { denom: 2, label: '₹2 Note', color: 'border-violet-200 dark:border-violet-900 bg-violet-50/60 dark:bg-violet-950/30' },
+                { denom: 1, label: 'Coins (₹)', color: 'border-purple-200 dark:border-purple-900 bg-purple-50/60 dark:bg-purple-950/30' }
+              ].map(({ denom, label, color }) => {
                 const count = homeCashData.denominations_breakdown[String(denom)] || 0;
                 const totalVal = denom * count;
+                const hasNotes = count > 0;
                 return (
-                  <div key={denom} className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-2xl text-center space-y-1">
-                    <span className="text-xs font-black px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 border border-amber-200 dark:border-amber-800 inline-block font-heading">
-                      ₹{denom}
-                    </span>
-                    <span className="text-lg font-black text-[#384959] dark:text-slate-100 block font-mono">
-                      {count} <span className="text-[10px] font-normal text-slate-400">pcs</span>
-                    </span>
-                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block font-mono">
-                      = ₹{totalVal}
-                    </span>
+                  <div
+                    key={denom}
+                    className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 transition-all shadow-2xs hover:shadow-xs ${
+                      hasNotes
+                        ? `${color} text-slate-800 dark:text-slate-100`
+                        : 'bg-slate-50/60 dark:bg-slate-800/30 border-slate-200/80 dark:border-slate-700/50 opacity-60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-black text-sm shrink-0 font-heading ${
+                        hasNotes
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+                      }`}>
+                        ₹{denom}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-extrabold text-[#384959] dark:text-slate-200 truncate">
+                            {label}
+                          </span>
+                          {hasNotes && (
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                          )}
+                        </div>
+                        <span className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400 block truncate">
+                          {count} {denom === 1 ? 'coins' : 'pcs'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <span className={`text-sm sm:text-base font-black font-mono block ${
+                        hasNotes ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-400 dark:text-slate-500'
+                      }`}>
+                        ₹{totalVal.toLocaleString('en-IN')}
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                        Subtotal
+                      </span>
+                    </div>
                   </div>
                 );
               })}
             </div>
           </Card>
 
-          {/* Home Safe Audit History Ledger Table */}
-          <Card className="p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
-              <div>
-                <h3 className="text-base font-bold text-[#384959] dark:text-slate-100 flex items-center gap-2">
-                  <History className="w-5 h-5 text-[#88BDF2]" />
+          {/* Home Safe Audit History Ledger Table (Billing Page / Gulla Management Style) */}
+          <Card className="p-4 sm:p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-400 border border-teal-100 dark:border-teal-900/50 shrink-0">
+                  <History className="w-5 h-5" />
+                </div>
+                <h3 className="text-base font-black text-[#384959] dark:text-slate-100 font-heading">
                   Home Safe Transaction Audit History
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Complete history of Day-End Gulla Sweeps, manual home deposits & withdrawals with note breakdown.
-                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Filter Tabs */}
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl text-[11px] font-bold border border-slate-200/60 dark:border-slate-700/60">
+                  {['ALL', 'SWEEP', 'DEPOSIT', 'WITHDRAWAL'].map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setHistoryFilter(type)}
+                      className={`px-3 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                        historyFilter === type
+                          ? 'bg-teal-600 text-white shadow-xs font-black'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                      }`}
+                    >
+                      {type === 'ALL' ? 'All' : type === 'SWEEP' ? 'Gulla Sweeps' : type === 'DEPOSIT' ? 'Deposits' : 'Withdrawals'}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Search Bar */}
+                <div className="relative shrink-0">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search history..."
+                    value={historySearch}
+                    onChange={(e) => setHistorySearch(e.target.value)}
+                    className="pl-8 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-teal-500 outline-none w-36 sm:w-44 font-medium dark:text-slate-200"
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="table-scroll-container border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden max-h-96 custom-scrollbar">
-              <table className="w-full text-left text-xs min-w-[750px]">
-                <thead className="bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 font-bold sticky top-0 uppercase tracking-wider text-[10px] whitespace-nowrap">
-                  <tr>
-                    <th className="py-3 px-4">Date & Time</th>
-                    <th className="py-3 px-4">Entry Type</th>
-                    <th className="py-3 px-4 text-right">Amount</th>
-                    <th className="py-3 px-4">Note Breakdown</th>
-                    <th className="py-3 px-4 text-right">Balance After</th>
-                    <th className="py-3 px-4">Action By</th>
-                    <th className="py-3 px-4">Notes / Purpose</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-                  {homeCashData.history.length === 0 ? (
-                    <tr>
-                      <td colSpan="7" className="py-8 text-center text-slate-400 font-medium">
-                        No Home Safe cash transactions logged yet.
-                      </td>
-                    </tr>
-                  ) : (
-                    homeCashData.history.map((tx) => {
+            {(() => {
+              const filteredHistory = (homeCashData.history || []).filter(tx => {
+                if (historyFilter !== 'ALL' && tx.entry_type !== historyFilter) return false;
+                if (historySearch.trim()) {
+                  const q = historySearch.toLowerCase();
+                  const matchType = (tx.entry_type_display || '').toLowerCase().includes(q);
+                  const matchNotes = (tx.notes || '').toLowerCase().includes(q);
+                  const matchUser = (tx.created_by_name || '').toLowerCase().includes(q);
+                  const matchDate = (tx.created_at || '').toLowerCase().includes(q);
+                  const matchAmt = String(tx.amount || '').includes(q);
+                  const matchBreakdown = (tx.notes_summary || '').toLowerCase().includes(q);
+                  return matchType || matchNotes || matchUser || matchDate || matchAmt || matchBreakdown;
+                }
+                return true;
+              });
+
+              if (filteredHistory.length === 0) {
+                return (
+                  <div className="py-12 text-center space-y-2">
+                    <History className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto" />
+                    <p className="text-sm font-bold text-slate-600 dark:text-slate-300">No Safe Transactions Found</p>
+                    <p className="text-xs text-slate-400">Try adjusting your search filter or add a deposit/withdrawal above.</p>
+                  </div>
+                );
+              }
+
+              return (
+                <>
+                  {/* 1. Mobile Cards View (< md screens) */}
+                  <div className="block md:hidden space-y-3 max-h-[500px] overflow-y-auto pr-1">
+                    {filteredHistory.map((tx) => {
                       const isSweep = tx.entry_type === 'SWEEP';
                       const isDeposit = tx.entry_type === 'DEPOSIT';
+                      const isPositive = isSweep || isDeposit;
+
                       return (
-                        <tr key={tx.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/60 transition-colors whitespace-nowrap">
-                          <td className="py-3 px-4 font-mono font-medium text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                            {tx.created_at}
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
-                              isSweep
-                                ? 'bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-300 border-sky-200 dark:border-sky-800'
-                                : isDeposit
-                                ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                                : 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800'
-                            }`}>
-                              {tx.entry_type_display}
+                        <div
+                          key={tx.id}
+                          className="p-3.5 bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 space-y-2.5 shadow-2xs hover:shadow-xs transition-all"
+                        >
+                          {/* Top Row: Type Badge + Amount */}
+                          <div className="flex items-center justify-between gap-2">
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide border shadow-2xs ${
+                                isSweep
+                                  ? 'bg-sky-50 dark:bg-sky-950/80 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800/60'
+                                  : isDeposit
+                                  ? 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60'
+                                  : 'bg-rose-50 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/60'
+                              }`}
+                            >
+                              {isSweep && <Sparkles className="w-3 h-3 text-sky-500" />}
+                              {isDeposit && <ArrowDownLeft className="w-3 h-3 text-emerald-500" />}
+                              {!isPositive && <ArrowUpRight className="w-3 h-3 text-rose-500" />}
+                              {tx.entry_type_display || tx.entry_type}
                             </span>
-                          </td>
-                          <td className={`py-3 px-4 text-right font-black font-mono text-sm ${
-                            isSweep || isDeposit ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
-                          }`}>
-                            {isSweep || isDeposit ? '+' : '-'}₹{tx.amount.toFixed(2)}
-                          </td>
-                          <td className="py-3 px-4 font-mono font-bold text-slate-700 dark:text-slate-200">
-                            {tx.notes_summary}
-                          </td>
-                          <td className="py-3 px-4 text-right font-bold font-mono text-slate-800 dark:text-slate-100">
-                            ₹{tx.balance_after.toFixed(2)}
-                          </td>
-                          <td className="py-3 px-4 font-semibold text-slate-700 dark:text-slate-300">
-                            {tx.created_by_name}
-                          </td>
-                          <td className="py-3 px-4 text-slate-500 dark:text-slate-400 max-w-xs truncate">
-                            {tx.notes}
-                          </td>
-                        </tr>
+
+                            <span
+                              className={`font-black text-sm sm:text-base font-mono tracking-tight ${
+                                isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                              }`}
+                            >
+                              {isPositive ? '+' : '-'}₹{Number(tx.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          </div>
+
+                          {/* Transaction Notes / Purpose */}
+                          <div className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-snug">
+                            {tx.notes || (isSweep ? 'End of Day Gulla Safe Cash Sweep' : 'Manual Home Safe Transaction')}
+                          </div>
+
+                          {/* Note Breakdown Summary Pills */}
+                          {tx.notes_summary && tx.notes_summary !== 'N/A' && (
+                            <div className="bg-slate-50 dark:bg-slate-900/60 p-2 rounded-xl border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between gap-2">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                Notes Breakdown
+                              </span>
+                              <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-200 truncate">
+                                {tx.notes_summary}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Metadata Footer: Date, Clock, Performed By, Balance After */}
+                          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-700/80 flex-wrap gap-2">
+                            <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                              <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                              <span>{tx.created_at}</span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold font-mono text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-md">
+                                Vault: ₹{Number(tx.balance_after || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>
+                              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                                • {tx.created_by_name || 'Admin'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    })}
+                  </div>
+
+                  {/* 2. Desktop & Tablet View Table (>= md screens) */}
+                  <div className="hidden md:block max-h-[480px] overflow-y-auto rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-950/60 shadow-xs custom-scrollbar">
+                    <table className="w-full text-left text-xs min-w-[850px]">
+                      <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 uppercase tracking-wider font-extrabold border-b border-slate-200 dark:border-slate-700 shadow-xs">
+                        <tr>
+                          <th className="py-3.5 px-4 whitespace-nowrap">Date & Time</th>
+                          <th className="py-3.5 px-4 whitespace-nowrap">Entry Type</th>
+                          <th className="py-3.5 px-4 text-right whitespace-nowrap min-w-[120px]">Cash Amount</th>
+                          <th className="py-3.5 px-4 whitespace-nowrap">Note Breakdown</th>
+                          <th className="py-3.5 px-4 text-right whitespace-nowrap min-w-[130px]">Safe Balance After</th>
+                          <th className="py-3.5 px-4 whitespace-nowrap">Action By</th>
+                          <th className="py-3.5 px-4">Notes / Purpose</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                        {filteredHistory.map((tx) => {
+                          const isSweep = tx.entry_type === 'SWEEP';
+                          const isDeposit = tx.entry_type === 'DEPOSIT';
+                          const isPositive = isSweep || isDeposit;
+
+                          return (
+                            <tr key={tx.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                              {/* Date & Time */}
+                              <td className="py-3.5 px-4 whitespace-nowrap">
+                                <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-200 font-mono text-xs font-semibold">
+                                  <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                  {tx.created_at}
+                                </div>
+                              </td>
+
+                              {/* Entry Type Badge */}
+                              <td className="py-3.5 px-4 whitespace-nowrap">
+                                <span
+                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wide border shadow-2xs ${
+                                    isSweep
+                                      ? 'bg-sky-100 dark:bg-sky-950/80 text-sky-800 dark:text-sky-300 border-sky-300 dark:border-sky-800/60'
+                                      : isDeposit
+                                      ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800/60'
+                                      : 'bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-800/60'
+                                  }`}
+                                >
+                                  {isSweep && <Sparkles className="w-3 h-3 text-sky-600 dark:text-sky-400" />}
+                                  {isDeposit && <ArrowDownLeft className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />}
+                                  {!isPositive && <ArrowUpRight className="w-3 h-3 text-rose-600 dark:text-rose-400" />}
+                                  {tx.entry_type_display || tx.entry_type}
+                                </span>
+                              </td>
+
+                              {/* Cash Amount */}
+                              <td className={`py-3.5 px-4 text-right font-black font-mono text-sm tracking-tight whitespace-nowrap ${
+                                isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                              }`}>
+                                {isPositive ? '+' : '-'}₹{Number(tx.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+
+                              {/* Note Breakdown */}
+                              <td className="py-3.5 px-4 whitespace-nowrap">
+                                <span className="inline-block px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg font-mono text-xs font-bold border border-slate-200/80 dark:border-slate-700/80">
+                                  {tx.notes_summary || 'N/A'}
+                                </span>
+                              </td>
+
+                              {/* Safe Balance After */}
+                              <td className="py-3.5 px-4 text-right font-black font-mono text-sm text-slate-800 dark:text-slate-100 whitespace-nowrap">
+                                ₹{Number(tx.balance_after || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+
+                              {/* Performed By */}
+                              <td className="py-3.5 px-4 whitespace-nowrap">
+                                <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-semibold text-xs">
+                                  <UserCheck className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
+                                  <span>{tx.created_by_name || 'Admin'}</span>
+                                </div>
+                              </td>
+
+                              {/* Notes / Purpose */}
+                              <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300 max-w-xs truncate">
+                                {tx.notes || 'N/A'}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              );
+            })()}
           </Card>
         </div>
       )}

@@ -21,6 +21,7 @@ import {
   Lock,
   FileText,
   Coins,
+  Banknote,
   Calculator,
   Printer,
   Download,
@@ -34,7 +35,7 @@ import {
   Filter,
   UserCheck
 } from 'lucide-react';
-import { gullaApi, suppliersApi, expensesApi, customersApi, ordersApi, authApi } from '../../api';
+import { gullaApi, suppliersApi, expensesApi, customersApi, ordersApi, authApi, homeCashApi, bankApi } from '../../api';
 import { useNotification } from '../../context/NotificationContext';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -47,8 +48,16 @@ const DENOMINATIONS = [
   { value: 20, label: '₹20 Note', color: 'bg-rose-50 dark:bg-rose-950/60 border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200' },
   { value: 10, label: '₹10 Note', color: 'bg-amber-100/70 dark:bg-amber-900/40 border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-300' },
   { value: 5, label: '₹5 Note/Coin', color: 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200' },
+  { value: 2, label: '₹2 Note/Coin', color: 'bg-indigo-50 dark:bg-indigo-950/60 border-indigo-300 dark:border-indigo-800 text-indigo-800 dark:text-indigo-200' },
   { value: 1, label: 'Coins (Total ₹)', color: 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200', isCoins: true },
 ];
+
+const getLocalDateString = (d = new Date()) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 export const GullaManagement = () => {
   const { showToast } = useNotification();
@@ -86,6 +95,7 @@ export const GullaManagement = () => {
     20: '',
     10: '',
     5: '',
+    2: '',
     1: ''
   });
 
@@ -94,19 +104,35 @@ export const GullaManagement = () => {
   const [entryType, setEntryType] = useState('CASH_IN'); // 'OPENING_FLOAT' | 'CASH_IN' | 'CASH_OUT' | 'SUPPLIER_PAYMENT' | 'EXPENSE'
   const [entrySubmitting, setEntrySubmitting] = useState(false);
   
-  // EOD Home Cash Sweep Modal State
+  // EOD Home Cash Sweep Modal & Home Safe Vault State
   const [isEodModalOpen, setIsEodModalOpen] = useState(false);
   const [eodSweeping, setEodSweeping] = useState(false);
   const [eodKeepFloat, setEodKeepFloat] = useState('5000');
   const [eodCustomAmount, setEodCustomAmount] = useState('');
   const [homeCashAmount, setHomeCashAmount] = useState(0);
+  const [auto1130SweepEnabled, setAuto1130SweepEnabled] = useState(true);
+  const [togglingAutoSweep, setTogglingAutoSweep] = useState(false);
+  const [bankBalance, setBankBalance] = useState(0);
+  const [homeVaultNotes, setHomeVaultNotes] = useState({ 500: 0, 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 2: 0, 1: 0 });
+  const [isHomeVaultModalOpen, setIsHomeVaultModalOpen] = useState(false);
+  const [homeVaultHistory, setHomeVaultHistory] = useState([]);
+  const [homeVaultLoading, setHomeVaultLoading] = useState(false);
+
+  // Direct Home Vault Transaction Form State
+  const [isVaultFormOpen, setIsVaultFormOpen] = useState(false);
+  const [vaultFormType, setVaultFormType] = useState('DEPOSIT');
+  const [vaultFormAmount, setVaultFormAmount] = useState('');
+  const [vaultFormNotes, setVaultFormNotes] = useState('');
+  const [vaultFormNoteCounts, setVaultFormNoteCounts] = useState({ 500: '', 200: '', 100: '', 50: '', 20: '', 10: '', 5: '', 2: '', 1: '' });
+  const [vaultSubmitting, setVaultSubmitting] = useState(false);
 
   const [entryFormData, setEntryFormData] = useState({
     amount: '',
     notes: '',
     supplier_id: '',
     category_id: '',
-    title: ''
+    title: '',
+    cash_source: 'HOME_SAFE'
   });
 
   // Meta dropdowns
@@ -114,12 +140,8 @@ export const GullaManagement = () => {
   const [expenseCategories, setExpenseCategories] = useState([]);
   const [customers, setCustomers] = useState([]);
 
-
-
   // Selected Date Filter State
-  const [selectedDate, setSelectedDate] = useState(() => {
-    return new Date().toISOString().split('T')[0];
-  });
+  const [selectedDate, setSelectedDate] = useState(() => getLocalDateString());
 
   // Transaction Ledger Filter
   const [ledgerSearch, setLedgerSearch] = useState('');
@@ -130,10 +152,11 @@ export const GullaManagement = () => {
     fetchMeta();
   }, [selectedDate]);
 
-  const fetchGullaData = async (dateToFetch = selectedDate) => {
+  const fetchGullaData = async (dateParam) => {
+    const dateToFetch = (typeof dateParam === 'string' && dateParam !== '[object Object]') ? dateParam : (typeof selectedDate === 'string' ? selectedDate : undefined);
     try {
       setRefreshing(true);
-      const res = await gullaApi.getGullaSummary({ date: dateToFetch });
+      const res = await gullaApi.getGullaSummary(dateToFetch ? { date: dateToFetch } : {});
       const data = res.data || {};
       setSummary({
         opening_float: parseFloat(data.opening_float) || 0,
@@ -154,6 +177,9 @@ export const GullaManagement = () => {
         cash_tender_logs: data.cash_tender_logs || [],
         notes_and_coins_summary: data.notes_and_coins_summary || {}
       });
+      if (data.auto_1130_sweep_enabled !== undefined) {
+        setAuto1130SweepEnabled(data.auto_1130_sweep_enabled);
+      }
     } catch (err) {
       console.error('Failed to load Gulla summary', err);
       showToast('Could not fetch Gulla summary data', 'error');
@@ -167,18 +193,24 @@ export const GullaManagement = () => {
 
   const fetchMeta = async () => {
     try {
-      const [suppRes, expCatRes, custRes, ordRes, setRes] = await Promise.all([
+      const [suppRes, expCatRes, custRes, ordRes, setRes, bankRes, homeRes] = await Promise.all([
         suppliersApi.getSuppliers(),
         expensesApi.getCategories(),
         customersApi.getCustomers(),
         ordersApi.getOrders(),
-        authApi.getSettings()
+        authApi.getSettings(),
+        bankApi.getSummary(),
+        homeCashApi.getHomeCashData()
       ]);
       setSuppliers(suppRes.data?.results || suppRes.data || []);
       setExpenseCategories(expCatRes.data?.results || expCatRes.data || []);
       setCustomers(custRes.data?.results || custRes.data || []);
       setOrders(ordRes.data?.results || ordRes.data || []);
       setHomeCashAmount(parseFloat(setRes.data?.home_cash_amount || 0));
+      setBankBalance(parseFloat(bankRes.data?.total_bank_balance || 0));
+      if (homeRes.data?.denominations_breakdown) {
+        setHomeVaultNotes(homeRes.data.denominations_breakdown);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -230,13 +262,13 @@ export const GullaManagement = () => {
   };
 
   const handleResetCounts = () => {
-    setCounts({ 500: '', 200: '', 100: '', 50: '', 20: '', 10: '', 5: '', 1: '' });
+    setCounts({ 500: '', 200: '', 100: '', 50: '', 20: '', 10: '', 5: '', 2: '', 1: '' });
   };
 
   const handleAutoFillLiveCounts = () => {
     const netNotes = summary.notes_and_coins_summary?.net_drawer_notes || {};
     const filled = {};
-    [500, 200, 100, 50, 20, 10, 5, 1].forEach(d => {
+    [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
       const cnt = Math.max(0, parseInt(netNotes[d] || netNotes[String(d)] || 0, 10));
       filled[d] = cnt > 0 ? String(cnt) : '';
     });
@@ -244,10 +276,31 @@ export const GullaManagement = () => {
     showToast('Auto-filled note counts from live drawer calculation!', 'info');
   };
 
-  const [modalNoteCounts, setModalNoteCounts] = useState({ 500: '', 200: '', 100: '', 50: '', 20: '', 10: '', 5: '', 1: '' });
+  const [modalNoteCounts, setModalNoteCounts] = useState({ 500: '', 200: '', 100: '', 50: '', 20: '', 10: '', 5: '', 2: '', 1: '' });
 
   const handleModalNoteChange = async (denom, valStr) => {
     const cleanVal = valStr.replace(/[^0-9]/g, '');
+    const requested = parseInt(cleanVal || 0, 10);
+
+    let availNoteCount = null;
+    if (['CASH_IN', 'OPENING_FLOAT'].includes(entryType) && (entryFormData.cash_source || 'HOME_SAFE') === 'HOME_SAFE') {
+      availNoteCount = Math.max(0, parseInt(homeVaultNotes[denom] || homeVaultNotes[String(denom)] || 0, 10));
+    } else if (['CASH_OUT', 'SUPPLIER_PAYMENT', 'EXPENSE'].includes(entryType)) {
+      const netNotesDict = summary.notes_and_coins_summary?.net_drawer_notes || {};
+      availNoteCount = Math.max(0, parseInt(netNotesDict[denom] || netNotesDict[String(denom)] || 0, 10));
+    }
+
+    if (availNoteCount !== null) {
+      if (availNoteCount <= 0 && requested > 0) {
+        showToast(`⚠️ Note ₹${denom} is unavailable (0 stock). You cannot add or withdraw this note.`, 'warning');
+        return;
+      }
+      if (requested > availNoteCount) {
+        showToast(`⚠️ Insufficient stock for ₹${denom} note! Only ${availNoteCount} available.`, 'warning');
+        return;
+      }
+    }
+
     const updatedCounts = { ...modalNoteCounts, [denom]: cleanVal };
     setModalNoteCounts(updatedCounts);
 
@@ -266,16 +319,167 @@ export const GullaManagement = () => {
     }
   };
 
+  const handleQuickSelectNote = async (denomToSelect) => {
+    const netNotesDict = summary.notes_and_coins_summary?.net_drawer_notes || {};
+    let newCounts = { ...modalNoteCounts };
+
+    if (denomToSelect === 'HIGH_NOTES') {
+      [500, 200, 100, 50].forEach(d => {
+        const avail = Math.max(0, parseInt(netNotesDict[d] || netNotesDict[String(d)] || 0, 10));
+        newCounts[d] = avail > 0 ? String(avail) : '';
+      });
+      [20, 10, 5, 2, 1].forEach(d => { newCounts[d] = ''; });
+    } else if (denomToSelect === 'CLEAR') {
+      newCounts = { 500: '', 200: '', 100: '', 50: '', 20: '', 10: '', 5: '', 2: '', 1: '' };
+    } else if (typeof denomToSelect === 'number' || !isNaN(Number(denomToSelect))) {
+      const d = Number(denomToSelect);
+      const avail = Math.max(0, parseInt(netNotesDict[d] || netNotesDict[String(d)] || 0, 10));
+      if (avail > 0) {
+        newCounts[d] = String(avail);
+      } else {
+        showToast(`⚠️ Note ₹${d} is not available in Gulla drawer`, 'warning');
+        return;
+      }
+    }
+
+    setModalNoteCounts(newCounts);
+
+    try {
+      const res = await gullaApi.calculateNotes({ denomination_counts: newCounts });
+      const { total_amount, notes_summary } = res.data;
+      setEntryFormData(prev => ({
+        ...prev,
+        amount: total_amount > 0 ? String(total_amount) : prev.amount,
+        notes: notes_summary || prev.notes
+      }));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAutoSweep1130pm = async () => {
+    try {
+      setEodSweeping(true);
+      const res = await gullaApi.eodSweep({ only_high_notes: true });
+      showToast(res.data?.message || '11:30 PM High-Notes Auto Sweep executed successfully!', 'success');
+      if (res.data?.home_cash_amount !== undefined) {
+        setHomeCashAmount(res.data.home_cash_amount);
+      }
+      fetchGullaData();
+    } catch (err) {
+      showToast(err.response?.data?.message || err.response?.data?.error || 'Failed to perform 11:30 PM Auto Sweep', 'error');
+    } finally {
+      setEodSweeping(false);
+    }
+  };
+
+  const handleToggleAutoSweep = async (targetState) => {
+    const newState = targetState !== undefined ? targetState : !auto1130SweepEnabled;
+    try {
+      setTogglingAutoSweep(true);
+      const res = await gullaApi.toggleAutoSweep({ enabled: newState });
+      setAuto1130SweepEnabled(newState);
+      showToast(res.data?.message || `11:30 PM Automatic Money Withdraw System is now ${newState ? 'ON (Active)' : 'OFF (Disabled)'}.`, 'success');
+      fetchGullaData();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to update auto sweep setting', 'error');
+    } finally {
+      setTogglingAutoSweep(false);
+    }
+  };
+
+  const fetchHomeVaultHistory = async () => {
+    try {
+      setHomeVaultLoading(true);
+      const res = await homeCashApi.getHomeCashData();
+      setHomeVaultHistory(res.data?.history || []);
+      if (res.data?.home_cash_amount !== undefined) {
+        setHomeCashAmount(res.data.home_cash_amount);
+      }
+      if (res.data?.auto_1130_sweep_enabled !== undefined) {
+        setAuto1130SweepEnabled(res.data.auto_1130_sweep_enabled);
+      }
+      if (res.data?.denominations_breakdown) {
+        setHomeVaultNotes(res.data.denominations_breakdown);
+      }
+      setIsHomeVaultModalOpen(true);
+    } catch (err) {
+      showToast('Failed to load Home Safe Vault history', 'error');
+    } finally {
+      setHomeVaultLoading(false);
+    }
+  };
+
+  const handleVaultNoteChange = async (denom, valStr) => {
+    const cleanVal = valStr.replace(/[^0-9]/g, '');
+    const updatedCounts = { ...vaultFormNoteCounts, [denom]: cleanVal };
+    setVaultFormNoteCounts(updatedCounts);
+
+    try {
+      const res = await gullaApi.calculateNotes({ denomination_counts: updatedCounts });
+      if (res.data?.total_amount > 0) {
+        setVaultFormAmount(String(res.data.total_amount));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleVaultFormSubmit = async (e) => {
+    if (e) e.preventDefault();
+    const amtNum = parseFloat(vaultFormAmount);
+    if (!amtNum || amtNum <= 0) {
+      showToast('Please enter a valid cash amount', 'error');
+      return;
+    }
+    if (vaultFormType === 'WITHDRAWAL' && amtNum > homeCashAmount) {
+      showToast(`⚠️ Insufficient Home Safe Vault balance! Available: ₹${homeCashAmount.toFixed(2)}, Attempted: ₹${amtNum.toFixed(2)}`, 'error');
+      return;
+    }
+
+    try {
+      setVaultSubmitting(true);
+      const payload = {
+        entry_type: vaultFormType,
+        amount: amtNum,
+        denomination_counts: vaultFormNoteCounts,
+        notes: vaultFormNotes || (vaultFormType === 'DEPOSIT' ? 'Direct Home Safe Vault Deposit' : 'Direct Home Safe Vault Withdrawal')
+      };
+      await homeCashApi.createHomeCashTransaction(payload);
+      showToast(`Home Safe Vault ${vaultFormType === 'DEPOSIT' ? 'Deposit' : 'Withdrawal'} of ₹${amtNum} recorded successfully!`, 'success');
+
+      setIsVaultFormOpen(false);
+      setVaultFormAmount('');
+      setVaultFormNotes('');
+      setVaultFormNoteCounts({ 500: '', 200: '', 100: '', 50: '', 20: '', 10: '', 5: '', 2: '', 1: '' });
+
+      const res = await homeCashApi.getHomeCashData();
+      setHomeVaultHistory(res.data?.history || []);
+      if (res.data?.home_cash_amount !== undefined) {
+        setHomeCashAmount(res.data.home_cash_amount);
+      }
+      if (res.data?.denominations_breakdown) {
+        setHomeVaultNotes(res.data.denominations_breakdown);
+      }
+      fetchGullaData();
+    } catch (err) {
+      showToast(err.response?.data?.detail || err.response?.data?.message || 'Failed to record Home Safe Vault transaction', 'error');
+    } finally {
+      setVaultSubmitting(false);
+    }
+  };
+
   const handleOpenEntryModal = (type) => {
     setEntryType(type);
-    setModalNoteCounts({ 500: '', 200: '', 100: '', 50: '', 20: '', 10: '', 5: '', 1: '' });
+    setModalNoteCounts({ 500: '', 200: '', 100: '', 50: '', 20: '', 10: '', 5: '', 2: '', 1: '' });
     setEntryFormData({
       amount: '',
       notes: '',
       supplier_id: suppliers[0]?.id || '',
       category_id: expenseCategories[0]?.id || '',
       customer_id: customers[0]?.id || '',
-      title: ''
+      title: '',
+      cash_source: 'HOME_SAFE'
     });
     setIsEntryModalOpen(true);
   };
@@ -286,6 +490,35 @@ export const GullaManagement = () => {
     if (!amountNum || amountNum <= 0) {
       showToast('Please enter a valid cash amount', 'error');
       return;
+    }
+
+    if (['CASH_IN', 'OPENING_FLOAT'].includes(entryType)) {
+      const source = entryFormData.cash_source || 'HOME_SAFE';
+      if (source === 'HOME_SAFE') {
+        if (amountNum > homeCashAmount) {
+          showToast(`⚠️ Insufficient Home Safe Vault Balance! Available: ₹${homeCashAmount.toFixed(2)}, Attempted: ₹${amountNum.toFixed(2)}. Please deposit cash to Home Safe first or select Bank.`, 'error');
+          return;
+        }
+
+        const hasVaultNotes = Object.values(homeVaultNotes).some(v => v > 0);
+        if (hasVaultNotes) {
+          for (const [denomStr, countRaw] of Object.entries(modalNoteCounts)) {
+            const d = Number(denomStr);
+            const requested = parseInt(countRaw || 0, 10);
+            if (requested > 0) {
+              const avail = Math.max(0, parseInt(homeVaultNotes[d] || homeVaultNotes[String(d)] || 0, 10));
+              if (requested > avail) {
+                showToast(`⚠️ HOME SAFE ALERT: Insufficient ₹${d} notes in Home Safe Vault! (Available: ${avail} notes, Requested: ${requested} notes).`, 'error');
+                return;
+              }
+            }
+          }
+        }
+      }
+      if (source === 'BANK' && amountNum > bankBalance) {
+        showToast(`⚠️ Insufficient Bank Account Balance! Available: ₹${bankBalance.toFixed(2)}, Attempted: ₹${amountNum.toFixed(2)}.`, 'error');
+        return;
+      }
     }
 
     if (['CASH_OUT', 'SUPPLIER_PAYMENT', 'EXPENSE'].includes(entryType)) {
@@ -324,6 +557,7 @@ export const GullaManagement = () => {
           category_id: entryType === 'EXPENSE' ? entryFormData.category_id : undefined,
           title: entryType === 'EXPENSE' ? entryFormData.title : undefined,
           date: selectedDate,
+          cash_source: ['CASH_IN', 'OPENING_FLOAT'].includes(entryType) ? (entryFormData.cash_source || 'HOME_SAFE') : undefined
         };
 
         await gullaApi.createGullaEntry(payload);
@@ -332,9 +566,10 @@ export const GullaManagement = () => {
 
       setIsEntryModalOpen(false);
       fetchGullaData(selectedDate);
+      fetchMeta();
     } catch (err) {
       console.error(err);
-      showToast(err.response?.data?.error || 'Failed to record Gulla entry', 'error');
+      showToast(err.response?.data?.error || err.response?.data?.message || 'Failed to record Gulla entry', 'error');
     } finally {
       setEntrySubmitting(false);
     }
@@ -393,7 +628,7 @@ export const GullaManagement = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={fetchGullaData}
+              onClick={() => fetchGullaData(selectedDate)}
               loading={refreshing}
               className="flex items-center justify-center gap-1.5 text-xs border-teal-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 px-3 py-2 flex-1 sm:flex-initial font-bold"
             >
@@ -446,9 +681,9 @@ export const GullaManagement = () => {
 
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <button
-            onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
+            onClick={() => setSelectedDate(getLocalDateString())}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex-1 sm:flex-initial text-center cursor-pointer ${
-              selectedDate === new Date().toISOString().split('T')[0]
+              selectedDate === getLocalDateString()
                 ? 'bg-[#00796b] text-white shadow-xs'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
             }`}
@@ -459,10 +694,10 @@ export const GullaManagement = () => {
             onClick={() => {
               const d = new Date();
               d.setDate(d.getDate() - 1);
-              setSelectedDate(d.toISOString().split('T')[0]);
+              setSelectedDate(getLocalDateString(d));
             }}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex-1 sm:flex-initial text-center cursor-pointer ${
-              selectedDate === new Date(Date.now() - 86400000).toISOString().split('T')[0]
+              selectedDate === (() => { const d = new Date(); d.setDate(d.getDate() - 1); return getLocalDateString(d); })()
                 ? 'bg-[#00796b] text-white shadow-xs'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
             }`}
@@ -562,6 +797,8 @@ export const GullaManagement = () => {
         </div>
       </div>
 
+
+
       {/* ================= 2. DENOMINATION COUNTER & RECONCILIATION ================= */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
         {/* Left 7 Cols: Live Gulla Note & Coin Count Summary (Read-Only) */}
@@ -602,6 +839,7 @@ export const GullaManagement = () => {
               { denom: 20, label: '₹20 Note', color: 'border-orange-200 dark:border-orange-900 bg-orange-50/50 dark:bg-orange-950/20' },
               { denom: 10, label: '₹10 Note', color: 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40' },
               { denom: 5, label: '₹5 Note', color: 'border-teal-200 dark:border-teal-900 bg-teal-50/50 dark:bg-teal-950/20' },
+              { denom: 2, label: '₹2 Note', color: 'border-indigo-200 dark:border-indigo-900 bg-indigo-50/50 dark:bg-indigo-950/20' },
               { denom: 1, label: 'Coins (₹)', color: 'border-purple-200 dark:border-purple-900 bg-purple-50/50 dark:bg-purple-950/20' }
             ].map(({ denom, label, color }) => {
               const denomsTable = summary.notes_and_coins_summary?.denominations_table || [];
@@ -1098,7 +1336,82 @@ export const GullaManagement = () => {
           </div>
         }
       >
-        <form onSubmit={handleEntrySubmit} className="space-y-4 text-xs max-h-[75vh] overflow-y-auto pr-1">
+        <form onSubmit={handleEntrySubmit} className="space-y-4 text-xs">
+          {/* Cash Source Selector when Adding Cash */}
+          {['CASH_IN', 'OPENING_FLOAT'].includes(entryType) && (
+            <div className="p-3 bg-slate-100 dark:bg-slate-800/90 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
+              <label className="block text-[11px] font-black uppercase tracking-wider text-slate-800 dark:text-slate-100">
+                Select Source of Money to Add Cash *
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEntryFormData({ ...entryFormData, cash_source: 'HOME_SAFE' })}
+                  className={`p-2.5 rounded-xl border transition-all text-left flex flex-col justify-between cursor-pointer ${
+                    (entryFormData.cash_source || 'HOME_SAFE') === 'HOME_SAFE'
+                      ? 'bg-[#00695C] text-white border-[#004D40] shadow-sm font-black'
+                      : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 shrink-0" />
+                    <span className="text-xs font-bold">Home Safe Vault</span>
+                  </div>
+                  <span className={`text-[10px] font-mono mt-1 ${
+                    (entryFormData.cash_source || 'HOME_SAFE') === 'HOME_SAFE' ? 'text-emerald-200' : 'text-slate-400'
+                  }`}>
+                    Avail: ₹{homeCashAmount.toFixed(2)}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setEntryFormData({ ...entryFormData, cash_source: 'BANK' })}
+                  className={`p-2.5 rounded-xl border transition-all text-left flex flex-col justify-between cursor-pointer ${
+                    entryFormData.cash_source === 'BANK'
+                      ? 'bg-[#00695C] text-white border-[#004D40] shadow-sm font-black'
+                      : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Store className="w-3.5 h-3.5 shrink-0" />
+                    <span className="text-xs font-bold">Bank Account</span>
+                  </div>
+                  <span className={`text-[10px] font-mono mt-1 ${
+                    entryFormData.cash_source === 'BANK' ? 'text-emerald-200' : 'text-slate-400'
+                  }`}>
+                    Avail: ₹{bankBalance.toFixed(2)}
+                  </span>
+                </button>
+              </div>
+
+              {/* Live balance warning message */}
+              {(() => {
+                const amt = parseFloat(entryFormData.amount || 0);
+                const src = entryFormData.cash_source || 'HOME_SAFE';
+                if (amt > 0) {
+                  if (src === 'HOME_SAFE' && amt > homeCashAmount) {
+                    return (
+                      <div className="p-2 bg-rose-50 dark:bg-rose-950/80 rounded-xl border border-rose-200 dark:border-rose-800 text-[10px] font-bold text-rose-700 dark:text-rose-300 flex items-center gap-1.5">
+                        <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                        <span>⚠️ Insufficient Home Safe Vault Balance! (Available: ₹{homeCashAmount.toFixed(2)}, Short by ₹{(amt - homeCashAmount).toFixed(2)})</span>
+                      </div>
+                    );
+                  }
+                  if (src === 'BANK' && amt > bankBalance) {
+                    return (
+                      <div className="p-2 bg-rose-50 dark:bg-rose-950/80 rounded-xl border border-rose-200 dark:border-rose-800 text-[10px] font-bold text-rose-700 dark:text-rose-300 flex items-center gap-1.5">
+                        <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                        <span>⚠️ Insufficient Bank Account Balance! (Available: ₹{bankBalance.toFixed(2)}, Short by ₹{(amt - bankBalance).toFixed(2)})</span>
+                      </div>
+                    );
+                  }
+                }
+                return null;
+              })()}
+            </div>
+          )}
+
           {/* Amount */}
           <div>
             <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">
@@ -1122,6 +1435,78 @@ export const GullaManagement = () => {
 
           {/* Interactive Note Denomination Counter */}
           <div className="p-3 bg-[#F0FAF9] dark:bg-slate-800/70 rounded-2xl border border-[#B2DFDB] dark:border-slate-700 space-y-2">
+            {['CASH_IN', 'OPENING_FLOAT'].includes(entryType) && (entryFormData.cash_source || 'HOME_SAFE') === 'HOME_SAFE' && (
+              <div className="p-2 bg-slate-100 dark:bg-slate-800/90 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-200 block">
+                    ⚡ Fill Available Home Safe Vault Notes:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const filled = {};
+                      [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
+                        const cnt = Math.max(0, parseInt(homeVaultNotes[d] || homeVaultNotes[String(d)] || 0, 10));
+                        filled[d] = cnt > 0 ? String(cnt) : '';
+                      });
+                      setModalNoteCounts(filled);
+                      gullaApi.calculateNotes({ denomination_counts: filled }).then(res => {
+                        setEntryFormData(prev => ({
+                          ...prev,
+                          amount: res.data?.total_amount > 0 ? String(res.data.total_amount) : prev.amount,
+                          notes: res.data?.notes_summary || prev.notes
+                        }));
+                      });
+                      showToast('Auto-filled available note counts from Home Safe Vault!', 'info');
+                    }}
+                    className="px-2 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 text-[10px] font-black border border-emerald-300 dark:border-emerald-800 cursor-pointer"
+                  >
+                    ✨ Fill All Available Vault Notes
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {entryType === 'CASH_OUT' && (
+              <div className="p-2.5 bg-[#E0F2F1] dark:bg-slate-800/90 rounded-xl border border-[#B2DFDB] dark:border-slate-700 space-y-2">
+                <div className="flex items-center gap-2 text-[#00695C] dark:text-[#4DB6AC] font-black text-xs">
+                  <Lock className="w-4 h-4 shrink-0" />
+                  <span>How many notes do you want to withdraw to Home Safe Vault?</span>
+                </div>
+                <p className="text-[10px] text-slate-600 dark:text-slate-300 leading-snug">
+                  Enter count of notes (500, 200, 100, 50, 20, 10, 5, 2, 1) to transfer from Gulla drawer to Home Safe:
+                </p>
+
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase block">Quick Presets:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickSelectNote('HIGH_NOTES')}
+                    className="px-2 py-1 rounded-lg bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200 text-[10px] font-black border border-amber-300 dark:border-amber-800 cursor-pointer"
+                  >
+                    ✨ 11:30 PM Rule (500, 200, 100, 50)
+                  </button>
+                  {[500, 200, 100, 50, 20, 10, 5, 2, 1].map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => handleQuickSelectNote(d)}
+                      className="px-2 py-1 rounded-lg bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 text-[10px] font-bold border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                    >
+                      All {d}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => handleQuickSelectNote('CLEAR')}
+                    className="px-2 py-1 rounded-lg bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 text-[10px] font-bold border border-rose-200 dark:border-rose-800 cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-extrabold text-[#00695C] dark:text-[#4DB6AC] flex items-center gap-1.5 font-heading">
                 <Calculator className="w-3.5 h-3.5 text-[#009688]" />
@@ -1129,7 +1514,7 @@ export const GullaManagement = () => {
               </span>
               <button
                 type="button"
-                onClick={() => setModalNoteCounts({ 500: '', 200: '', 100: '', 50: '', 20: '', 10: '', 5: '', 1: '' })}
+                onClick={() => setModalNoteCounts({ 500: '', 200: '', 100: '', 50: '', 20: '', 10: '', 5: '', 2: '', 1: '' })}
                 className="text-[10px] font-bold text-[#607D8B] hover:text-[#00695C] underline cursor-pointer"
               >
                 Clear Notes
@@ -1145,21 +1530,52 @@ export const GullaManagement = () => {
                 { denom: 20, label: '₹20 Note' },
                 { denom: 10, label: '₹10 Note' },
                 { denom: 5, label: '₹5 Note' },
+                { denom: 2, label: '₹2 Note' },
                 { denom: 1, label: 'Coins (₹)' }
               ].map(({ denom, label }) => {
                 const cnt = modalNoteCounts[denom] || '';
                 const sub = (denom === 1 ? parseFloat(cnt) || 0 : (parseInt(cnt, 10) || 0) * denom);
+
+                let availNoteCount = null;
+                if (['CASH_IN', 'OPENING_FLOAT'].includes(entryType) && (entryFormData.cash_source || 'HOME_SAFE') === 'HOME_SAFE') {
+                  availNoteCount = Math.max(0, parseInt(homeVaultNotes[denom] || homeVaultNotes[String(denom)] || 0, 10));
+                } else if (['CASH_OUT', 'SUPPLIER_PAYMENT', 'EXPENSE'].includes(entryType)) {
+                  const netNotesDict = summary.notes_and_coins_summary?.net_drawer_notes || {};
+                  availNoteCount = Math.max(0, parseInt(netNotesDict[denom] || netNotesDict[String(denom)] || 0, 10));
+                }
+
+                const isUnavailable = availNoteCount !== null && availNoteCount <= 0;
+
                 return (
-                  <div key={denom} className="flex items-center justify-between gap-1 p-1.5 rounded-xl bg-white dark:bg-slate-900 border border-[#B2DFDB] dark:border-slate-800 text-[11px]">
-                    <span className="font-bold font-mono text-slate-600 dark:text-slate-300 truncate">{label}:</span>
+                  <div key={denom} className={`flex items-center justify-between gap-1 p-1.5 rounded-xl border text-[11px] transition-all ${
+                    isUnavailable ? 'bg-slate-100/90 dark:bg-slate-800/60 border-slate-300 dark:border-slate-700/80 opacity-75' : 'bg-white dark:bg-slate-900 border-[#B2DFDB] dark:border-slate-800'
+                  }`}>
+                    <div className="space-y-0.5 min-w-0">
+                      <span className={`font-bold font-mono block truncate ${isUnavailable ? 'text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-200'}`}>{label}:</span>
+                      {availNoteCount !== null ? (
+                        <span className={`text-[9px] block truncate font-mono ${isUnavailable ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-slate-500 dark:text-slate-400 font-bold'}`}>
+                          {isUnavailable ? '⚠️ 0 in stock (Disabled)' : `Avail: ${availNoteCount} ${denom === 1 ? '₹' : 'notes'}`}
+                        </span>
+                      ) : (
+                        <span className="text-[9px] block truncate font-mono text-slate-400">
+                          Count (500,200...)
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <input
                         type="text"
                         inputMode="numeric"
                         placeholder="0"
-                        value={cnt}
+                        disabled={isUnavailable}
+                        value={isUnavailable ? '' : cnt}
                         onChange={(e) => handleModalNoteChange(denom, e.target.value)}
-                        className="w-12 px-1 py-0.5 text-center font-black font-mono bg-[#F0FAF9] dark:bg-slate-800 border border-[#B2DFDB] dark:border-slate-700 rounded-lg text-xs"
+                        title={isUnavailable ? `₹${denom} note is unavailable (0 stock)` : `Enter count for ₹${denom}`}
+                        className={`w-12 px-1 py-0.5 text-center font-black font-mono border rounded-lg text-xs transition-all ${
+                          isUnavailable
+                            ? 'bg-slate-200/80 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-60'
+                            : 'bg-[#F0FAF9] dark:bg-slate-800 border-[#B2DFDB] dark:border-slate-700 text-slate-800 dark:text-slate-100'
+                        }`}
                       />
                       <span className="w-10 text-right font-mono font-bold text-[10px] text-[#00695C] dark:text-[#4DB6AC]">
                         ₹{sub}
@@ -1326,85 +1742,251 @@ export const GullaManagement = () => {
         </form>
       </Modal>
 
-      {/* ================= MODAL 2: DAY-END HOME CASH SWEEP MODAL ================= */}
+      {/* ================= MODAL 2: DAY-END HOME CASH SWEEP MODAL (EMBEDS HOME SAFE VAULT & 11:30 PM AUTO-WITHDRAW) ================= */}
       <Modal
         isOpen={isEodModalOpen}
         onClose={() => setIsEodModalOpen(false)}
-        title="Day-End Cash Sweep to Home Safe"
-        subtitle="Automatically withdraw cash drawer balance and transfer to Home Safe"
-        maxWidth="max-w-md w-full"
+        title="Day-End Cash Sweep & Home Safe Vault"
+        subtitle={`Current Home Vault Balance: ₹${homeCashAmount.toFixed(2)} • 11:30 PM Auto-Withdraw Rule`}
+        maxWidth="max-w-2xl w-full"
         footer={
-          <div className="flex items-center justify-end gap-2 w-full">
+          <div className="flex items-center justify-end w-full">
             <Button variant="outline" size="sm" onClick={() => setIsEodModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleEodSweepSubmit}
-              loading={eodSweeping}
-              className="bg-[#00695C] hover:bg-[#004D40] text-white font-bold"
-            >
-              Confirm Home Cash Sweep
+              Close
             </Button>
           </div>
         }
       >
-        <form onSubmit={handleEodSweepSubmit} className="space-y-4 text-xs font-sans">
-          <div className="p-3.5 bg-[#F0FAF9] dark:bg-slate-800/80 rounded-2xl border border-[#B2DFDB] dark:border-slate-700 space-y-2">
-            <div className="flex items-center justify-between text-[#263238] dark:text-slate-200 font-bold">
-              <span>Expected Gulla Cash Drawer:</span>
-              <span className="font-mono text-sm font-black text-[#00695C] dark:text-[#4DB6AC]">₹{expectedCashInGulla.toFixed(2)}</span>
+        <div className="space-y-4 text-xs font-sans">
+          {/* 1. Home Safe Cash Vault Quick Summary Card (Billing Page Style) */}
+          <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-700 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 p-2 flex items-center justify-center border border-emerald-200 dark:border-emerald-800 shrink-0">
+                  <Lock className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-sm sm:text-base font-bold text-[#384959] dark:text-slate-100">
+                      Home Safe Cash Vault
+                    </h3>
+                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border flex items-center gap-1 ${auto1130SweepEnabled ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800' : 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800'}`}>
+                      <Clock className={`w-2.5 h-2.5 ${auto1130SweepEnabled ? 'text-emerald-600 dark:text-emerald-400 animate-pulse' : 'text-rose-500'}`} />
+                      {auto1130SweepEnabled ? '11:30 PM Auto-Withdraw ON' : '11:30 PM Auto-Withdraw OFF'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Daily automatic & manual cash vault transfer system
+                  </p>
+                </div>
+              </div>
+
+              {/* Current Vault Balance & History */}
+              <div className="flex items-center justify-between sm:justify-end gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-xl shrink-0 shadow-2xs">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                    Current Vault Balance
+                  </span>
+                  <span className="text-base sm:text-lg font-black font-heading text-emerald-600 dark:text-emerald-400">
+                    ₹{homeCashAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setIsEodModalOpen(false);
+                    fetchHomeVaultHistory();
+                  }}
+                  loading={homeVaultLoading}
+                  className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[#384959] dark:text-slate-200 border-slate-300 dark:border-slate-600 text-xs font-bold px-2.5 py-1 cursor-pointer"
+                >
+                  <FileText className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>History</span>
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center justify-between text-[#607D8B] dark:text-slate-400">
-              <span>Current Home Total Cash:</span>
-              <span className="font-mono font-bold text-[#009688] dark:text-[#4DB6AC]">₹{homeCashAmount.toFixed(2)}</span>
+
+            {/* 11:30 PM Auto-Withdraw Rule Feature Banner */}
+            <div className="p-3.5 bg-white dark:bg-slate-900/90 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-start gap-2.5">
+                  <div className={`p-2 rounded-xl shrink-0 ${auto1130SweepEnabled ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700'}`}>
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-[#384959] dark:text-[#88BDF2] text-xs sm:text-sm tracking-tight block">
+                        ⏰ 11:30 PM Automatic Money Withdraw System:
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold tracking-wider uppercase border ${auto1130SweepEnabled ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-700'}`}>
+                        {auto1130SweepEnabled ? '🟢 ON (ACTIVE)' : '🔴 OFF (PAUSED)'}
+                      </span>
+                    </div>
+                    <p className="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed font-medium">
+                      If Admin does not manually withdraw all money from today's collection by <strong>11:30 PM</strong>, 
+                      the system automatically sweeps remaining cash in notes of <strong>₹500, ₹200, ₹100, and ₹50</strong> into Home Safe Vault. 
+                      Coins & small change stay in register float.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Interactive Auto Toggle Switch (ON / OFF) */}
+                <div className="flex items-center gap-2.5 shrink-0 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 justify-between sm:justify-end">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Auto Withdraw:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleAutoSweep()}
+                    disabled={togglingAutoSweep}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${auto1130SweepEnabled ? 'bg-emerald-500' : 'bg-slate-400 dark:bg-slate-600'}`}
+                    title={auto1130SweepEnabled ? 'Click to TURN OFF 11:30 PM Auto-Withdraw' : 'Click to TURN ON 11:30 PM Auto-Withdraw'}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${auto1130SweepEnabled ? 'translate-x-5' : 'translate-x-0'}`}
+                    />
+                  </button>
+                  <span className={`text-xs font-black min-w-[28px] ${auto1130SweepEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                    {auto1130SweepEnabled ? 'ON' : 'OFF'}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-
-          <div>
-            <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">
-              Keep Float for Tomorrow (₹)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              value={eodKeepFloat}
-              onChange={(e) => setEodKeepFloat(e.target.value)}
-              placeholder="5000.00"
-              className="w-full px-3 py-2 text-xs font-mono font-bold bg-white dark:bg-slate-900 border border-[#B2DFDB] dark:border-slate-700 rounded-xl outline-hidden focus:border-[#009688]"
-            />
-            <p className="text-[10px] text-[#607D8B] mt-1">Default: ₹5,000 float stays in register for morning change; rest transfers to Home Safe.</p>
-          </div>
-
-          <div>
-            <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">
-              Or Custom Sweep Amount (₹)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              value={eodCustomAmount}
-              onChange={(e) => setEodCustomAmount(e.target.value)}
-              placeholder="Leave blank to auto-sweep excess"
-              className="w-full px-3 py-2 text-xs font-mono font-bold bg-white dark:bg-slate-900 border border-[#B2DFDB] dark:border-slate-700 rounded-xl outline-hidden focus:border-[#009688]"
-            />
-          </div>
-
-          <div className="p-3 bg-[#E0F2F1] dark:bg-slate-800/80 rounded-xl border border-[#B2DFDB] dark:border-slate-700 text-[11px] text-[#263238] dark:text-slate-300 space-y-1">
-            <p className="font-bold text-[#00695C] dark:text-[#4DB6AC]">ℹ️ System Action Summary:</p>
-            <ul className="list-disc list-inside space-y-0.5 text-[10px] text-[#607D8B] dark:text-slate-400">
-              <li>Creates CASH_OUT entry in Gulla Cash Register</li>
-              <li>Adds swept cash directly to <strong>Brand Identity Home Total Cash Amount</strong></li>
-              <li>Logs record to <strong>Payment Ledger & Settlements</strong></li>
-            </ul>
-          </div>
-        </form>
+        </div>
       </Modal>
 
+      {/* ================= MODAL 3: HOME SAFE CASH VAULT AUDIT TRAIL MODAL (READ-ONLY LOGS) ================= */}
+      <Modal
+        isOpen={isHomeVaultModalOpen}
+        onClose={() => setIsHomeVaultModalOpen(false)}
+        title="Home Safe Cash Vault Audit Trail"
+        subtitle={`Total Home Vault Balance: ₹${homeCashAmount.toFixed(2)}`}
+        maxWidth="max-w-2xl w-full"
+        footer={
+          <div className="flex items-center justify-end w-full">
+            <Button variant="outline" size="sm" onClick={() => setIsHomeVaultModalOpen(false)}>
+              Close
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4 text-xs font-sans">
+          {/* Top Balance Summary Strip (Billing Page Style) */}
+          <div className="p-3.5 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-between shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                <Lock className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                  Current Home Vault Balance
+                </span>
+                <span className="text-base sm:text-lg font-black font-heading text-emerald-600 dark:text-emerald-400">
+                  ₹{homeCashAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 border border-slate-200 dark:border-slate-700">
+              Vault Audit Active
+            </span>
+          </div>
+
+          {/* Live Physical Notes Breakdown Grid (Billing Page Style) */}
+          <div className="p-3.5 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2.5 shadow-xs">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#384959] dark:text-[#88BDF2] flex items-center gap-1.5">
+                <Banknote className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                Live Physical Notes Breakdown in Home Safe:
+              </span>
+              <span className="text-[10px] font-bold text-slate-400">
+                Real-Time Vault Inventory
+              </span>
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-1.5 pt-0.5">
+              {[500, 200, 100, 50, 20, 10, 5, 2, 1].map(d => {
+                const cnt = homeVaultNotes[d] || homeVaultNotes[String(d)] || 0;
+                const hasNotes = cnt > 0;
+                return (
+                  <div key={d} className={`p-1.5 rounded-xl border text-center flex flex-col items-center justify-center transition-all ${hasNotes ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-700/60 text-slate-400 dark:text-slate-500'}`}>
+                    <span className="text-[10px] font-bold block leading-none">₹{d}</span>
+                    <span className="text-xs font-mono font-extrabold mt-1">{cnt}</span>
+                    <span className="text-[8px] font-mono text-slate-400 mt-0.5">₹{(cnt * d).toLocaleString('en-IN')}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Audit History List */}
+          <div className="space-y-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block pt-1">
+              📜 Vault Transaction History & Logs ({homeVaultHistory.length} Entries):
+            </span>
+
+            {homeVaultHistory.length === 0 ? (
+              <EmptyState
+                icon={Lock}
+                title="No Vault Transactions Found"
+                description="Home Safe cash deposits, withdrawals, and 11:30 PM auto-sweeps will appear here."
+              />
+            ) : (
+              homeVaultHistory.map((tx) => {
+                const isDeposit = tx.entry_type === 'DEPOSIT' || tx.entry_type === 'SWEEP';
+                return (
+                  <div
+                    key={tx.id}
+                    className="p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs hover:shadow-xs transition-all"
+                  >
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border ${
+                          tx.entry_type === 'SWEEP' 
+                            ? 'bg-amber-50 dark:bg-amber-950/80 text-amber-800 dark:text-amber-200 border-amber-300 dark:border-amber-800'
+                            : isDeposit
+                            ? 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800'
+                            : 'bg-rose-50 dark:bg-rose-950/80 text-rose-800 dark:text-rose-200 border-rose-300 dark:border-rose-800'
+                        }`}>
+                          {tx.entry_type_display || tx.entry_type}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                          {tx.created_at}
+                        </span>
+                      </div>
+                      <p className="font-semibold text-slate-800 dark:text-slate-100">
+                        {tx.notes || 'Home Safe Vault Transaction'}
+                      </p>
+                      {tx.notes_summary && tx.notes_summary !== '-' && (
+                        <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono font-bold">
+                          Denominations: {tx.notes_summary}
+                        </p>
+                      )}
+                      <p className="text-[10px] text-slate-400">
+                        • Performed by {tx.created_by_name || 'Admin'}
+                      </p>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <div className={`text-sm sm:text-base font-black font-mono ${isDeposit ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                        {isDeposit ? `+₹${parseFloat(tx.amount).toFixed(2)}` : `-₹${parseFloat(tx.amount).toFixed(2)}`}
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-mono font-bold">
+                        Balance After: ₹{parseFloat(tx.balance_after).toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </Modal>
 
     </div>
   );
 };
 
 export default GullaManagement;
+

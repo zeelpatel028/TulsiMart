@@ -3,6 +3,7 @@ import random
 from decimal import Decimal
 from datetime import datetime, date, timedelta
 from django.db import models
+from django.utils import timezone
 from rest_framework import viewsets, status, permissions
 from rest_framework.views import APIView
 from rest_framework.decorators import api_view, permission_classes, action
@@ -160,6 +161,9 @@ def gulla_summary_view(request):
     from .gulla_services import get_gulla_summary
     
     date_param = request.GET.get('date') or (request.query_params.get('date') if hasattr(request, 'query_params') else None)
+    if not isinstance(date_param, str) or date_param in ['[object Object]', 'undefined', 'null', '']:
+        date_param = None
+
     cache_key = f'gulla_sum_cache_{date_param or "today"}'
     cached = cache.get(cache_key)
     if cached is not None:
@@ -210,6 +214,7 @@ def gulla_entry_create_view(request):
     supplier_id = request.data.get('supplier_id')
     category_id = request.data.get('category_id')
     title = request.data.get('title')
+    cash_source = request.data.get('cash_source', 'HOME_SAFE')
     
     date_str = request.data.get('date') or request.data.get('entry_date')
     entry_date = None
@@ -229,7 +234,8 @@ def gulla_entry_create_view(request):
             category_id=category_id,
             title=title,
             denomination_counts=denomination_counts,
-            entry_date=entry_date
+            entry_date=entry_date,
+            cash_source=cash_source
         )
         return Response({
             'success': True,
@@ -288,19 +294,64 @@ class BankTransactionViewSet(viewsets.ModelViewSet):
 def eod_cash_sweep_api(request):
     """
     API view to trigger Day-End Auto Gulla Cash Sweep to Home Safe.
-    Automatically updates StoreSetting.home_cash_amount, creates CASH_OUT entry in Gulla,
-    and logs record to BankTransaction for Payment Ledger & Settlements.
+    Supports only_high_notes parameter (only 500, 200, 100, 50 notes for 11:30 PM rule)
+    or selected_denoms parameter.
     """
     from .gulla_services import perform_eod_cash_sweep
     keep_float = request.data.get('keep_float', 5000.00)
     custom_amount = request.data.get('custom_amount')
+    only_high_notes = request.data.get('only_high_notes', False) or request.data.get('auto_1130pm', False)
+    selected_denoms = request.data.get('selected_denoms')
     user = request.user if request.user.is_authenticated else None
 
-    res = perform_eod_cash_sweep(user=user, keep_float=keep_float, custom_amount=custom_amount)
+    res = perform_eod_cash_sweep(
+        user=user,
+        keep_float=keep_float,
+        custom_amount=custom_amount,
+        only_high_notes=only_high_notes,
+        selected_denoms=selected_denoms
+    )
     if res['success']:
         return Response(res, status=status.HTTP_200_OK)
     else:
         return Response(res, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def toggle_auto_1130_sweep_api(request):
+    """
+    API view to toggle 11:30 PM Automatic Money Withdraw System ON or OFF.
+    Saves state in StoreSetting and records an audit log entry in Home Safe Cash Vault history.
+    """
+    from .models import StoreSetting, HomeCashTransaction
+    setting = StoreSetting.get_settings()
+    
+    if 'enabled' in request.data:
+        enabled = bool(request.data.get('enabled'))
+    else:
+        enabled = not getattr(setting, 'auto_1130_sweep_enabled', True)
+
+    setting.auto_1130_sweep_enabled = enabled
+    setting.save()
+
+    user = request.user if request.user.is_authenticated else None
+    created_by_str = request.data.get('created_by_name') or (user.get_full_name() if (user and hasattr(user, 'get_full_name') and user.get_full_name()) else (user.username if (user and hasattr(user, 'username')) else 'Store Owner'))
+
+    status_str = "ENABLED (ON)" if enabled else "DISABLED (OFF)"
+    HomeCashTransaction.objects.create(
+        entry_type='DEPOSIT' if enabled else 'WITHDRAWAL',
+        amount=Decimal('0.00'),
+        notes=f"11:30 PM Auto-Withdrawal System turned {status_str}",
+        balance_after=setting.home_cash_amount,
+        created_by_name=created_by_str
+    )
+
+    return Response({
+        'success': True,
+        'auto_1130_sweep_enabled': enabled,
+        'message': f"11:30 PM Automatic Money Withdraw System is now {status_str}."
+    })
 
 
 @api_view(['GET', 'POST'])
@@ -313,6 +364,7 @@ def home_cash_vault_api(request):
           and saves transaction history with denomination note breakdown.
     """
     from .models import StoreSetting, HomeCashTransaction
+    from .gulla_services import calc_greedy_notes, safe_int, sanitize_note_counts
     setting = StoreSetting.get_settings()
 
     if request.method == 'POST':
@@ -346,10 +398,16 @@ def home_cash_vault_api(request):
         setting.home_cash_amount = new_balance
         setting.save()
 
+        clean_denom_counts = {}
+        if isinstance(denom_counts, dict) and any(safe_int(v) > 0 for v in denom_counts.values()):
+            clean_denom_counts = sanitize_note_counts(denom_counts)
+        else:
+            clean_denom_counts = calc_greedy_notes(amt)
+
         tx = HomeCashTransaction.objects.create(
             entry_type=entry_type,
             amount=amt,
-            denomination_counts=denom_counts if isinstance(denom_counts, dict) else {},
+            denomination_counts=clean_denom_counts,
             notes=notes,
             created_by_name=created_by_str,
             balance_after=new_balance
@@ -357,7 +415,7 @@ def home_cash_vault_api(request):
 
     # Calculate Summaries & Denominations Breakdown
     current_home_balance = Decimal(str(setting.home_cash_amount or 0))
-    tx_qs = HomeCashTransaction.objects.all()
+    tx_qs = HomeCashTransaction.objects.all().order_by('id')
 
     total_deposits = tx_qs.filter(entry_type__in=['DEPOSIT', 'SWEEP']).aggregate(s=models.Sum('amount'))['s'] or Decimal('0.00')
     total_withdrawals = tx_qs.filter(entry_type='WITHDRAWAL').aggregate(s=models.Sum('amount'))['s'] or Decimal('0.00')
@@ -368,48 +426,54 @@ def home_cash_vault_api(request):
 
     for tx in tx_qs:
         counts = tx.denomination_counts or {}
+        if not isinstance(counts, dict) or not any(safe_int(v) > 0 for v in counts.values()):
+            counts = calc_greedy_notes(tx.amount)
+
         is_add = tx.entry_type in ['DEPOSIT', 'SWEEP']
-        if isinstance(counts, dict):
-            for d_str, count_val in counts.items():
-                try:
-                    cnt = int(count_val or 0)
-                    d_key = str(d_str)
-                    if d_key in denom_totals:
-                        if is_add:
-                            denom_totals[d_key] += cnt
-                        else:
-                            denom_totals[d_key] = max(0, denom_totals[d_key] - cnt)
-                except (ValueError, TypeError):
-                    pass
+        for d_str, count_val in counts.items():
+            try:
+                cnt = int(count_val or 0)
+                d_key = str(d_str)
+                if d_key in denom_totals:
+                    if is_add:
+                        denom_totals[d_key] += cnt
+                    else:
+                        denom_totals[d_key] = max(0, denom_totals[d_key] - cnt)
+            except (ValueError, TypeError):
+                pass
 
     history_data = []
-    for tx in tx_qs[:100]:
+    for tx in tx_qs.order_by('-id')[:100]:
         counts = tx.denomination_counts or {}
+        if not isinstance(counts, dict) or not any(safe_int(v) > 0 for v in counts.values()):
+            counts = calc_greedy_notes(tx.amount)
+
         breakdown_parts = []
-        if isinstance(counts, dict):
-            for d in denoms:
-                c = int(counts.get(str(d)) or counts.get(d) or 0)
-                if c > 0:
-                    breakdown_parts.append(f"{c}×₹{d}")
+        for d in denoms:
+            c = int(counts.get(str(d)) or counts.get(d) or 0)
+            if c > 0:
+                breakdown_parts.append(f"{c}×₹{d}")
         breakdown_str = " + ".join(breakdown_parts) if breakdown_parts else "-"
 
+        entry_type_lbl = '11:30 PM Auto-Withdraw Sweep' if (tx.entry_type == 'SWEEP' and ('11:30 PM' in (tx.notes or '') or 'Auto' in (tx.notes or ''))) else (tx.get_entry_type_display() if hasattr(tx, 'get_entry_type_display') else tx.entry_type)
         history_data.append({
             'id': tx.id,
             'entry_type': tx.entry_type,
-            'entry_type_display': tx.get_entry_type_display(),
-            'amount': float(tx.amount),
-            'denomination_counts': tx.denomination_counts,
+            'entry_type_label': entry_type_lbl,
+            'amount': float(tx.amount or 0),
+            'denomination_counts': counts,
             'notes_summary': breakdown_str,
             'notes': tx.notes or '',
-            'created_by_name': tx.created_by_name,
-            'balance_after': float(tx.balance_after),
-            'created_at': tx.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            'created_by_name': tx.created_by_name or 'Store Admin',
+            'balance_after': float(tx.balance_after or 0),
+            'created_at': (timezone.localtime(tx.created_at) if (tx.created_at and timezone.is_aware(tx.created_at)) else tx.created_at).strftime('%d %b %Y, %I:%M %p') if tx.created_at else '-'
         })
 
     return Response({
-        'home_cash_amount': float(current_home_balance),
-        'total_deposits': float(total_deposits),
-        'total_withdrawals': float(total_withdrawals),
+        'home_cash_amount': float(current_home_balance or 0),
+        'auto_1130_sweep_enabled': bool(getattr(setting, 'auto_1130_sweep_enabled', True)),
+        'total_deposits': float(total_deposits or 0),
+        'total_withdrawals': float(total_withdrawals or 0),
         'total_transactions': tx_qs.count(),
         'denominations_breakdown': denom_totals,
         'history': history_data

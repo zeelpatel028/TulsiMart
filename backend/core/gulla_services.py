@@ -9,7 +9,8 @@ from expenses.models import Expense, ExpenseCategory
 from .models import CashRegisterEntry
 from .serializers import CashRegisterEntrySerializer
 
-DENOM_LIST = [500, 200, 100, 50, 20, 10, 5, 1]
+DENOM_LIST = [500, 200, 100, 50, 20, 10, 5, 2, 1]
+_AUTO_SWEEP_IN_PROGRESS = False
 
 
 def safe_int(val, default=0):
@@ -51,6 +52,40 @@ def sanitize_note_counts(counts):
             except (ValueError, TypeError):
                 pass
     return result
+
+
+def calc_greedy_notes(amount):
+    try:
+        amt = int(round(float(amount or 0)))
+        res = {str(d): 0 for d in DENOM_LIST}
+        for d in DENOM_LIST:
+            if amt >= d:
+                res[str(d)] = amt // d
+                amt = amt % d
+        return res
+    except Exception:
+        return {str(d): 0 for d in DENOM_LIST}
+
+
+def parse_notes_from_text(notes_str):
+    counts = {str(d): 0 for d in DENOM_LIST}
+    if not notes_str or not isinstance(notes_str, str):
+        return counts
+    import re
+    matches = re.findall(r'₹?(\d+)[×x](\d+)', notes_str)
+    for denom, cnt in matches:
+        if denom in counts:
+            try:
+                counts[denom] += int(cnt)
+            except ValueError:
+                pass
+    coin_match = re.search(r'Coins: ₹?(\d+)', notes_str)
+    if coin_match:
+        try:
+            counts['1'] += int(coin_match.group(1))
+        except ValueError:
+            pass
+    return counts
 
 
 def calculate_denomination_breakdown(denomination_counts):
@@ -111,16 +146,36 @@ def reconcile_gulla_cash(total_physical_cash, expected_cash):
     }
 
 
-def get_gulla_summary(target_date=None):
+def get_gulla_summary(target_date=None, skip_auto_sweep=False):
     """
     Comprehensive Python backend service to calculate Gulla cash drawer metrics for a given date.
     Calculates Opening Float, POS Cash Sales, Customer Khata Receipts, Manual Cash In/Out,
     Supplier Payouts, Expense Outflows, Net Expected Gulla Cash, and Digital Sales.
     """
-    today = target_date or timezone.localtime(timezone.now()).date()
+    current_today = timezone.localtime(timezone.now()).date()
+    today = target_date or current_today
+
+    tz = timezone.get_current_timezone()
+    start_of_day = timezone.make_aware(datetime.datetime.combine(today, datetime.time.min), tz)
+    end_of_day = timezone.make_aware(datetime.datetime.combine(today, datetime.time.max), tz)
+
+    from core.models import StoreSetting
+    setting = StoreSetting.get_settings()
+    auto_1130_sweep_enabled = getattr(setting, 'auto_1130_sweep_enabled', True)
+
+    if today == current_today and not skip_auto_sweep:
+        try:
+            check_and_run_auto_1130pm_sweep()
+        except Exception as ex:
+            print("11:30 PM auto sweep check warning:", ex)
+            try:
+                from django.db import connection
+                connection.close()
+            except Exception:
+                pass
 
     # 1. Manual Register Entries for today
-    entries_qs = CashRegisterEntry.objects.filter(created_at__date=today)
+    entries_qs = CashRegisterEntry.objects.filter(created_at__range=(start_of_day, end_of_day))
 
     def sum_entry_type(etype):
         return entries_qs.filter(entry_type=etype).aggregate(t=Sum('amount'))['t'] or Decimal('0.00')
@@ -133,7 +188,7 @@ def get_gulla_summary(target_date=None):
 
     # 2. Automated POS Cash Transactions today
     pos_cash_txns = PaymentTransaction.objects.filter(
-        created_at__date=today,
+        created_at__range=(start_of_day, end_of_day),
         payment_method='CASH',
         status='PAID'
     )
@@ -150,12 +205,12 @@ def get_gulla_summary(target_date=None):
 
     # 3. Direct Supplier & Expense Cash Payouts for today
     supplier_cash_payouts = SupplierPayment.objects.filter(
-        payment_date=today,
+        Q(payment_date=today) | Q(created_at__range=(start_of_day, end_of_day)),
         payment_method='CASH'
     ).aggregate(t=Sum('amount'))['t'] or Decimal('0.00')
 
     expense_cash_payouts = Expense.objects.filter(
-        date=today,
+        Q(date=today) | Q(created_at__range=(start_of_day, end_of_day)),
         payment_method='CASH'
     ).aggregate(t=Sum('amount'))['t'] or Decimal('0.00')
 
@@ -168,7 +223,7 @@ def get_gulla_summary(target_date=None):
 
     # 6. Non-Cash Sales (UPI / Card / Bank Transfer for shift reconciliation)
     digital_txns = PaymentTransaction.objects.filter(
-        created_at__date=today,
+        created_at__range=(start_of_day, end_of_day),
         status='PAID'
     ).exclude(payment_method='CASH')
 
@@ -178,41 +233,9 @@ def get_gulla_summary(target_date=None):
     total_digital_sales = upi_sales + card_sales + bank_sales
 
     # 7. Denomination note breakdown aggregation from POS Cash Orders & Manual Register Entries
-    cash_orders = Order.objects.filter(created_at__date=today, payment_method='CASH').select_related('created_by')
+    cash_orders = Order.objects.filter(created_at__range=(start_of_day, end_of_day), payment_method='CASH').select_related('created_by')
     tendered_notes_agg = {str(d): 0 for d in DENOM_LIST}
     change_notes_agg = {str(d): 0 for d in DENOM_LIST}
-
-    def calc_greedy_notes(amount):
-        try:
-            amt = int(round(float(amount or 0)))
-            res = {str(d): 0 for d in DENOM_LIST}
-            for d in DENOM_LIST:
-                if amt >= d:
-                    res[str(d)] = amt // d
-                    amt = amt % d
-            return res
-        except Exception:
-            return {str(d): 0 for d in DENOM_LIST}
-
-    def parse_notes_from_text(notes_str):
-        counts = {str(d): 0 for d in DENOM_LIST}
-        if not notes_str or not isinstance(notes_str, str):
-            return counts
-        import re
-        matches = re.findall(r'₹?(\d+)[×x](\d+)', notes_str)
-        for denom, cnt in matches:
-            if denom in counts:
-                try:
-                    counts[denom] += int(cnt)
-                except ValueError:
-                    pass
-        coin_match = re.search(r'Coins: ₹?(\d+)', notes_str)
-        if coin_match:
-            try:
-                counts['1'] += int(coin_match.group(1))
-            except ValueError:
-                pass
-        return counts
 
     # Parse manual register entries for note counts
     for entry in entries_qs:
@@ -254,7 +277,7 @@ def get_gulla_summary(target_date=None):
             'change_returned': float(o.change_returned or 0),
             'tendered_notes': t_counts,
             'change_notes': c_counts,
-            'time': o.created_at.strftime('%I:%M %p')
+            'time': (timezone.localtime(o.created_at) if timezone.is_aware(o.created_at) else o.created_at).strftime('%I:%M %p')
         })
 
     denominations_table = []
@@ -289,6 +312,7 @@ def get_gulla_summary(target_date=None):
         _, t_str = calculate_denomination_breakdown(t_counts)
         _, c_str = calculate_denomination_breakdown(c_counts)
 
+        e_dt = timezone.localtime(e.created_at) if timezone.is_aware(e.created_at) else e.created_at
         unified_entries.append({
             'id': f'reg-{e.id}',
             'entry_type': e.entry_type,
@@ -296,7 +320,7 @@ def get_gulla_summary(target_date=None):
             'amount': float(e.amount),
             'notes': e.notes or e.get_entry_type_display(),
             'reference_id': e.reference_id or f'REG-{e.id}',
-            'created_at': e.created_at.isoformat(),
+            'created_at': e_dt.isoformat(),
             'user_name': e.created_by_name or 'Store Admin',
             'tendered_notes': t_counts,
             'change_notes': c_counts,
@@ -305,7 +329,7 @@ def get_gulla_summary(target_date=None):
         })
 
     # 2. POS Order Bills for today (Both Cash & Digital Payments)
-    all_orders = Order.objects.filter(created_at__date=today).select_related('created_by')
+    all_orders = Order.objects.filter(created_at__range=(start_of_day, end_of_day)).select_related('created_by')
     for o in all_orders:
         c_name = o.customer_name or 'Walk-in Customer'
         is_cash = (o.payment_method == 'CASH')
@@ -328,6 +352,7 @@ def get_gulla_summary(target_date=None):
             e_label = f"POS {o.payment_method} Bill"
             e_type = 'BILL_SALE_DIGITAL'
 
+        o_dt = timezone.localtime(o.created_at) if timezone.is_aware(o.created_at) else o.created_at
         unified_entries.append({
             'id': f'ord-{o.id}',
             'entry_type': e_type,
@@ -335,7 +360,7 @@ def get_gulla_summary(target_date=None):
             'amount': float(o.total_amount),
             'notes': f'POS {o.payment_method} Bill #{o.order_number} ({c_name})',
             'reference_id': o.order_number,
-            'created_at': o.created_at.isoformat(),
+            'created_at': o_dt.isoformat(),
             'user_name': o.created_by.get_full_name() if (o.created_by and hasattr(o.created_by, 'get_full_name') and o.created_by.get_full_name()) else (o.created_by.username if o.created_by else 'Cashier'),
             'tendered_notes': t_counts,
             'change_notes': c_counts,
@@ -350,6 +375,7 @@ def get_gulla_summary(target_date=None):
     for pt in khata_txns:
         d_counts = calc_greedy_notes(pt.amount)
         _, t_str = calculate_denomination_breakdown(d_counts)
+        pt_dt = timezone.localtime(pt.created_at) if timezone.is_aware(pt.created_at) else pt.created_at
         unified_entries.append({
             'id': f'khata-{pt.id}',
             'entry_type': 'KHATA_PAYMENT',
@@ -357,7 +383,7 @@ def get_gulla_summary(target_date=None):
             'amount': float(pt.amount),
             'notes': pt.notes or f'Khata Cash Receipt #{pt.transaction_id}',
             'reference_id': pt.transaction_id,
-            'created_at': pt.created_at.isoformat(),
+            'created_at': pt_dt.isoformat(),
             'user_name': 'Cashier',
             'tendered_notes': d_counts,
             'change_notes': {},
@@ -416,6 +442,7 @@ def get_gulla_summary(target_date=None):
 
     return {
         'date': str(today),
+        'auto_1130_sweep_enabled': bool(auto_1130_sweep_enabled),
         'cash_in_hand': float(net_cash_in_gulla),
         'total_cash': float(net_cash_in_gulla),
         'net_cash_in_gulla': float(net_cash_in_gulla),
@@ -451,10 +478,10 @@ def get_gulla_summary(target_date=None):
 
 
 @transaction.atomic
-def create_gulla_entry(entry_type, amount_raw, notes='', user=None, supplier_id=None, category_id=None, title=None, denomination_counts=None, entry_date=None):
+def create_gulla_entry(entry_type, amount_raw, notes='', user=None, supplier_id=None, category_id=None, title=None, denomination_counts=None, entry_date=None, cash_source='HOME_SAFE'):
     """
     Python backend service to create Gulla cash register entries (Float, Cash In, Cash Out, Supplier Pay, Expense).
-    Handles denomination note calculation and sub-ledger creation atomically.
+    Handles cash source validation (Home Safe Vault vs Bank Account balance check) and denomination note validation atomically.
     """
     today = entry_date or timezone.localtime(timezone.now()).date()
 
@@ -471,25 +498,128 @@ def create_gulla_entry(entry_type, amount_raw, notes='', user=None, supplier_id=
         raise ValueError('Invalid amount provided')
 
     if amount <= 0:
-        raise ValueError('Amount must be greater than 0')
+        raise ValueError('Amount must be greater than ₹0')
 
-    # Validate Gulla Drawer Note Availability for Cash Outflow Entries
+    created_by_str = user.get_full_name() if (user and hasattr(user, 'get_full_name') and user.get_full_name()) else (user.username if (user and hasattr(user, 'username')) else 'Store Admin')
+
+    # ================= 1. CASH INFLOW SOURCE BALANCE VALIDATION (CASH_IN / OPENING_FLOAT) =================
+    if entry_type in ['CASH_IN', 'OPENING_FLOAT']:
+        source = (cash_source or 'HOME_SAFE').upper()
+        if source == 'HOME_SAFE':
+            from core.models import StoreSetting, HomeCashTransaction
+            setting = StoreSetting.get_settings()
+            home_balance = Decimal(str(setting.home_cash_amount or 0))
+
+            if amount > home_balance:
+                raise ValueError(
+                    f"⚠️ Insufficient Home Safe Vault Balance! Current Home Safe Cash is ₹{home_balance:.2f}, "
+                    f"attempted to add ₹{amount:.2f} to Gulla drawer. Please deposit cash to Home Safe first or select Bank account."
+                )
+
+            # Validate Home Safe Note Availability per Denomination
+            if denomination_counts and isinstance(denomination_counts, dict):
+                tx_qs = HomeCashTransaction.objects.all().order_by('id')
+                denoms = [500, 200, 100, 50, 20, 10, 5, 2, 1]
+                home_vault_notes = {str(d): 0 for d in denoms}
+                for tx in tx_qs:
+                    counts = tx.denomination_counts or {}
+                    if not isinstance(counts, dict) or not any(safe_int(v) > 0 for v in counts.values()):
+                        counts = calc_greedy_notes(tx.amount)
+
+                    is_add = tx.entry_type in ['DEPOSIT', 'SWEEP']
+                    for d_str, count_val in counts.items():
+                        try:
+                            cnt = int(count_val or 0)
+                            d_key = str(d_str)
+                            if d_key in home_vault_notes:
+                                if is_add:
+                                    home_vault_notes[d_key] += cnt
+                                else:
+                                    home_vault_notes[d_key] = max(0, home_vault_notes[d_key] - cnt)
+                        except (ValueError, TypeError):
+                            pass
+
+                # If Home Safe Vault tracks notes and requested count > vault note stock, reject
+                has_tracked_notes = any(v > 0 for v in home_vault_notes.values())
+                if has_tracked_notes:
+                    for denom_str, count_val in denomination_counts.items():
+                        req_cnt = safe_int(count_val)
+                        if req_cnt > 0:
+                            d_key = str(denom_str)
+                            avail_cnt = home_vault_notes.get(d_key, 0)
+                            if req_cnt > avail_cnt:
+                                raise ValueError(
+                                    f"⚠️ Home Safe Vault Alert: Insufficient ₹{denom_str} notes in Home Safe Vault! "
+                                    f"(Available: {avail_cnt} notes, Requested: {req_cnt} notes)."
+                                )
+
+            # Deduct cash from Home Safe Vault balance
+            new_home_balance = home_balance - amount
+            setting.home_cash_amount = new_home_balance
+            setting.save()
+
+            notes_src = f"Transferred to Gulla Cash Drawer ({notes or 'Add Cash'})"
+            notes = f"{notes} [Source: Home Safe Vault]" if notes else "Cash Added from Home Safe Vault"
+
+            clean_denom_counts = denomination_counts if (isinstance(denomination_counts, dict) and any(safe_int(v) > 0 for v in denomination_counts.values())) else calc_greedy_notes(amount)
+
+            HomeCashTransaction.objects.create(
+                entry_type='WITHDRAWAL',
+                amount=amount,
+                denomination_counts=clean_denom_counts,
+                notes=notes_src,
+                created_by_name=created_by_str,
+                balance_after=new_home_balance
+            )
+
+        elif source == 'BANK':
+            from core.models import BankTransaction
+            qs = BankTransaction.objects.all()
+            upi_in = float(qs.filter(transaction_type__in=['UPI_IN', 'CARD_IN']).aggregate(t=Sum('amount'))['t'] or 0)
+            dep = float(qs.filter(transaction_type='DEPOSIT').aggregate(t=Sum('amount'))['t'] or 0)
+            supp_p = float(qs.filter(transaction_type='SUPPLIER_PAYOUT').aggregate(t=Sum('amount'))['t'] or 0)
+            exp_p = float(qs.filter(transaction_type='EXPENSE_PAYOUT').aggregate(t=Sum('amount'))['t'] or 0)
+            withd = float(qs.filter(transaction_type='WITHDRAWAL').aggregate(t=Sum('amount'))['t'] or 0)
+
+            bank_balance = Decimal(str(round((upi_in + dep) - (supp_p + exp_p + withd), 2)))
+
+            if amount > bank_balance:
+                raise ValueError(
+                    f"⚠️ Insufficient Bank Account Balance! Current Bank Balance is ₹{bank_balance:.2f}, "
+                    f"attempted to withdraw ₹{amount:.2f} to Gulla drawer."
+                )
+
+            ts_str = timezone.now().strftime('%Y%m%d%H%M%S')
+            ref_no = f"WITHDRAW-BANK-{ts_str}"
+            notes = f"{notes} [Source: Bank Withdrawal]" if notes else "Cash Added from Bank Withdrawal"
+
+            BankTransaction.objects.create(
+                transaction_type='WITHDRAWAL',
+                amount=amount,
+                reference_number=ref_no,
+                bank_name='HDFC Store Primary Bank',
+                notes=f"Bank Withdrawal transferred to Gulla Cash Drawer ({notes})",
+                created_by=user if user and user.is_authenticated else None
+            )
+
+    # ================= 2. CASH OUTFLOW VALIDATION (CASH_OUT / SUPPLIER_PAYMENT / EXPENSE) =================
     if entry_type in ['CASH_OUT', 'SUPPLIER_PAYMENT', 'EXPENSE']:
         summary = get_gulla_summary(today)
+        net_cash = Decimal(str(summary.get('net_cash_in_gulla', 0)))
+
+        if amount > net_cash:
+            raise ValueError(f"⚠️ Gulla Alert: Insufficient Net Cash in Gulla Register! (Available: ₹{net_cash:.2f}, Attempted: ₹{amount:.2f}).")
+
         net_notes = summary.get('notes_and_coins_summary', {}).get('net_drawer_notes', {})
         if denomination_counts and isinstance(denomination_counts, dict):
             for denom_str, count_val in denomination_counts.items():
-                try:
-                    requested_cnt = int(count_val or 0)
-                    if requested_cnt > 0:
-                        avail_cnt = max(0, int(net_notes.get(str(denom_str)) or net_notes.get(int(denom_str) if str(denom_str).isdigit() else denom_str) or 0))
-                        if requested_cnt > avail_cnt:
-                            raise ValueError(f"⚠️ Gulla Alert: Insufficient ₹{denom_str} notes in Gulla! (Available: {avail_cnt}, Requested: {requested_cnt}). Please add notes via Opening Float or Cash In.")
-                except ValueError as ve:
-                    if "Gulla Alert" in str(ve):
-                        raise ve
+                requested_cnt = safe_int(count_val)
+                if requested_cnt > 0:
+                    avail_cnt = max(0, safe_int(net_notes.get(str(denom_str)) or net_notes.get(int(denom_str) if str(denom_str).isdigit() else denom_str) or 0))
+                    if requested_cnt > avail_cnt:
+                        raise ValueError(f"⚠️ Gulla Alert: Insufficient ₹{denom_str} notes in Gulla! (Available: {avail_cnt}, Requested: {requested_cnt}). Please add notes via Opening Float or Cash In.")
 
-    # 1. Handle Supplier Payout entry
+    # 3. Handle Supplier Payout sub-entry
     if entry_type == 'SUPPLIER_PAYMENT' and supplier_id:
         try:
             supp = Supplier.objects.get(id=supplier_id)
@@ -503,7 +633,7 @@ def create_gulla_entry(entry_type, amount_raw, notes='', user=None, supplier_id=
         except Supplier.DoesNotExist:
             pass
 
-    # 2. Handle Store Expense entry
+    # 4. Handle Store Expense sub-entry
     if entry_type == 'EXPENSE':
         cat = None
         if category_id:
@@ -523,8 +653,30 @@ def create_gulla_entry(entry_type, amount_raw, notes='', user=None, supplier_id=
             notes=f"Paid from Gulla: {notes}" if notes else "Cash Register Outflow"
         )
 
-    # 3. Create Cash Register Entry with denomination counts
-    created_by_str = user.get_full_name() if (user and hasattr(user, 'get_full_name') and user.get_full_name()) else (user.username if (user and hasattr(user, 'username')) else 'Store Admin')
+    # 5. Handle CASH_OUT transfer to Home Safe Vault
+    if entry_type == 'CASH_OUT':
+        try:
+            from core.models import StoreSetting, HomeCashTransaction
+            setting = StoreSetting.get_settings()
+            new_home_balance = Decimal(str(setting.home_cash_amount or 0)) + amount
+            setting.home_cash_amount = new_home_balance
+            setting.save()
+
+            _, note_summary_str = calculate_denomination_breakdown(denomination_counts or {})
+            notes_log = f"Cash Withdrawn from Gulla collection to Home Safe ({note_summary_str if note_summary_str else (notes or 'Manual Transfer')})"
+
+            HomeCashTransaction.objects.create(
+                entry_type='DEPOSIT',
+                amount=amount,
+                denomination_counts=denomination_counts or {},
+                notes=notes_log,
+                created_by_name=created_by_str,
+                balance_after=new_home_balance
+            )
+        except Exception as ex:
+            print("Error transferring CASH_OUT to Home Safe Vault:", ex)
+
+    # 6. Create Cash Register Entry with denomination counts
     entry = CashRegisterEntry.objects.create(
         entry_type=entry_type,
         amount=amount,
@@ -558,10 +710,24 @@ def sync_all_transactions_to_bank_register():
     for ord_obj in paid_orders:
         ref_no = ord_obj.invoice_number or ord_obj.order_number
         if not BankTransaction.objects.filter(reference_number=ref_no).exists():
-            is_upi_card = ord_obj.payment_method in ['UPI', 'CARD', 'BANK', 'ONLINE']
-            ttype = 'UPI_IN' if is_upi_card else 'UPI_IN'
-            label_pm = f"[{ord_obj.payment_method}]" if ord_obj.payment_method else "[CASH/UPI]"
+            pm = (ord_obj.payment_method or 'UPI').upper()
+            if pm == 'CARD':
+                ttype = 'CARD_IN'
+                label_pm = '[CARD]'
+            elif pm in ['UPI', 'QR']:
+                ttype = 'UPI_IN'
+                label_pm = '[UPI/QR]'
+            elif pm in ['NET_BANKING', 'BANK']:
+                ttype = 'UPI_IN'
+                label_pm = '[NET BANKING]'
+            else:
+                ttype = 'UPI_IN'
+                label_pm = f"[{pm}]"
+
             cust_str = ord_obj.customer_name or (ord_obj.customer.name if ord_obj.customer else 'Walk-in Customer')
+            created_by_str = 'Store Staff'
+            if ord_obj.created_by:
+                created_by_str = ord_obj.created_by.get_full_name() or ord_obj.created_by.username
             
             bt = BankTransaction.objects.create(
                 transaction_type=ttype,
@@ -569,7 +735,7 @@ def sync_all_transactions_to_bank_register():
                 reference_number=ref_no,
                 bank_name='HDFC Store Primary Bank',
                 notes=f"POS Bill #{ord_obj.order_number} ({cust_str}) {label_pm}",
-                created_by=ord_obj.created_by
+                created_by_name=created_by_str
             )
             bt_dt = ord_obj.created_at or timezone.now()
             BankTransaction.objects.filter(id=bt.id).update(date=bt_dt.date(), created_at=bt_dt)
@@ -632,43 +798,90 @@ def sync_all_transactions_to_bank_register():
     return count
 
 
-def perform_eod_cash_sweep(user=None, keep_float=Decimal('5000.00'), custom_amount=None):
+def perform_eod_cash_sweep(user=None, keep_float=Decimal('5000.00'), custom_amount=None, only_high_notes=False, selected_denoms=None, skip_auto_sweep=True):
     """
-    Automatic Day-End Gulla Sweep to Home Safe.
-    Calculates expected net cash in Gulla, subtracts the desired float to keep for tomorrow,
-    creates a CASH_OUT entry in CashRegisterEntry, adds the swept cash to StoreSetting.home_cash_amount,
-    and logs a BankTransaction / PaymentTransaction so it appears in Payment Ledger & Settlements.
+    Automatic / Manual Day-End Gulla Sweep to Home Safe.
+    If only_high_notes=True (11:30 PM Auto-Withdraw Rule):
+        Calculates exact available note breakdown in Gulla drawer for high denominations ONLY (500, 200, 100, 50),
+        sweeps ONLY those notes to Home Safe Cash Vault, leaving smaller change (20, 10, 5, 1) in Gulla drawer.
+    If selected_denoms is passed:
+        Sweeps only the specified note denominations (e.g. [500] or [500, 200]).
+    Otherwise:
+        Sweeps expected net cash above keep_float or custom_amount with greedy note breakdown.
     """
-    from core.models import CashRegisterEntry, BankTransaction
+    from core.models import CashRegisterEntry, BankTransaction, StoreSetting, HomeCashTransaction
 
     today = timezone.localtime(timezone.now()).date()
-    summary = get_gulla_summary(today)
+    summary = get_gulla_summary(today, skip_auto_sweep=skip_auto_sweep)
     net_cash_gulla = Decimal(str(summary.get('net_cash_in_gulla', 0)))
+    net_notes = summary.get('notes_and_coins_summary', {}).get('net_drawer_notes', {})
 
-    if custom_amount is not None:
+    denom_counts_swept = {}
+    sweep_amount = Decimal('0.00')
+
+    # If only_high_notes (11:30 PM Rule) or specific selected_denoms requested
+    if only_high_notes or selected_denoms:
+        target_denoms = selected_denoms if selected_denoms else [500, 200, 100, 50]
+        for d in target_denoms:
+            d_str = str(d)
+            cnt = max(0, safe_int(net_notes.get(d_str, 0)))
+            if cnt > 0:
+                denom_counts_swept[d_str] = cnt
+                sweep_amount += Decimal(str(d * cnt))
+
+        # Fallback: If live net_notes is empty but net_cash_gulla > 0, do greedy breakdown for target_denoms
+        if sweep_amount <= Decimal('0.00') and net_cash_gulla > Decimal('0.00'):
+            rem_amt = int(net_cash_gulla)
+            for d in target_denoms:
+                if rem_amt >= d:
+                    c = rem_amt // d
+                    denom_counts_swept[str(d)] = c
+                    rem_amt = rem_amt % d
+                    sweep_amount += Decimal(str(d * c))
+
+    elif custom_amount is not None:
         sweep_amount = Decimal(str(custom_amount))
+        rem_amt = int(sweep_amount)
+        for d in DENOM_LIST:
+            if rem_amt >= d:
+                c = rem_amt // d
+                denom_counts_swept[str(d)] = c
+                rem_amt = rem_amt % d
     else:
         keep_float_dec = Decimal(str(keep_float or 5000.00))
         sweep_amount = max(Decimal('0.00'), net_cash_gulla - keep_float_dec)
         if sweep_amount <= Decimal('0.00') and net_cash_gulla > Decimal('0.00'):
             sweep_amount = net_cash_gulla
 
+        rem_amt = int(sweep_amount)
+        for d in DENOM_LIST:
+            if rem_amt >= d:
+                c = rem_amt // d
+                denom_counts_swept[str(d)] = c
+                rem_amt = rem_amt % d
+
     if sweep_amount <= Decimal('0.00'):
         return {
             'success': False,
-            'message': 'No positive net cash in Gulla available for Day-End sweep.',
+            'message': 'No eligible cash notes available in Gulla for Home Safe sweep.',
             'swept_amount': 0.0,
             'net_cash_gulla': float(net_cash_gulla)
         }
 
     ts_str = timezone.now().strftime('%Y%m%d%H%M%S')
+    sweep_type_label = "11:30 PM High-Notes Auto Sweep (500, 200, 100, 50)" if only_high_notes else "EOD Cash Sweep"
+
+    created_by_str = user.get_full_name() if (user and hasattr(user, 'get_full_name') and user.get_full_name()) else (user.username if (user and hasattr(user, 'username')) else 'Store Admin / System Auto')
+    _, note_summary_str = calculate_denomination_breakdown(denom_counts_swept)
+
+    notes_text = f"11:30 PM Auto Cash Sweep to Home Safe ({note_summary_str})" if only_high_notes else f"EOD Cash Sweep to Home Safe [Ref: EOD-{ts_str}] ({note_summary_str})"
 
     # 1. Create CASH_OUT entry in CashRegisterEntry
-    created_by_str = user.get_full_name() if (user and hasattr(user, 'get_full_name') and user.get_full_name()) else (user.username if (user and hasattr(user, 'username')) else 'Store Admin')
     entry = CashRegisterEntry.objects.create(
         entry_type='CASH_OUT',
         amount=sweep_amount,
-        notes=f"Auto EOD Cash Sweep to Home Safe [Ref: EOD-{ts_str}]",
+        denomination_counts=denom_counts_swept,
+        notes=notes_text,
         created_by_name=created_by_str
     )
 
@@ -679,8 +892,8 @@ def perform_eod_cash_sweep(user=None, keep_float=Decimal('5000.00'), custom_amou
         amount=sweep_amount,
         reference_number=ref_no,
         bank_name='Gulla Cash Drawer to Home Safe',
-        notes=f"Day-End Auto Cash Withdrawal to Home Safe",
-        created_by=user if user and user.is_authenticated else None
+        notes=f"Day-End Auto Cash Withdrawal ({sweep_type_label})",
+        created_by_name=created_by_str
     )
 
     # 3. Update StoreSetting home_cash_amount & Log HomeCashTransaction
@@ -693,7 +906,8 @@ def perform_eod_cash_sweep(user=None, keep_float=Decimal('5000.00'), custom_amou
         HomeCashTransaction.objects.create(
             entry_type='SWEEP',
             amount=sweep_amount,
-            notes=f"Auto EOD Cash Sweep from Gulla Cash Drawer [Ref: EOD-{ts_str}]",
+            denomination_counts=denom_counts_swept,
+            notes=notes_text,
             created_by_name=created_by_str,
             balance_after=setting.home_cash_amount
         )
@@ -702,7 +916,68 @@ def perform_eod_cash_sweep(user=None, keep_float=Decimal('5000.00'), custom_amou
 
     return {
         'success': True,
-        'message': f'Successfully swept ₹{sweep_amount:.2f} from Gulla to Home Safe!',
+        'message': f'Successfully swept ₹{sweep_amount:.2f} ({sweep_type_label}) from Gulla to Home Safe Vault!',
         'swept_amount': float(sweep_amount),
+        'denomination_counts': denom_counts_swept,
+        'home_cash_amount': float(setting.home_cash_amount),
         'net_cash_remaining_in_gulla': float(net_cash_gulla - sweep_amount)
     }
+
+
+def check_and_run_auto_1130pm_sweep():
+    """
+    Automatic 11:30 PM Daily Auto-Withdrawal Task:
+    Executes ONLY ONCE per day when 11:30 PM is reached.
+    If Auto 11:30 PM Withdraw toggle is ON and auto-sweep has not run today,
+    sweeps all ₹500, ₹200, ₹100, and ₹50 notes to Home Safe Cash Vault and records audit log.
+    If an error/exception occurs during withdrawal, allows retry on next call.
+    """
+    global _AUTO_SWEEP_IN_PROGRESS
+    if _AUTO_SWEEP_IN_PROGRESS:
+        return None
+
+    try:
+        _AUTO_SWEEP_IN_PROGRESS = True
+        from core.models import StoreSetting, HomeCashTransaction
+        setting = StoreSetting.get_settings()
+        if not getattr(setting, 'auto_1130_sweep_enabled', True):
+            return None
+
+        now = timezone.localtime(timezone.now())
+        today = now.date()
+
+        # Trigger at 11:30 PM (23:30) or later
+        if now.hour > 23 or (now.hour == 23 and now.minute >= 30):
+            already_ran = HomeCashTransaction.objects.filter(
+                created_at__date=today,
+                notes__icontains='11:30 PM'
+            ).exists()
+
+            if not already_ran:
+                print(f"[AUTO 11:30 PM SWEEP] Running 11:30 PM EOD note sweep (500, 200, 100, 50) for {today}...")
+                res = perform_eod_cash_sweep(only_high_notes=True, skip_auto_sweep=True)
+                
+                # If sweep checked with 0 eligible high notes, record log so it only runs once per day
+                if res and isinstance(res, dict):
+                    if not res.get('success') and 'No eligible cash notes' in res.get('message', ''):
+                        HomeCashTransaction.objects.create(
+                            entry_type='SWEEP',
+                            amount=Decimal('0.00'),
+                            denomination_counts={},
+                            notes="11:30 PM Auto-Withdrawal System checked: No eligible ₹500, ₹200, ₹100, ₹50 notes in Gulla float.",
+                            created_by_name='System Auto (11:30 PM)',
+                            balance_after=setting.home_cash_amount
+                        )
+                return res
+        return None
+    except Exception as ex:
+        print("[AUTO 11:30 PM SWEEP ERROR] Sweep encountered a problem, will retry on next request:", ex)
+        try:
+            from django.db import connection
+            connection.close()
+        except Exception:
+            pass
+        return None
+    finally:
+        _AUTO_SWEEP_IN_PROGRESS = False
+

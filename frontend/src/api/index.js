@@ -134,6 +134,7 @@ export const gullaApi = {
   createGullaEntry: (data) => apiClient.post('/core/gulla/entry/', data),
   calculateNotes: (data) => apiClient.post('/core/gulla/calculate-notes/', data),
   eodSweep: (data) => apiClient.post('/core/gulla/eod-sweep/', data),
+  toggleAutoSweep: (data) => apiClient.post('/core/gulla/toggle-auto-sweep/', data),
 };
 
 // Bank & UPI Transactions API
