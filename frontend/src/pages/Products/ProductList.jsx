@@ -534,7 +534,6 @@ export const ProductList = () => {
                     <input
                       type="text"
                       required
-                      autoFocus
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="e.g. Fortune Refined Sunflower Oil 1L / Amul Taaza Milk 500ml"

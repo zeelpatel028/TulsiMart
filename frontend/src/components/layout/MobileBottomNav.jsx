@@ -1,9 +1,50 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Home, LayoutGrid, ShoppingCart, FileText, User } from 'lucide-react';
 
 export const MobileBottomNav = ({ cartCount = 0 }) => {
   const location = useLocation();
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const handleFocusIn = (e) => {
+      const tagName = e.target?.tagName;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tagName)) {
+        setIsKeyboardVisible(true);
+      }
+    };
+
+    const handleFocusOut = (e) => {
+      const tagName = e.target?.tagName;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tagName)) {
+        setIsKeyboardVisible(false);
+      }
+    };
+
+    const handleViewportResize = () => {
+      if (window.visualViewport) {
+        const isKeyboardOpen = window.visualViewport.height < window.innerHeight * 0.82;
+        setIsKeyboardVisible(isKeyboardOpen);
+      }
+    };
+
+    document.addEventListener('focusin', handleFocusIn);
+    document.addEventListener('focusout', handleFocusOut);
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportResize);
+    }
+
+    return () => {
+      document.removeEventListener('focusin', handleFocusIn);
+      document.removeEventListener('focusout', handleFocusOut);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleViewportResize);
+      }
+    };
+  }, []);
+
+  if (isKeyboardVisible) return null;
 
   const navItems = [
     {
