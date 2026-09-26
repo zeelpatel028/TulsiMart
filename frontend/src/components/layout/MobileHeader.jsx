@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, ChevronDown } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export const MobileHeader = ({ onMenuClick }) => {
@@ -47,20 +47,17 @@ export const MobileHeader = ({ onMenuClick }) => {
         </button>
       </div>
 
-      {/* Right: Vertical Separator & User Profile Circle Dropdown */}
+      {/* Right: Vertical Separator & User Profile Circle */}
       <div className="flex items-center gap-3 shrink-0">
         <div className="h-8 w-px bg-[#b2dfdb] dark:bg-slate-700" />
-        <button
-          type="button"
-          onClick={() => navigate('/settings')}
-          className="flex items-center gap-1.5 cursor-pointer"
-          title="User Profile & Account Settings"
+        <div
+          className="flex items-center gap-1.5"
+          title="User Profile"
         >
-          <div className="w-11 h-11 rounded-full bg-[#e0f2f1] dark:bg-slate-800 border border-[#b2dfdb] dark:border-slate-700 text-[#00695c] dark:text-[#80cbc4] font-black text-lg flex items-center justify-center shadow-2xs">
-            {user?.first_name ? user.first_name[0].toLowerCase() : (user?.username?.[0]?.toLowerCase() || 't')}
+          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#e0f2f1] dark:bg-slate-800 border border-[#b2dfdb] dark:border-slate-700 text-[#00695c] dark:text-[#80cbc4] font-black text-base sm:text-lg flex items-center justify-center shadow-2xs select-none">
+            {user?.first_name ? user.first_name[0].toUpperCase() : (user?.username?.[0]?.toUpperCase() || 'T')}
           </div>
-          <ChevronDown className="w-5 h-5 text-[#00695c] dark:text-[#80cbc4] stroke-[2.5]" />
-        </button>
+        </div>
       </div>
     </header>
   );
