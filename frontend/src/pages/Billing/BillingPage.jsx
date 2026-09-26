@@ -364,9 +364,9 @@ export const BillingPage = () => {
     try {
       setLoadingCatalog(true);
       const [prodRes, catRes, custRes, coupRes, gullaRes, suppRes, expCatRes] = await Promise.allSettled([
-        inventoryApi.getProducts({ page_size: 30 }),
+        inventoryApi.getProducts({ page_size: 1000 }),
         inventoryApi.getCategories(),
-        customersApi.getCustomers({ page_size: 30 }),
+        customersApi.getCustomers({ page_size: 100 }),
         offersApi.getCoupons(),
         gullaApi.getGullaSummary(),
         suppliersApi.getSuppliers(),
@@ -527,7 +527,7 @@ export const BillingPage = () => {
     searchTimeoutRef.current = setTimeout(async () => {
       try {
         setLoadingCatalog(true);
-        const params = { page_size: 30 };
+        const params = { page_size: 1000 };
         if (val.trim()) params.search = val.trim();
         if (selectedCategory && selectedCategory !== 'ALL') params.category = selectedCategory;
 
@@ -545,7 +545,7 @@ export const BillingPage = () => {
     setSelectedCategory(catName);
     try {
       setLoadingCatalog(true);
-      const params = { page_size: 30 };
+      const params = { page_size: 1000 };
       if (catName !== 'ALL') params.category = catName;
       if (searchQuery.trim()) params.search = searchQuery.trim();
 
