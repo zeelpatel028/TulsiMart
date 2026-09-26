@@ -1,28 +1,34 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 
-// Layout
+// Layout & Common
 import DashboardLayout from './components/layout/DashboardLayout';
-
-// Pages
-import Dashboard from './pages/Dashboard';
-import ProductList from './pages/Products/ProductList';
-import InventoryList from './pages/Inventory/InventoryList';
-import OrderList from './pages/Orders/OrderList';
-import CustomerList from './pages/Customers/CustomerList';
-import SalesRevenue from './pages/SalesRevenue/SalesRevenue';
-import OffersList from './pages/Offers/OffersList';
-import SupplierList from './pages/Suppliers/SupplierList';
-import ExpenseList from './pages/Expenses/ExpenseList';
-import StaffList from './pages/Staff/StaffList';
-import ReportsPage from './pages/Reports/ReportsPage';
-import BillingPage from './pages/Billing/BillingPage';
-import GullaManagement from './pages/Gulla/GullaManagement';
-import SettingsPage from './pages/Settings/SettingsPage';
-
-import LoginPage from './pages/Auth/LoginPage';
 import CartLoader from './components/common/CartLoader';
+
+// Lazy Loaded Pages
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const ProductList = lazy(() => import('./pages/Products/ProductList'));
+const InventoryList = lazy(() => import('./pages/Inventory/InventoryList'));
+const OrderList = lazy(() => import('./pages/Orders/OrderList'));
+const CustomerList = lazy(() => import('./pages/Customers/CustomerList'));
+const SalesRevenue = lazy(() => import('./pages/SalesRevenue/SalesRevenue'));
+const OffersList = lazy(() => import('./pages/Offers/OffersList'));
+const SupplierList = lazy(() => import('./pages/Suppliers/SupplierList'));
+const ExpenseList = lazy(() => import('./pages/Expenses/ExpenseList'));
+const StaffList = lazy(() => import('./pages/Staff/StaffList'));
+const ReportsPage = lazy(() => import('./pages/Reports/ReportsPage'));
+const BillingPage = lazy(() => import('./pages/Billing/BillingPage'));
+const GullaManagement = lazy(() => import('./pages/Gulla/GullaManagement'));
+const SettingsPage = lazy(() => import('./pages/Settings/SettingsPage'));
+const LoginPage = lazy(() => import('./pages/Auth/LoginPage'));
+
+// Fallback loader for lazy routes
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-[60vh]">
+    <CartLoader text="Loading..." size="md" />
+  </div>
+);
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -45,41 +51,42 @@ const ProtectedRoute = ({ children }) => {
 
 export function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
 
-      {/* Protected Dashboard Routes */}
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <DashboardLayout />
-          </ProtectedRoute>
-        }
-      >
+        {/* Protected Dashboard Routes */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Dashboard />} />
+          <Route path="billing" element={<BillingPage />} />
+          <Route path="gulla" element={<GullaManagement />} />
+          <Route path="pos" element={<Navigate to="/billing" replace />} />
+          <Route path="products" element={<ProductList />} />
+          <Route path="inventory" element={<InventoryList />} />
+          <Route path="orders" element={<OrderList />} />
+          <Route path="customers" element={<CustomerList />} />
+          <Route path="sales-revenue" element={<SalesRevenue />} />
+          <Route path="offers" element={<OffersList />} />
+          <Route path="suppliers" element={<SupplierList />} />
+          <Route path="expenses" element={<ExpenseList />} />
+          <Route path="staff" element={<StaffList />} />
+          <Route path="reports" element={<ReportsPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+        </Route>
 
-        <Route index element={<Dashboard />} />
-        <Route path="billing" element={<BillingPage />} />
-        <Route path="gulla" element={<GullaManagement />} />
-        <Route path="pos" element={<Navigate to="/billing" replace />} />
-        <Route path="products" element={<ProductList />} />
-        <Route path="inventory" element={<InventoryList />} />
-        <Route path="orders" element={<OrderList />} />
-        <Route path="customers" element={<CustomerList />} />
-        <Route path="sales-revenue" element={<SalesRevenue />} />
-        <Route path="offers" element={<OffersList />} />
-        <Route path="suppliers" element={<SupplierList />} />
-        <Route path="expenses" element={<ExpenseList />} />
-        <Route path="staff" element={<StaffList />} />
-        <Route path="reports" element={<ReportsPage />} />
-        <Route path="settings" element={<SettingsPage />} />
-      </Route>
-
-
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   );
 }
 
 export default App;
+

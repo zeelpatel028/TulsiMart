@@ -55,6 +55,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.gzip.GZipMiddleware',
+    'core.middleware.DatabasePerformanceMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -110,6 +112,10 @@ if os.getenv('USE_SQLITE', 'False').lower() in ('true', '1'):
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'tulsimart.sqlite3',
+            'CONN_MAX_AGE': 600,
+            'OPTIONS': {
+                'timeout': 20,
+            }
         }
     }
 elif db_url and dj_database_url:
@@ -137,7 +143,6 @@ elif db_url and dj_database_url:
     elif 'postgresql' in DATABASES['default'].get('ENGINE', '') and require_ssl:
         DATABASES['default'].setdefault('OPTIONS', {})
         DATABASES['default']['OPTIONS']['sslmode'] = 'require'
-
 
 else:
     DB_ENGINE = os.getenv('DB_ENGINE', 'django.db.backends.postgresql' if (db_url and 'postgres' in db_url) else 'django.db.backends.mysql')
@@ -177,6 +182,23 @@ else:
             'CONN_HEALTH_CHECKS': True,
         }
     }
+
+# Enable SQLite WAL mode & High Speed Memory Caching Pragmas
+from django.db.backends.signals import connection_created
+from django.dispatch import receiver
+
+@receiver(connection_created)
+def configure_sqlite_pragmas(sender, connection, **kwargs):
+    if connection.vendor == 'sqlite':
+        try:
+            cursor = connection.cursor()
+            cursor.execute('PRAGMA journal_mode = WAL;')
+            cursor.execute('PRAGMA synchronous = NORMAL;')
+            cursor.execute('PRAGMA cache_size = -64000;')
+            cursor.execute('PRAGMA temp_store = MEMORY;')
+        except Exception:
+            pass
+
 
 
 # High Performance In-Memory Caching (LocMemCache)

@@ -134,9 +134,7 @@ export const ProductList = () => {
       const params = { page, search };
       if (selectedCategory) params.category = selectedCategory;
       if (selectedBrand) params.brand = selectedBrand;
-      if (stockFilter === 'in_stock') params.in_stock = 'true';
-      if (stockFilter === 'low_stock') params.low_stock = 'true';
-      if (stockFilter === 'out_of_stock') params.out_of_stock = 'true';
+      if (stockFilter !== 'all') params.stock_status = stockFilter;
 
       const res = await inventoryApi.getProducts(params);
       const data = res.data;

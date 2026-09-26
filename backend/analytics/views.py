@@ -184,6 +184,11 @@ class AnalyticsTrendsView(APIView):
 
     def get(self, request):
         period = request.query_params.get('period', 'month').lower().strip() # 'day', 'week', 'month', 'year'
+        cache_key = f'analytics_trends_{period}_v1'
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
         today = timezone.now().date()
 
         trends_data = []
@@ -397,7 +402,7 @@ class AnalyticsTrendsView(APIView):
                 'new_customers': cnt
             })
 
-        return Response({
+        res_payload = {
             'comparison_data': trends_data,
             'monthly_comparison': trends_data,
             'payment_methods': [
@@ -413,7 +418,9 @@ class AnalyticsTrendsView(APIView):
                 } for c in categories
             ],
             'customer_growth': customer_growth
-        })
+        }
+        cache.set(cache_key, res_payload, 60)
+        return Response(res_payload)
 
 
 class ReportsView(APIView):
@@ -547,25 +554,28 @@ class ReportsView(APIView):
             }
 
         elif report_type == 'customer':
-            qs = Customer.objects.all()
-            for c in qs.order_by('-created_at')[:100]:
-                total_spent = float(c.orders.filter(payment_status='PAID').aggregate(t=Sum('total_amount'))['t'] or 0)
-                orders_cnt = c.orders.count()
+            from django.db.models.functions import Coalesce
+            from django.db.models import DecimalField
+            qs = Customer.objects.annotate(
+                total_spent=Coalesce(Sum('orders__total_amount', filter=Q(orders__payment_status='PAID')), Decimal('0.00'), output_field=DecimalField()),
+                orders_cnt=Count('orders', distinct=True)
+            ).order_by('-created_at')[:100]
+            for c in qs:
                 data.append({
                     'Customer Name': c.name,
                     'Phone': c.phone,
                     'Email': c.email or '-',
                     'City': c.city,
-                    'Total Orders': orders_cnt,
-                    'Total Spent (₹)': total_spent,
+                    'Total Orders': c.orders_cnt,
+                    'Total Spent (₹)': float(c.total_spent or 0),
                     'Status': c.status,
                     'Joined Date': c.created_at.strftime('%Y-%m-%d')
                 })
 
             summary = {
-                'Total Customers': qs.count(),
-                'Active Customers': qs.filter(status='ACTIVE').count(),
-                'Blocked Customers': qs.filter(status='BLOCKED').count()
+                'Total Customers': Customer.objects.count(),
+                'Active Customers': Customer.objects.filter(status='ACTIVE').count(),
+                'Blocked Customers': Customer.objects.filter(status='BLOCKED').count()
             }
 
         elif report_type == 'purchase':
