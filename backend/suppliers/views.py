@@ -31,6 +31,20 @@ class SupplierViewSet(viewsets.ModelViewSet):
         cache.set(cache_key, res.data, 60)
         return res
 
+    def create(self, request, *args, **kwargs):
+        name = request.data.get('name', '').strip()
+        phone = request.data.get('phone', '').strip()
+        if name:
+            query = Q(name__iexact=name)
+            if phone:
+                query |= Q(phone=phone)
+            existing = Supplier.objects.filter(query).first()
+            if existing:
+                serializer = self.get_serializer(existing)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+        cache.clear()
+        return super().create(request, *args, **kwargs)
+
     def get_queryset(self):
         qs = super().get_queryset()
         search = self.request.query_params.get('search')

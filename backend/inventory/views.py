@@ -19,48 +19,80 @@ from .serializers import (
 )
 
 DEFAULT_UNITS = [
-    ('Kilogram', 'kg'),
-    ('Gram', 'g'),
-    ('Liter', 'L'),
-    ('Milliliter', 'ml'),
-    ('Piece / Pcs', 'pc'),
-    ('Packet / Pack', 'pkt'),
-    ('Box / Case', 'box'),
-    ('Dozen', 'dz'),
-    ('Bottle', 'btl'),
-    ('Can', 'can'),
-    ('Jar', 'jar'),
-    ('Bag / Pouch', 'bag'),
-    ('Sachet', 'sachet'),
-    ('Meter', 'm'),
+    ('Kilogram', 'kg', 'g', 1000),
+    ('Gram', 'g', 'g', 1),
+    ('Milligram', 'mg', 'g', 0.001),
+    ('Quintal', 'q', 'g', 100000),
+    ('Ton', 't', 'g', 1000000),
+    ('Liter', 'L', 'ml', 1000),
+    ('Milliliter', 'ml', 'ml', 1),
+    ('Piece', 'pcs', 'pcs', 1),
+    ('Packet', 'pkt', 'pkt', 1),
+    ('Pack', 'pack', 'pack', 1),
+    ('Box', 'box', 'box', 1),
+    ('Bottle', 'btl', 'btl', 1),
+    ('Can', 'can', 'can', 1),
+    ('Jar', 'jar', 'jar', 1),
+    ('Pouch', 'pouch', 'pouch', 1),
+    ('Bag', 'bag', 'bag', 1),
+    ('Bundle', 'bdl', 'bdl', 1),
+    ('Dozen', 'dz', 'pcs', 12),
+    ('Half Dozen', 'hdz', 'pcs', 6),
+    ('Strip', 'strip', 'strip', 1),
+    ('Carton', 'ctn', 'ctn', 1),
+    ('Set', 'set', 'set', 1),
+    ('Pair', 'pr', 'pr', 1),
+    ('Tray', 'tray', 'tray', 1),
+    ('Sachet', 'sachet', 'sachet', 1),
+    ('Roll', 'roll', 'roll', 1),
+    ('Meter', 'm', 'm', 1),
+    ('Centimeter', 'cm', 'm', 0.01),
+    ('Other', 'other', 'other', 1),
 ]
 
 DEFAULT_CATEGORIES = [
-    ('Atta, Rice & Grains', 'ShoppingBag'),
-    ('Dal & Pulses', 'ShoppingBag'),
-    ('Edible Oils & Ghee', 'Droplet'),
-    ('Spices, Masala & Salt', 'Flame'),
-    ('Sugar, Jaggery & Sweeteners', 'Heart'),
-    ('Snacks, Namkeen & Chips', 'Cookie'),
-    ('Biscuits, Bakery & Cookies', 'Cookie'),
-    ('Beverages, Tea & Coffee', 'Coffee'),
-    ('Dairy, Milk & Butter', 'Milk'),
-    ('Dry Fruits, Nuts & Seeds', 'Nut'),
-    ('Sauces, Spreads & Ketchup', 'Bottle'),
-    ('Personal Care & Soap', 'Sparkles'),
-    ('Cleaning & Household', 'Sparkles'),
-    ('Pooja Needs & Agarbatti', 'Flame'),
-    ('Chocolates & Sweets', 'Heart'),
+    ('Grocery', 'ShoppingBag'),
+    ('Fruits', 'Apple'),
+    ('Vegetables', 'Carrot'),
+    ('Dairy', 'Milk'),
+    ('Bakery', 'Cookie'),
+    ('Beverages', 'Coffee'),
+    ('Snacks', 'Cookie'),
+    ('Biscuits', 'Cookie'),
+    ('Chocolates', 'Heart'),
+    ('Sweets', 'Heart'),
+    ('Rice', 'ShoppingBag'),
+    ('Wheat & Flour', 'ShoppingBag'),
+    ('Pulses', 'ShoppingBag'),
+    ('Dal', 'ShoppingBag'),
+    ('Spices', 'Flame'),
+    ('Dry Fruits', 'Nut'),
+    ('Cooking Oil', 'Droplet'),
+    ('Sauces', 'Bottle'),
+    ('Pickles', 'Bottle'),
+    ('Instant Food', 'Zap'),
+    ('Frozen Food', 'Snowflake'),
+    ('Personal Care', 'Sparkles'),
+    ('Household', 'Sparkles'),
+    ('Cleaning Products', 'Sparkles'),
+    ('Baby Care', 'Heart'),
+    ('Pet Food', 'Smile'),
+    ('Other', 'ShoppingBag'),
 ]
 
 def ensure_grocery_defaults():
     try:
-        if Unit.objects.count() < len(DEFAULT_UNITS):
-            for name, short in DEFAULT_UNITS:
-                Unit.objects.get_or_create(short_name=short, defaults={'name': name})
-        if Category.objects.count() < len(DEFAULT_CATEGORIES):
-            for name, icon in DEFAULT_CATEGORIES:
-                Category.objects.get_or_create(name=name, defaults={'icon': icon})
+        for name, short, base, factor in DEFAULT_UNITS:
+            if not Unit.objects.filter(Q(name__iexact=name) | Q(short_name__iexact=short)).exists():
+                Unit.objects.create(
+                    name=name,
+                    short_name=short,
+                    base_unit=base,
+                    conversion_factor=Decimal(str(factor))
+                )
+        for name, icon in DEFAULT_CATEGORIES:
+            if not Category.objects.filter(name__iexact=name).exists():
+                Category.objects.create(name=name, icon=icon)
     except Exception:
         pass
 
@@ -80,6 +112,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.AllowAny]
 
     def list(self, request, *args, **kwargs):
+        ensure_grocery_defaults()
         cache_key = 'inv_cat_list_v1'
         cached = cache.get(cache_key)
         if cached is not None:
@@ -87,6 +120,15 @@ class CategoryViewSet(viewsets.ModelViewSet):
         res = super().list(request, *args, **kwargs)
         cache.set(cache_key, res.data, 120)
         return res
+
+    def create(self, request, *args, **kwargs):
+        name = request.data.get('name', '').strip()
+        if name:
+            existing = Category.objects.filter(name__iexact=name).first()
+            if existing:
+                serializer = self.get_serializer(existing)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+        return super().create(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         serializer.save()
@@ -111,6 +153,20 @@ class UnitViewSet(viewsets.ModelViewSet):
     queryset = Unit.objects.all()
     serializer_class = UnitSerializer
     permission_classes = [permissions.AllowAny]
+
+    def list(self, request, *args, **kwargs):
+        ensure_grocery_defaults()
+        return super().list(request, *args, **kwargs)
+
+    def create(self, request, *args, **kwargs):
+        name = request.data.get('name', '').strip()
+        short_name = request.data.get('short_name', '').strip() or name.lower()[:10]
+        if name:
+            existing = Unit.objects.filter(Q(name__iexact=name) | Q(short_name__iexact=short_name)).first()
+            if existing:
+                serializer = self.get_serializer(existing)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+        return super().create(request, *args, **kwargs)
 
 
 from rest_framework.pagination import PageNumberPagination
@@ -183,6 +239,13 @@ class ProductViewSet(viewsets.ModelViewSet):
                     Q(brand__name__icontains=search_clean)
                 )
         return qs
+
+    @action(detail=False, methods=['get'])
+    def next_id(self, request):
+        from django.db.models import Max
+        max_id = Product.objects.aggregate(max_id=Max('id'))['max_id'] or 0
+        next_code = f"PD-ID-{(max_id + 1):03d}"
+        return Response({'next_product_id': next_code})
 
     def perform_create(self, serializer):
         product = serializer.save()

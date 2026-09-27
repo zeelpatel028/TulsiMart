@@ -34,6 +34,8 @@ class Brand(models.Model):
 class Unit(models.Model):
     name = models.CharField(max_length=50, unique=True) # Kilogram, Gram, Litre, Packet, Piece, Box
     short_name = models.CharField(max_length=20, unique=True) # kg, g, L, pkt, pc, box
+    base_unit = models.CharField(max_length=20, blank=True, null=True) # e.g. g, ml, pcs
+    conversion_factor = models.DecimalField(max_digits=12, decimal_places=4, default=1.0) # e.g. 1000 for kg->g
 
     class Meta:
         ordering = ['name']
@@ -44,29 +46,45 @@ class Unit(models.Model):
 
 
 class Product(models.Model):
+    product_code = models.CharField(max_length=50, unique=True, blank=True, null=True, db_index=True)
     name = models.CharField(max_length=255, db_index=True)
     sku = models.CharField(max_length=50, unique=True, db_index=True)
     barcode = models.CharField(max_length=100, blank=True, null=True, db_index=True)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='products')
     brand = models.ForeignKey(Brand, on_delete=models.SET_NULL, null=True, blank=True, related_name='products')
-    unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, null=True, related_name='products')
+    unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, null=True, related_name='products') # Product Unit
+    selling_unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, null=True, blank=True, related_name='selling_unit_products') # Selling Unit
+    supplier = models.ForeignKey('suppliers.Supplier', on_delete=models.SET_NULL, null=True, blank=True, related_name='products')
     
-    # Pricing
-    mrp = models.DecimalField(max_digits=10, decimal_places=2)
-    selling_price = models.DecimalField(max_digits=10, decimal_places=2)
+    # Purchase Pricing & Tax
+    purchase_gst_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
+    purchase_non_tax_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    purchase_tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    purchase_final_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
+    # Selling Pricing & Tax
+    selling_gst_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
+    selling_non_tax_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    selling_tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    selling_tax_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
+    mrp = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    selling_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     cost_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
     gst_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
     
     # Inventory
-    stock_quantity = models.IntegerField(default=0, db_index=True)
-    min_stock_alert = models.IntegerField(default=10)
+    stock_quantity = models.DecimalField(max_digits=12, decimal_places=3, default=0.000, db_index=True)
+    min_stock_alert = models.DecimalField(max_digits=12, decimal_places=3, default=10.000)
+    manufacturing_date = models.DateField(blank=True, null=True)
     expiry_date = models.DateField(blank=True, null=True, db_index=True)
     batch_number = models.CharField(max_length=50, blank=True, null=True)
     
     # Media & Meta
     image = models.CharField(max_length=500, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
+    short_description = models.TextField(blank=True, null=True)
     is_featured = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
@@ -79,15 +97,22 @@ class Product(models.Model):
             models.Index(fields=['created_at']),
         ]
 
-
     def save(self, *args, **kwargs):
         import random
+        if not self.product_code:
+            max_id = Product.objects.aggregate(max_id=models.Max('id'))['max_id'] or 0
+            self.product_code = f"PD-ID-{(max_id + 1):03d}"
         if not self.sku:
-            prefix = ''.join(e for e in (self.name or 'PRD') if e.isalnum())[:3].upper() or 'PRD'
-            self.sku = f"TM-{prefix}-{random.randint(1000, 9999)}"
+            self.sku = self.product_code
         if not self.barcode:
             self.barcode = f"890{random.randint(100000000, 999999999)}"
         super().save(*args, **kwargs)
+
+    @property
+    def formatted_product_id(self):
+        if self.product_code:
+            return self.product_code
+        return f"PD-ID-{self.id:03d}"
 
     @property
     def stock_status(self):

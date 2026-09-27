@@ -8,7 +8,7 @@ import CartLoader from './components/common/CartLoader';
 
 // Lazy Loaded Pages
 const Dashboard = lazy(() => import('./pages/Dashboard'));
-const ProductList = lazy(() => import('./pages/Products/ProductList'));
+const AddProductPage = lazy(() => import('./pages/Products/AddProductPage'));
 const InventoryList = lazy(() => import('./pages/Inventory/InventoryList'));
 const OrderList = lazy(() => import('./pages/Orders/OrderList'));
 const CustomerList = lazy(() => import('./pages/Customers/CustomerList'));
@@ -68,7 +68,8 @@ export function App() {
           <Route path="billing" element={<BillingPage />} />
           <Route path="gulla" element={<GullaManagement />} />
           <Route path="pos" element={<Navigate to="/billing" replace />} />
-          <Route path="products" element={<ProductList />} />
+          <Route path="products" element={<Navigate to="/products/add" replace />} />
+          <Route path="products/add" element={<AddProductPage />} />
           <Route path="inventory" element={<InventoryList />} />
           <Route path="orders" element={<OrderList />} />
           <Route path="customers" element={<CustomerList />} />

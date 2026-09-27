@@ -53,6 +53,7 @@ import {
 import { inventoryApi, customersApi, ordersApi, offersApi, gullaApi, suppliersApi, expensesApi } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
+import { getUnitConversionRatio } from '../../utils/unitConversion';
 
 
 export const BillingPage = () => {
@@ -610,20 +611,32 @@ export const BillingPage = () => {
     const targetCart = { ...updatedCarts[activeCartIndex] };
     const existingIndex = targetCart.items.findIndex((item) => item.product.id === product.id);
 
+    const prodUnit = product.unit || product.product_unit;
+    const sellUnit = product.selling_unit || product.unit;
+    const ratio = getUnitConversionRatio(prodUnit, sellUnit);
+
+    const baseSellingPrice = parseFloat(product.selling_price || product.price || 0);
+    const baseMrp = parseFloat(product.mrp || product.selling_price || product.price || 0);
+
+    const unitPricePerSellingUnit = ratio > 0 ? (baseSellingPrice / ratio) : baseSellingPrice;
+    const mrpPerSellingUnit = ratio > 0 ? (baseMrp / ratio) : baseMrp;
+
+    const initialQty = (ratio >= 1000) ? 1000 : 1;
+
     if (existingIndex > -1) {
       const currentQty = targetCart.items[existingIndex].quantity;
-      if (currentQty + 1 > product.stock_quantity) {
-        showToast(`Cannot add more than ${product.stock_quantity} units of ${product.name}`, 'warning');
-        return;
-      }
-      targetCart.items[existingIndex].quantity += 1;
+      const step = (ratio >= 1000) ? 100 : 1;
+      targetCart.items[existingIndex].quantity += step;
     } else {
       targetCart.items.push({
         product,
-        quantity: 1,
-        unitPrice: parseFloat(product.selling_price || product.price || 0),
-        mrp: parseFloat(product.mrp || product.selling_price || product.price || 0),
-        gstPercent: parseFloat(product.gst_percent !== undefined && product.gst_percent !== null ? product.gst_percent : (product.tax_percentage || 0))
+        quantity: initialQty,
+        unitPrice: unitPricePerSellingUnit,
+        mrp: mrpPerSellingUnit,
+        gstPercent: parseFloat(product.gst_percent !== undefined && product.gst_percent !== null ? product.gst_percent : (product.tax_percentage || 0)),
+        sellingUnitShort: sellUnit ? (typeof sellUnit === 'object' ? sellUnit.short_name : (product.selling_unit_name || 'pc')) : 'pc',
+        productUnitShort: prodUnit ? (typeof prodUnit === 'object' ? prodUnit.short_name : (product.unit_name || 'pc')) : 'pc',
+        ratio: ratio
       });
     }
 
@@ -804,6 +817,18 @@ export const BillingPage = () => {
     setIsCouponModalOpen(false);
     setCouponInput('');
     showToast(`Coupon applied! Saved ₹${discount.toFixed(2)}`, 'success');
+  };
+
+  // Remove Coupon / Promo Code
+  const handleRemoveCoupon = () => {
+    const updatedCarts = [...carts];
+    updatedCarts[activeCartIndex] = {
+      ...updatedCarts[activeCartIndex],
+      discountAmount: 0,
+      couponCode: ''
+    };
+    setCarts(updatedCarts);
+    showToast('Promo code removed', 'info');
   };
 
   // Financial Calculations (Grocery retail prices are inclusive of GST)
@@ -1164,21 +1189,6 @@ export const BillingPage = () => {
               📦 {c.name}
             </button>
           ))}
-        </div>
-
-        <div className="flex items-center gap-1 shrink-0 pl-1 border-l border-slate-200 dark:border-slate-700">
-          <button
-            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
-            title="Scroll Right"
-          >
-            <ArrowRight className="w-4 h-4" />
-          </button>
-          <button
-            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
-            title="Filter Options"
-          >
-            <Filter className="w-4 h-4" />
-          </button>
         </div>
       </div>
 
@@ -1556,27 +1566,44 @@ export const BillingPage = () => {
                 <span className="font-mono font-bold text-slate-800 dark:text-slate-100">₹{netSubtotal.toFixed(2)}</span>
               </div>
 
-              <div className="flex items-center justify-between text-xs text-[#00796b] dark:text-[#80cbc4]">
-                <button
-                  type="button"
-                  onClick={() => setIsCouponModalOpen(true)}
-                  className="font-bold hover:underline flex items-center gap-1 cursor-pointer"
-                >
-                  <Tag className="w-3.5 h-3.5" /> Promo Code
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsCouponModalOpen(true)}
-                  className="font-extrabold underline cursor-pointer text-xs"
-                >
-                  {currentCart.couponCode ? `Code: ${currentCart.couponCode}` : 'Apply'}
-                </button>
-              </div>
-
-              {couponDiscount > 0 && (
-                <div className="flex justify-between text-rose-600 text-xs font-extrabold">
-                  <span>Coupon Discount</span>
-                  <span>-₹{couponDiscount.toFixed(2)}</span>
+              {/* Promo Code Section (Add / Remove) */}
+              {currentCart.couponCode ? (
+                <div className="flex items-center justify-between text-xs p-2 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <Tag className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span className="font-bold text-emerald-900 dark:text-emerald-200 truncate">
+                      Promo: <span className="font-mono uppercase">{currentCart.couponCode}</span>
+                    </span>
+                    <span className="text-[11px] font-black text-emerald-700 dark:text-emerald-400">
+                      (-₹{couponDiscount.toFixed(2)})
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoupon}
+                    className="px-2 py-0.5 text-[10px] font-bold text-rose-600 hover:text-rose-700 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950/60 rounded-lg border border-rose-200 dark:border-rose-800 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1"
+                    title="Remove promo code"
+                  >
+                    <span>Remove</span>
+                    <span className="font-black text-xs">✕</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between text-xs text-[#00796b] dark:text-[#80cbc4]">
+                  <button
+                    type="button"
+                    onClick={() => setIsCouponModalOpen(true)}
+                    className="font-bold hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <Tag className="w-3.5 h-3.5" /> Promo Code
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsCouponModalOpen(true)}
+                    className="font-bold text-xs bg-teal-50 dark:bg-teal-950/60 text-[#00796b] dark:text-[#80cbc4] hover:bg-teal-100 dark:hover:bg-teal-900 px-2.5 py-1 rounded-lg border border-teal-200 dark:border-teal-800 transition-all cursor-pointer flex items-center gap-1"
+                  >
+                    <Plus className="w-3 h-3" /> Apply Promo Code
+                  </button>
                 </div>
               )}
 
@@ -1598,7 +1625,7 @@ export const BillingPage = () => {
                   { id: 'CASH', label: 'Cash', icon: '💵' },
                   { id: 'UPI', label: 'UPI', icon: '📲' },
                   { id: 'CARD', label: 'Card', icon: '💳' },
-                  { id: 'KHATA', label: 'Wallet', icon: '👛' },
+                  { id: 'KHATA', label: 'Khatu', icon: '👛' },
                 ].map((item) => {
                   const isSelected = paymentMethod === item.id;
                   return (

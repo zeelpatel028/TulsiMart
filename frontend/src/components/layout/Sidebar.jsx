@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   ShoppingBag,
+  Plus,
   Layers,
   ShoppingCart,
   Users,
@@ -49,7 +50,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
     {
       title: 'STORE CATALOG & STOCK',
       items: [
-        { label: 'Add Product', path: '/products', icon: ShoppingBag },
+        { label: 'Add Product', path: '/products/add', icon: ShoppingBag },
         { label: 'Stock & Inventory', path: '/inventory', icon: Layers },
         { label: 'Customers', path: '/customers', icon: Users },
         { label: 'Suppliers', path: '/suppliers', icon: Truck },

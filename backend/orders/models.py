@@ -78,7 +78,7 @@ class OrderItem(models.Model):
     product_name = models.CharField(max_length=255)
     sku = models.CharField(max_length=50, blank=True, null=True)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
-    quantity = models.IntegerField(default=1)
+    quantity = models.DecimalField(max_digits=12, decimal_places=3, default=1.000)
     gst_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
     subtotal = models.DecimalField(max_digits=10, decimal_places=2)
 

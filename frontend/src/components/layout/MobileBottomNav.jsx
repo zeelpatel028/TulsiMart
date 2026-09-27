@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, LayoutGrid, ShoppingCart, FileText, User } from 'lucide-react';
+import { Home, Plus, Store, Truck, User } from 'lucide-react';
 
 export const MobileBottomNav = ({ cartCount = 0 }) => {
   const location = useLocation();
@@ -61,24 +61,24 @@ export const MobileBottomNav = ({ cartCount = 0 }) => {
       inactiveBg: 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400',
     },
     {
-      label: 'Categories',
-      path: '/products',
-      icon: LayoutGrid,
-      circleBg: 'bg-indigo-100/80 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300',
+      label: 'Add Product',
+      path: '/products/add',
+      icon: Plus,
+      circleBg: 'bg-[#E0F2F1] dark:bg-teal-950/80 text-[#00695C] dark:text-teal-300',
       inactiveBg: 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400',
     },
     {
-      label: 'Cart',
+      label: 'Make Bill',
       path: '/billing',
-      icon: ShoppingCart,
+      icon: Store,
       isCenter: true,
       badge: cartCount,
     },
     {
-      label: 'Orders',
-      path: '/orders',
-      icon: FileText,
-      circleBg: 'bg-rose-100/80 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300',
+      label: 'Suppliers',
+      path: '/suppliers',
+      icon: Truck,
+      circleBg: 'bg-indigo-100/80 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300',
       inactiveBg: 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400',
     },
     {
