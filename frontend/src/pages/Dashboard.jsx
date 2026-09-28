@@ -132,29 +132,34 @@ export const Dashboard = () => {
     }
 
     try {
-      const [dashRes, prodRes, catRes] = await Promise.all([
+      const [dashRes, prodRes, catRes] = await Promise.allSettled([
         analyticsApi.getDashboardSummary(),
         inventoryApi.getProducts({ page: 1 }),
         inventoryApi.getCategories()
       ]);
 
-      const dashData = dashRes.data;
-      const prods = prodRes.data?.results || prodRes.data || [];
-      const popular = Array.isArray(prods) ? prods.slice(0, 8) : [];
-      const cats = catRes.data?.results || catRes.data || [];
-      const catList = Array.isArray(cats) ? cats : [];
+      const dashData = dashRes.status === 'fulfilled' ? dashRes.value.data : null;
+      const prodData = prodRes.status === 'fulfilled' ? prodRes.value.data : null;
+      const catData = catRes.status === 'fulfilled' ? catRes.value.data : null;
 
-      setDashboardData(dashData);
-      setPopularProducts(popular);
-      setCategoriesList(catList);
+      const prods = prodData?.results || (Array.isArray(prodData) ? prodData : []);
+      const popular = Array.isArray(prods) && prods.length > 0 ? prods.slice(0, 8) : popularProducts;
+      const cats = catData?.results || (Array.isArray(catData) ? catData : []);
+      const catList = Array.isArray(cats) && cats.length > 0 ? cats : categoriesList;
 
-      setCachedData('dashboard_summary', {
-        dashboardData: dashData,
-        popularProducts: popular,
-        categoriesList: catList
-      }, 2 * 60 * 1000);
+      if (dashData) setDashboardData(dashData);
+      if (popular.length > 0) setPopularProducts(popular);
+      if (catList.length > 0) setCategoriesList(catList);
+
+      if (dashData) {
+        setCachedData('dashboard_summary', {
+          dashboardData: dashData,
+          popularProducts: popular,
+          categoriesList: catList
+        }, 2 * 60 * 1000);
+      }
     } catch (err) {
-      console.error('Failed to load dashboard summary', err);
+      console.warn('Failed to load dashboard summary', err);
     } finally {
       setLoading(false);
     }

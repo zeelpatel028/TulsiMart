@@ -22,7 +22,7 @@ if (import.meta.env.PROD) {
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
-  timeout: 10000, // 10 seconds timeout
+  timeout: 45000, // 45 seconds timeout to accommodate backend cold starts & heavy queries
   headers: {
     'Content-Type': 'application/json',
   },
@@ -169,13 +169,14 @@ apiClient.interceptors.response.use(
     }
 
     // 2. Cold-start network retry logic ONLY for safe GET requests
-    const isNetworkOrColdStart = !error.response || [502, 503, 504, 524].includes(error.response.status);
+    const isTimeout = error.code === 'ECONNABORTED' || (error.message && error.message.toLowerCase().includes('timeout'));
+    const isNetworkOrColdStart = !error.response || isTimeout || [502, 503, 504, 524].includes(error.response?.status);
     const isGetMethod = (originalRequest.method || 'get').toLowerCase() === 'get';
 
     if (isNetworkOrColdStart && isGetMethod) {
       originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
       if (originalRequest._retryCount <= 2) {
-        const retryDelay = import.meta.env.PROD ? 300 : 100;
+        const retryDelay = originalRequest._retryCount * 1000;
         await new Promise((resolve) => setTimeout(resolve, retryDelay));
         return apiClient(originalRequest);
       }
