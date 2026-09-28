@@ -19,6 +19,7 @@ class Supplier(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = 'suppliers'
         ordering = ['name']
 
     def __str__(self):
@@ -49,7 +50,7 @@ class PurchaseOrder(models.Model):
     )
 
     po_number = models.CharField(max_length=50, unique=True)
-    supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='purchase_orders')
+    supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='purchase_orders', db_column='supplier_id')
     order_date = models.DateField()
     expected_delivery = models.DateField(blank=True, null=True)
     received_date = models.DateField(blank=True, null=True)
@@ -63,6 +64,7 @@ class PurchaseOrder(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = 'purchase_orders'
         ordering = ['-created_at']
 
     def __str__(self):
@@ -74,8 +76,8 @@ class PurchaseOrder(models.Model):
 
 
 class PurchaseOrderItem(models.Model):
-    purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, related_name='items')
-    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, related_name='po_items')
+    purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, related_name='items', db_column='purchase_order_id')
+    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, related_name='po_items', db_column='product_id')
     product_name = models.CharField(max_length=255)
     unit_cost = models.DecimalField(max_digits=10, decimal_places=2)
     quantity = models.IntegerField(default=1)
@@ -88,14 +90,17 @@ class PurchaseOrderItem(models.Model):
     expiry_date = models.DateField(blank=True, null=True)
     subtotal = models.DecimalField(max_digits=12, decimal_places=2)
 
+    class Meta:
+        db_table = 'purchase_items'
+
     def __str__(self):
         return f"{self.product_name} x {self.quantity}"
 
 
 class GoodsReceiptNote(models.Model):
     grn_number = models.CharField(max_length=50, unique=True)
-    purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, related_name='grns')
-    supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='grns')
+    purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, related_name='grns', db_column='purchase_order_id')
+    supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='grns', db_column='supplier_id')
     received_date = models.DateField(auto_now_add=True)
     received_by = models.CharField(max_length=100, blank=True, null=True)
     total_valuation = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
@@ -103,6 +108,7 @@ class GoodsReceiptNote(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = 'goods_receipts'
         ordering = ['-created_at']
 
     def __str__(self):
@@ -117,8 +123,8 @@ class SupplierPayment(models.Model):
         ('CASH', 'Cash'),
     )
 
-    supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='payments')
-    purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.SET_NULL, null=True, blank=True, related_name='po_payments')
+    supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='payments', db_column='supplier_id')
+    purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.SET_NULL, null=True, blank=True, related_name='po_payments', db_column='purchase_order_id')
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     payment_method = models.CharField(max_length=30, choices=PAYMENT_METHODS, default='BANK_TRANSFER')
     reference_number = models.CharField(max_length=100, blank=True, null=True)
@@ -127,6 +133,7 @@ class SupplierPayment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = 'supplier_payments'
         ordering = ['-payment_date']
 
     def __str__(self):

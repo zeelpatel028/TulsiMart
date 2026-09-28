@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 
 class ActivityLog(models.Model):
     user_name = models.CharField(max_length=150, blank=True, null=True)
@@ -9,6 +10,7 @@ class ActivityLog(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = 'activity_logs'
         ordering = ['-created_at']
 
     def __str__(self):
@@ -26,16 +28,17 @@ class CashRegisterEntry(models.Model):
         ('KHATA_PAYMENT', 'Khata Customer Cash Receipt'),
     )
 
-    entry_type = models.CharField(max_length=30, choices=ENTRY_TYPES)
+    entry_type = models.CharField(max_length=30, choices=ENTRY_TYPES, db_column='transaction_type')
     amount = models.DecimalField(max_digits=12, decimal_places=2)
-    date = models.DateField(auto_now_add=True)
+    date = models.DateField(auto_now_add=True, db_column='transaction_date')
     notes = models.TextField(blank=True, null=True)
     denomination_counts = models.JSONField(default=dict, blank=True, null=True)
-    reference_id = models.CharField(max_length=100, blank=True, null=True)
+    reference_id = models.CharField(max_length=100, blank=True, null=True, db_column='reference_number')
     created_by_name = models.CharField(max_length=150, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = 'cash_transactions'
         ordering = ['-created_at']
 
     def __str__(self):
@@ -57,11 +60,12 @@ class BankTransaction(models.Model):
     reference_number = models.CharField(max_length=100, blank=True, null=True)
     bank_name = models.CharField(max_length=100, default='HDFC Store Primary Bank')
     notes = models.TextField(blank=True, null=True)
-    date = models.DateField(auto_now_add=True)
+    date = models.DateField(auto_now_add=True, db_column='transaction_date')
     created_by_name = models.CharField(max_length=150, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = 'bank_transactions'
         ordering = ['-created_at']
 
     def __str__(self):
@@ -87,6 +91,7 @@ class Staff(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        db_table = 'staff'
         ordering = ['-created_at']
 
     def __str__(self):
@@ -142,6 +147,7 @@ class StoreSetting(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        db_table = 'store_settings'
         verbose_name = 'Store Setting'
         verbose_name_plural = 'Store Settings'
 
@@ -186,7 +192,7 @@ class HomeCashTransaction(models.Model):
         ('SWEEP', 'Auto EOD Sweep from Gulla'),
     )
 
-    entry_type = models.CharField(max_length=30, choices=ENTRY_TYPES)
+    entry_type = models.CharField(max_length=30, choices=ENTRY_TYPES, db_column='transaction_type')
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     denomination_counts = models.JSONField(default=dict, blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
@@ -195,11 +201,8 @@ class HomeCashTransaction(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = 'home_cash_transactions'
         ordering = ['-created_at']
 
     def __str__(self):
         return f"Home Safe {self.entry_type}: ₹{self.amount} by {self.created_by_name}"
-
-
-
-

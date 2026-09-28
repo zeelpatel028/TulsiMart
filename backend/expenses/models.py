@@ -7,6 +7,7 @@ class ExpenseCategory(models.Model):
     color = models.CharField(max_length=20, default='#384959')
 
     class Meta:
+        db_table = 'expense_categories'
         verbose_name_plural = 'Expense Categories'
         ordering = ['name']
 
@@ -24,17 +25,18 @@ class Expense(models.Model):
     )
 
     title = models.CharField(max_length=255)
-    category = models.ForeignKey(ExpenseCategory, on_delete=models.CASCADE, related_name='expenses')
+    category = models.ForeignKey(ExpenseCategory, on_delete=models.CASCADE, related_name='expenses', db_column='category_id')
     amount = models.DecimalField(max_digits=12, decimal_places=2)
-    date = models.DateField()
+    date = models.DateField(db_column='expense_date')
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS, default='UPI')
     paid_to = models.CharField(max_length=150, blank=True, null=True)
     receipt_url = models.CharField(max_length=500, blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, db_column='created_by_id')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = 'expenses'
         ordering = ['-date', '-created_at']
 
     def __str__(self):

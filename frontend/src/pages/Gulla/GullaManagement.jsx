@@ -1443,20 +1443,23 @@ export const GullaManagement = () => {
                   </span>
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                       const filled = {};
                       [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
                         const cnt = Math.max(0, parseInt(homeVaultNotes[d] || homeVaultNotes[String(d)] || 0, 10));
                         filled[d] = cnt > 0 ? String(cnt) : '';
                       });
                       setModalNoteCounts(filled);
-                      gullaApi.calculateNotes({ denomination_counts: filled }).then(res => {
+                      try {
+                        const res = await gullaApi.calculateNotes({ denomination_counts: filled });
                         setEntryFormData(prev => ({
                           ...prev,
                           amount: res.data?.total_amount > 0 ? String(res.data.total_amount) : prev.amount,
                           notes: res.data?.notes_summary || prev.notes
                         }));
-                      });
+                      } catch (err) {
+                        console.error('Failed to calculate notes', err);
+                      }
                       showToast('Auto-filled available note counts from Home Safe Vault!', 'info');
                     }}
                     className="px-2 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 text-[10px] font-black border border-emerald-300 dark:border-emerald-800 cursor-pointer"

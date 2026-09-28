@@ -55,6 +55,51 @@ import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { getUnitConversionRatio } from '../../utils/unitConversion';
 
+// Helper to detect loose weight or volume units
+const isWeightOrVolumeUnit = (unit) => {
+  if (!unit) return false;
+  const u = String(unit).toLowerCase().trim();
+  return ['kg', 'g', 'mg', 'l', 'ml', 'q', 't'].includes(u);
+};
+
+// Calculate exact numerical quantity for preset weight labels (100g, 200g, 250g, 500g, 1kg, 200mg)
+const getQtyForPresetWeight = (presetLabel, baseUnit) => {
+  const unit = (baseUnit || 'kg').toLowerCase().trim();
+
+  if (unit === 'kg' || unit === 'l') {
+    switch (presetLabel) {
+      case '200mg': return 0.0002;
+      case '100g': return 0.1;
+      case '200g': return 0.2;
+      case '250g': return 0.25;
+      case '500g': return 0.5;
+      case '1kg': return 1.0;
+      default: return 1.0;
+    }
+  } else if (unit === 'g' || unit === 'ml') {
+    switch (presetLabel) {
+      case '200mg': return 0.2;
+      case '100g': return 100;
+      case '200g': return 200;
+      case '250g': return 250;
+      case '500g': return 500;
+      case '1kg': return 1000;
+      default: return 1;
+    }
+  } else if (unit === 'mg') {
+    switch (presetLabel) {
+      case '200mg': return 200;
+      case '100g': return 100000;
+      case '200g': return 200000;
+      case '250g': return 250000;
+      case '500g': return 500000;
+      case '1kg': return 1000000;
+      default: return 1;
+    }
+  }
+  return 1.0;
+};
+
 
 export const BillingPage = () => {
   const navigate = useNavigate();
@@ -468,9 +513,17 @@ export const BillingPage = () => {
       }
 
       setIsGullaModalOpen(false);
-      loadGullaSummary();
-      customersApi.getCustomers({ page_size: 100 }).then(r => setCustomers(r.data?.results || r.data || []));
-      suppliersApi.getSuppliers().then(r => setSuppliers(r.data?.results || r.data || []));
+      await Promise.allSettled([
+        loadGullaSummary(),
+        (async () => {
+          const r = await customersApi.getCustomers({ page_size: 100 });
+          setCustomers(r.data?.results || r.data || []);
+        })(),
+        (async () => {
+          const r = await suppliersApi.getSuppliers();
+          setSuppliers(r.data?.results || r.data || []);
+        })()
+      ]);
     } catch (err) {
       console.error(err);
       showToast(err.response?.data?.error || 'Failed to complete Gulla operation', 'error');
@@ -633,7 +686,13 @@ export const BillingPage = () => {
         quantity: initialQty,
         unitPrice: unitPricePerSellingUnit,
         mrp: mrpPerSellingUnit,
-        gstPercent: parseFloat(product.gst_percent !== undefined && product.gst_percent !== null ? product.gst_percent : (product.tax_percentage || 0)),
+        gstPercent: parseFloat(
+          product.selling_gst_percent !== undefined && product.selling_gst_percent !== null
+            ? product.selling_gst_percent
+            : (product.gst_percent !== undefined && product.gst_percent !== null
+                ? product.gst_percent
+                : (product.tax_percentage || 0))
+        ),
         sellingUnitShort: sellUnit ? (typeof sellUnit === 'object' ? sellUnit.short_name : (product.selling_unit_name || 'pc')) : 'pc',
         productUnitShort: prodUnit ? (typeof prodUnit === 'object' ? prodUnit.short_name : (product.unit_name || 'pc')) : 'pc',
         ratio: ratio
@@ -644,7 +703,7 @@ export const BillingPage = () => {
     setCarts(updatedCarts);
   };
 
-  // Update Item Quantity
+  // Update Item Quantity (supports floating points e.g. 0.2, 0.0002 for loose items)
   const handleUpdateQuantity = (productId, newQty) => {
     const updatedCarts = [...carts];
     const targetCart = { ...updatedCarts[activeCartIndex] };
@@ -652,14 +711,19 @@ export const BillingPage = () => {
 
     if (itemIndex > -1) {
       const item = targetCart.items[itemIndex];
-      if (newQty <= 0) {
-        targetCart.items.splice(itemIndex, 1);
+      if (newQty === '' || newQty === undefined || newQty === null) {
+        item.quantity = '';
       } else {
-        if (newQty > item.product.stock_quantity) {
-          showToast(`Max available stock is ${item.product.stock_quantity}`, 'warning');
-          return;
+        const parsed = parseFloat(newQty);
+        if (!isNaN(parsed) && parsed <= 0) {
+          targetCart.items.splice(itemIndex, 1);
+        } else {
+          if (!isNaN(parsed) && item.product.stock_quantity > 0 && parsed > item.product.stock_quantity) {
+            showToast(`Max available stock is ${item.product.stock_quantity}`, 'warning');
+            return;
+          }
+          item.quantity = isNaN(parsed) ? newQty : parsed;
         }
-        item.quantity = newQty;
       }
     }
 
@@ -667,15 +731,43 @@ export const BillingPage = () => {
     setCarts(updatedCarts);
   };
 
-  // Update Item Unit Price for Current Bill Only (Does NOT modify catalog master records)
+  // Update Item Unit Price for Current Bill Only
   const handleUpdateUnitPrice = (productId, newPrice) => {
     const parsedPrice = parseFloat(newPrice);
     const updatedCarts = [...carts];
     const targetCart = { ...updatedCarts[activeCartIndex] };
     const item = targetCart.items.find((i) => i.product.id === productId);
     if (item) {
-      item.unitPrice = isNaN(parsedPrice) ? 0 : parsedPrice;
+      item.unitPrice = newPrice === '' ? '' : (isNaN(parsedPrice) ? 0 : parsedPrice);
       item.customPrice = true;
+    }
+    updatedCarts[activeCartIndex] = targetCart;
+    setCarts(updatedCarts);
+  };
+
+  // Update Item GST Percent
+  const handleUpdateGstPercent = (productId, newGst) => {
+    const parsedGst = parseFloat(newGst);
+    const updatedCarts = [...carts];
+    const targetCart = { ...updatedCarts[activeCartIndex] };
+    const item = targetCart.items.find((i) => i.product.id === productId);
+    if (item) {
+      item.gstPercent = isNaN(parsedGst) ? 0 : parsedGst;
+    }
+    updatedCarts[activeCartIndex] = targetCart;
+    setCarts(updatedCarts);
+  };
+
+  // Calculate quantity from target rupee amount (e.g. ₹180 of Kaju)
+  const handleSetItemTargetAmount = (productId, targetAmount) => {
+    const parsedAmt = parseFloat(targetAmount);
+    if (isNaN(parsedAmt) || parsedAmt <= 0) return;
+    const updatedCarts = [...carts];
+    const targetCart = { ...updatedCarts[activeCartIndex] };
+    const item = targetCart.items.find((i) => i.product.id === productId);
+    if (item && parseFloat(item.unitPrice) > 0) {
+      const calculatedQty = parseFloat((parsedAmt / parseFloat(item.unitPrice)).toFixed(4));
+      item.quantity = calculatedQty;
     }
     updatedCarts[activeCartIndex] = targetCart;
     setCarts(updatedCarts);
@@ -832,14 +924,14 @@ export const BillingPage = () => {
   };
 
   // Financial Calculations (Grocery retail prices are inclusive of GST)
-  const grossTotal = cartItems.reduce((acc, item) => acc + item.mrp * item.quantity, 0);
-  const netSubtotal = cartItems.reduce((acc, item) => acc + item.unitPrice * item.quantity, 0);
+  const grossTotal = cartItems.reduce((acc, item) => acc + (parseFloat(item.mrp) || 0) * (parseFloat(item.quantity) || 0), 0);
+  const netSubtotal = cartItems.reduce((acc, item) => acc + (parseFloat(item.unitPrice) || 0) * (parseFloat(item.quantity) || 0), 0);
   const totalMrpSavings = Math.max(0, grossTotal - netSubtotal);
   const couponDiscount = currentCart.discountAmount || 0;
 
   // Tax breakdown: Extracted from inclusive selling prices (Retail GST Standard)
   const taxAmount = cartItems.reduce((acc, item) => {
-    const lineTotal = item.unitPrice * item.quantity;
+    const lineTotal = (parseFloat(item.unitPrice) || 0) * (parseFloat(item.quantity) || 0);
     const gstRate = parseFloat(item.gstPercent || 0);
     if (gstRate > 0) {
       const baseVal = lineTotal / (1 + gstRate / 100);
@@ -1022,13 +1114,14 @@ export const BillingPage = () => {
         showToast('Bill completed and invoice generated!', 'success');
       }
 
-      // Refresh live Gulla drawer balance immediately
-      loadGullaSummary();
-
-      // Refresh products to update live stock numbers
-      inventoryApi.getProducts({ page_size: 100 }).then((r) => {
-        setProducts(r.data?.results || r.data || []);
-      });
+      // Refresh live Gulla drawer balance & product stock numbers asynchronously
+      await Promise.allSettled([
+        loadGullaSummary(),
+        (async () => {
+          const r = await inventoryApi.getProducts({ page_size: 1000 });
+          setProducts(r.data?.results || r.data || []);
+        })()
+      ]);
 
 
       // Reset Current Cart
@@ -1487,74 +1580,155 @@ export const BillingPage = () => {
                 </div>
               ) : (
                 <div className="max-h-64 overflow-y-auto custom-scrollbar-thin touch-pan space-y-2 pr-1">
-                  {cartItems.map((item) => (
-                    <div
-                      key={item.product.id}
-                      className="p-2.5 bg-slate-50 dark:bg-slate-800/80 hover:bg-[#e0f2f1]/40 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <h5 className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
-                          {item.product.name}
-                        </h5>
-                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                          {/* Unit Price Modifier */}
-                          <div className="flex items-center gap-0.5 bg-white dark:bg-slate-900 px-1 py-0.5 rounded border border-[#B2DFDB] dark:border-slate-700 text-[11px]">
-                            <span className="text-[#607D8B] font-bold text-[10px]">₹</span>
-                            <input
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              value={item.unitPrice === 0 ? '' : item.unitPrice}
-                              onChange={(e) => handleUpdateUnitPrice(item.product.id, e.target.value)}
-                              placeholder="0.00"
-                              className="w-12 text-[11px] font-black text-[#00695C] dark:text-[#4DB6AC] bg-transparent outline-hidden"
-                            />
-                            <span className="text-[9px] text-[#607D8B]">/{item.product.unit_name || item.product.unit || 'unit'}</span>
+                  {cartItems.map((item) => {
+                    const unitShort = item.productUnitShort || item.sellingUnitShort || item.product.unit_name || item.product.unit || 'unit';
+                    const qty = parseFloat(item.quantity) || 0;
+                    const price = parseFloat(item.unitPrice) || 0;
+                    const lineTotal = price * qty;
+                    const isLoose = isWeightOrVolumeUnit(unitShort);
+
+                    return (
+                      <div
+                        key={item.product.id}
+                        className="p-3 bg-slate-50/90 dark:bg-slate-800/80 hover:bg-[#e0f2f1]/30 rounded-2xl border border-slate-200/80 dark:border-slate-700 space-y-2.5 transition-all shadow-2xs"
+                      >
+                        {/* Top Line: Item Name & Line Total */}
+                        <div className="flex items-center justify-between gap-2">
+                          <h5 className="text-xs font-black text-slate-800 dark:text-slate-100 truncate" title={item.product.name}>
+                            {item.product.name}
+                          </h5>
+                          <div className="text-sm font-black text-[#00695C] dark:text-[#4DB6AC] font-mono shrink-0">
+                            ₹{lineTotal.toFixed(2)}
+                          </div>
+                        </div>
+
+                        {/* Middle Controls: Rate Input, GST Dropdown, Stepper & Trash */}
+                        <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {/* Unit Price Input */}
+                            <div className="flex items-center gap-0.5 bg-white dark:bg-slate-900 px-2 py-1 rounded-xl border border-[#B2DFDB] dark:border-slate-700 text-xs shadow-2xs">
+                              <span className="text-[#607D8B] font-extrabold text-[11px]">₹</span>
+                              <input
+                                type="number"
+                                step="any"
+                                min="0"
+                                value={item.unitPrice === '' ? '' : item.unitPrice}
+                                onChange={(e) => handleUpdateUnitPrice(item.product.id, e.target.value)}
+                                placeholder="0.00"
+                                className="w-14 text-xs font-black text-[#00695C] dark:text-[#4DB6AC] bg-transparent outline-hidden"
+                              />
+                              <span className="text-[10px] font-bold text-[#607D8B]">/{unitShort}</span>
+                            </div>
+
+                            {/* GST Select Pill */}
+                            <div className="flex items-center gap-0.5 bg-[#E0F2F1] dark:bg-slate-700 text-[#00695C] dark:text-slate-200 font-extrabold px-2 py-1 rounded-xl border border-[#B2DFDB] dark:border-slate-600 text-xs shadow-2xs">
+                              <span className="text-[10px] text-[#00695C] dark:text-slate-300">GST</span>
+                              <select
+                                value={item.gstPercent ?? 0}
+                                onChange={(e) => handleUpdateGstPercent(item.product.id, e.target.value)}
+                                className="bg-transparent text-xs font-black focus:outline-hidden cursor-pointer pl-0.5 text-[#00695C] dark:text-slate-100"
+                              >
+                                <option value="0" className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">0%</option>
+                                <option value="5" className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">5%</option>
+                                <option value="12" className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">12%</option>
+                                <option value="18" className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">18%</option>
+                                <option value="28" className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">28%</option>
+                              </select>
+                            </div>
                           </div>
 
-                          <span className="bg-[#E0F2F1] dark:bg-slate-700 text-[#00695C] dark:text-slate-300 font-bold px-1 rounded text-[9px]">
-                            GST {item.gstPercent}%
-                          </span>
-                        </div>
-                      </div>
+                          {/* Stepper + Remove */}
+                          <div className="flex items-center gap-2 shrink-0">
+                            <div className="flex items-center gap-1 bg-white dark:bg-slate-900 px-1.5 py-1 rounded-xl border border-[#B2DFDB] dark:border-slate-700 shadow-2xs">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const current = parseFloat(item.quantity) || 0;
+                                  const step = isLoose ? (['kg', 'l'].includes(unitShort.toLowerCase()) ? 0.1 : 1) : 1;
+                                  const next = Math.max(0, parseFloat((current - step).toFixed(4)));
+                                  handleUpdateQuantity(item.product.id, next);
+                                }}
+                                className="w-5 h-5 rounded-lg bg-[#E0F2F1] dark:bg-slate-800 text-[#00695C] dark:text-slate-200 flex items-center justify-center font-bold text-xs cursor-pointer hover:bg-[#b2dfdb] transition-colors"
+                                title="Decrease quantity"
+                              >
+                                -
+                              </button>
+                              <input
+                                type="number"
+                                step="any"
+                                min="0"
+                                value={item.quantity}
+                                onChange={(e) => handleUpdateQuantity(item.product.id, e.target.value)}
+                                className="w-12 text-center text-xs font-black text-[#263238] dark:text-slate-100 bg-transparent outline-hidden"
+                                placeholder="Qty"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const current = parseFloat(item.quantity) || 0;
+                                  const step = isLoose ? (['kg', 'l'].includes(unitShort.toLowerCase()) ? 0.1 : 1) : 1;
+                                  const next = parseFloat((current + step).toFixed(4));
+                                  handleUpdateQuantity(item.product.id, next);
+                                }}
+                                className="w-5 h-5 rounded-lg bg-[#E0F2F1] dark:bg-slate-800 text-[#00695C] dark:text-slate-200 flex items-center justify-center font-bold text-xs cursor-pointer hover:bg-[#b2dfdb] transition-colors"
+                                title="Increase quantity"
+                              >
+                                +
+                              </button>
+                            </div>
 
-                      {/* Quantity Stepper */}
-                      <div className="flex items-center gap-1 bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded-lg border border-[#B2DFDB] dark:border-slate-700 shadow-2xs">
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateQuantity(item.product.id, item.quantity - 1)}
-                          className="w-4 h-4 rounded bg-[#E0F2F1] dark:bg-slate-800 text-[#00695C] dark:text-slate-200 flex items-center justify-center font-bold text-[10px] cursor-pointer"
-                        >
-                          -
-                        </button>
-                        <span className="w-5 text-center text-xs font-bold text-[#263238] dark:text-slate-100">
-                          {item.quantity}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateQuantity(item.product.id, item.quantity + 1)}
-                          className="w-4 h-4 rounded bg-[#E0F2F1] dark:bg-slate-800 text-[#00695C] dark:text-slate-200 flex items-center justify-center font-bold text-[10px] cursor-pointer"
-                        >
-                          +
-                        </button>
-                      </div>
-
-                      {/* Line Total & Remove */}
-                      <div className="text-right shrink-0">
-                        <div className="text-xs font-extrabold text-[#00695C] dark:text-[#4DB6AC] font-mono">
-                          ₹{(item.unitPrice * item.quantity).toFixed(2)}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveItem(item.product.id)}
+                              className="p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg cursor-pointer transition-colors"
+                              title="Remove item"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveItem(item.product.id)}
-                          className="text-[#607D8B] hover:text-[#E53935] p-0.5 cursor-pointer"
-                          title="Remove item"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
+
+                        {/* Bottom Line: Quick Weight Chips without ugly scrollbar arrows */}
+                        {isLoose && (
+                          <div className="flex items-center gap-1.5 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 overflow-x-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                            <span className="text-[10px] font-bold text-slate-400 shrink-0">Quick Weight:</span>
+                            {['200mg', '100g', '200g', '250g', '500g', '1kg'].map((preset) => {
+                              const targetQty = getQtyForPresetWeight(preset, unitShort);
+                              const isActive = Math.abs((parseFloat(item.quantity) || 0) - targetQty) < 0.00001;
+                              return (
+                                <button
+                                  key={preset}
+                                  type="button"
+                                  onClick={() => handleUpdateQuantity(item.product.id, targetQty)}
+                                  className={`px-2 py-0.5 text-[10px] font-extrabold rounded-lg border transition-all cursor-pointer shrink-0 ${
+                                    isActive
+                                      ? 'bg-[#00695C] text-white border-[#00695C] shadow-2xs'
+                                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-[#00695C] hover:text-[#00695C]'
+                                  }`}
+                                >
+                                  {preset}
+                                </button>
+                              );
+                            })}
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const inputVal = window.prompt(`Enter desired ₹ amount for ${item.product.name} (Rate: ₹${price}/${unitShort}):`);
+                                if (inputVal) {
+                                  handleSetItemTargetAmount(item.product.id, inputVal);
+                                }
+                              }}
+                              className="px-2 py-0.5 text-[10px] font-black rounded-lg border bg-[#E0F2F1] dark:bg-slate-700 text-[#00695C] dark:text-[#4DB6AC] border-[#B2DFDB] dark:border-slate-600 hover:bg-[#b2dfdb] transition-all cursor-pointer shrink-0"
+                              title="Set quantity by ₹ Amount"
+                            >
+                              ₹ Amt
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -2295,14 +2469,15 @@ export const BillingPage = () => {
 
                         <button
                           type="button"
-                          onClick={() => {
-                            ordersApi.getOrder(log.id).then((res) => {
+                          onClick={async () => {
+                            try {
+                              const res = await ordersApi.getOrder(log.id);
                               setLastCreatedOrder(res.data);
-                              setIsInvoiceModalOpen(true);
-                            }).catch(() => {
+                            } catch {
                               setLastCreatedOrder(log);
+                            } finally {
                               setIsInvoiceModalOpen(true);
-                            });
+                            }
                           }}
                           className="p-1.5 text-slate-400 hover:text-[#384959] dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
                           title="View Invoice"

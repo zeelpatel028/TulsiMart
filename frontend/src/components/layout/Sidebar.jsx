@@ -1,32 +1,8 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  ShoppingBag,
-  Plus,
-  Layers,
-  ShoppingCart,
-  Users,
-  TrendingUp,
-  BarChart3,
-  Tag,
-  Truck,
-  CreditCard,
-  Receipt,
-  Bell,
-  ShieldCheck,
-  FileText,
-  Settings,
-  LogOut,
-  ChevronLeft,
-  ChevronRight,
-  Store,
-  Sparkles,
-  Wallet,
-  X
-} from 'lucide-react';
+import { LogOut, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { useNotification } from '../../context/NotificationContext';
+import { sidebarMenu } from './sidebarMenu';
 
 export const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen }) => {
   const { user, logout } = useAuth();
@@ -36,43 +12,6 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
     logout();
     navigate('/login');
   };
-
-  const navSections = [
-    {
-      title: 'DAILY STORE OPERATIONS',
-      items: [
-        { label: "Make Bills (POS)", path: '/billing', icon: Store, isPrimary: true, badge: 'COUNTER' },
-        { label: "Today's Collection", path: '/gulla', icon: Wallet, badge: 'CASH' },
-        { label: 'Store Dashboard', path: '/', icon: LayoutDashboard },
-        { label: 'Bill Management', path: '/orders', icon: ShoppingCart },
-      ]
-    },
-    {
-      title: 'STORE CATALOG & STOCK',
-      items: [
-        { label: 'Add Product', path: '/products/add', icon: ShoppingBag },
-        { label: 'Stock & Inventory', path: '/inventory', icon: Layers },
-        { label: 'Customers', path: '/customers', icon: Users },
-        { label: 'Suppliers', path: '/suppliers', icon: Truck },
-        { label: 'Offers & Coupons', path: '/offers', icon: Tag },
-      ]
-    },
-    {
-      title: 'ACCOUNTS & REPORTS',
-      items: [
-        { label: 'Store Expenses', path: '/expenses', icon: Receipt },
-        { label: 'Sales & Revenue', path: '/sales-revenue', icon: TrendingUp },
-        { label: 'Reports & Analytics', path: '/reports', icon: FileText },
-      ]
-    },
-    {
-      title: 'STAFF & STORE SETTINGS',
-      items: [
-        { label: 'Staff', path: '/staff', icon: ShieldCheck, badge: 'ADMIN' },
-        { label: 'Store Settings', path: '/settings', icon: Settings },
-      ]
-    }
-  ];
 
   return (
     <>
@@ -112,7 +51,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
             </button>
           ) : (
             <>
-              <div className="flex items-center gap-3 overflow-hidden cursor-pointer min-w-0" onClick={() => { navigate('/'); setIsMobileOpen(false); }}>
+              <div className="flex items-center gap-3 overflow-hidden cursor-pointer min-w-0" onClick={() => { navigate('/dashboard'); setIsMobileOpen(false); }}>
                 <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 p-1 flex items-center justify-center shrink-0 border border-white/20 dark:border-slate-700 shadow-sm">
                   <img
                     src="/logo.png"
@@ -151,9 +90,9 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
           )}
         </div>
 
-        {/* Categorized Navigation Sections */}
+        {/* Categorized Navigation Sections from sidebarMenu.js */}
         <div className="flex-1 px-3 py-3 overflow-y-auto custom-scrollbar-thin space-y-4 touch-pan min-h-0">
-          {navSections.map((section, sIdx) => (
+          {sidebarMenu.map((section, sIdx) => (
             <div key={sIdx} className="space-y-1">
               {!isCollapsed && (
                 <p className="text-[10px] font-extrabold uppercase tracking-wider text-teal-300/80 dark:text-slate-400/90 px-3 pt-2.5 pb-1 select-none">
@@ -174,12 +113,12 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
                           : 'text-teal-50/90 dark:text-slate-300 hover:bg-white/10 dark:hover:bg-slate-800/80 hover:text-white dark:hover:text-slate-100'
                       } ${isCollapsed ? 'justify-center' : ''}`
                     }
-                    title={isCollapsed ? item.label : undefined}
+                    title={isCollapsed ? item.name : undefined}
                   >
                     <Icon className="w-4.5 h-4.5 shrink-0 transition-transform group-hover:scale-110" />
 
                     {!isCollapsed && (
-                      <span className="truncate flex-1 tracking-wide">{item.label}</span>
+                      <span className="truncate flex-1 tracking-wide">{item.name}</span>
                     )}
 
                     {item.badge && !isCollapsed && (
@@ -260,4 +199,3 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
 };
 
 export default Sidebar;
-

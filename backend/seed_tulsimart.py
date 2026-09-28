@@ -28,12 +28,12 @@ def log(msg):
 def clear_all_demo_data():
     log("[Cleaning] Removing existing operational data from Cloud MySQL database...")
     tables_to_clear = [
-        'orders_orderitem', 'orders_paymenttransaction', 'orders_order',
-        'inventory_stockmovement', 'inventory_product', 'inventory_category', 'inventory_brand', 'inventory_unit',
-        'customers_customerfeedback', 'customers_customer',
-        'suppliers_goodsreceiptnote', 'suppliers_purchaseorderitem', 'suppliers_supplierpayment', 'suppliers_purchaseorder', 'suppliers_supplier',
-        'expenses_expense', 'expenses_expensecategory', 'offers_coupon', 'offers_festivaloffer',
-        'core_activitylog', 'core_cashregisterentry', 'core_banktransaction', 'core_homecashtransaction', 'core_storesetting'
+        'order_items', 'payments', 'orders',
+        'stock_movements', 'products', 'categories', 'brands', 'units',
+        'customer_feedback', 'customers',
+        'goods_receipts', 'purchase_items', 'supplier_payments', 'purchase_orders', 'suppliers',
+        'expenses', 'expense_categories', 'coupons', 'festival_offers',
+        'activity_logs', 'cash_transactions', 'bank_transactions', 'store_settings', 'login', 'staff'
     ]
     with transaction.atomic():
         with connection.cursor() as cursor:

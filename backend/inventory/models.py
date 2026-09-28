@@ -11,6 +11,7 @@ class Category(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = 'categories'
         verbose_name_plural = 'Categories'
         ordering = ['name']
 
@@ -25,6 +26,7 @@ class Brand(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = 'brands'
         ordering = ['name']
 
     def __str__(self):
@@ -38,11 +40,11 @@ class Unit(models.Model):
     conversion_factor = models.DecimalField(max_digits=12, decimal_places=4, default=1.0) # e.g. 1000 for kg->g
 
     class Meta:
+        db_table = 'units'
         ordering = ['name']
 
     def __str__(self):
         return f"{self.name} ({self.short_name})"
-
 
 
 class Product(models.Model):
@@ -50,10 +52,10 @@ class Product(models.Model):
     name = models.CharField(max_length=255, db_index=True)
     sku = models.CharField(max_length=50, unique=True, db_index=True)
     barcode = models.CharField(max_length=100, blank=True, null=True, db_index=True)
-    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='products')
-    brand = models.ForeignKey(Brand, on_delete=models.SET_NULL, null=True, blank=True, related_name='products')
-    unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, null=True, related_name='products') # Product Unit
-    selling_unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, null=True, blank=True, related_name='selling_unit_products') # Selling Unit
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='products', db_column='category_id')
+    brand = models.ForeignKey(Brand, on_delete=models.SET_NULL, null=True, blank=True, related_name='products', db_column='brand_id')
+    unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, null=True, related_name='products', db_column='unit_id')
+    selling_unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, null=True, blank=True, related_name='selling_unit_products')
     supplier = models.ForeignKey('suppliers.Supplier', on_delete=models.SET_NULL, null=True, blank=True, related_name='products')
     
     # Purchase Pricing & Tax
@@ -91,60 +93,39 @@ class Product(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        db_table = 'products'
         ordering = ['-id']
         indexes = [
             models.Index(fields=['is_active', 'stock_quantity']),
             models.Index(fields=['created_at']),
         ]
 
-    def save(self, *args, **kwargs):
-        import random
-        if not self.product_code:
-            max_id = Product.objects.aggregate(max_id=models.Max('id'))['max_id'] or 0
-            self.product_code = f"PD-ID-{(max_id + 1):03d}"
-        if not self.sku:
-            self.sku = self.product_code
-        if not self.barcode:
-            self.barcode = f"890{random.randint(100000000, 999999999)}"
-        super().save(*args, **kwargs)
-
-    @property
-    def formatted_product_id(self):
-        if self.product_code:
-            return self.product_code
-        return f"PD-ID-{self.id:03d}"
-
-    @property
-    def stock_status(self):
-        if self.stock_quantity <= 0:
-            return 'OUT_OF_STOCK'
-        elif self.stock_quantity <= self.min_stock_alert:
-            return 'LOW_STOCK'
-        return 'IN_STOCK'
+    def __str__(self):
+        return f"{self.name} ({self.sku})"
 
 
 class StockMovement(models.Model):
     MOVEMENT_TYPES = (
-        ('IN_PURCHASE', 'Stock In (Purchase)'),
-        ('OUT_SALE', 'Stock Out (Sale Order)'),
-        ('ADJUSTMENT_ADD', 'Stock Adjustment (+)'),
-        ('ADJUSTMENT_SUB', 'Stock Adjustment (-)'),
-        ('DAMAGE_LOSS', 'Damage / Expiry Loss'),
-        ('RETURN_RESTOCK', 'Customer Return Restock'),
-        ('TRANSFER', 'Stock Transfer'),
+        ('PURCHASE_IN', 'Stock Received (PO / GRN)'),
+        ('POS_SALE', 'POS Bill Sale'),
+        ('RETURN_IN', 'Customer Return'),
+        ('SUPPLIER_RETURN', 'Supplier Return / Out'),
+        ('DAMAGE_OUT', 'Damaged / Expired Removal'),
+        ('ADJUSTMENT', 'Manual Adjustment'),
     )
 
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='movements')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='stock_movements', db_column='product_id')
     movement_type = models.CharField(max_length=30, choices=MOVEMENT_TYPES)
-    quantity = models.IntegerField()
-    balance_after = models.IntegerField()
+    quantity = models.DecimalField(max_digits=12, decimal_places=3)
+    balance_after = models.DecimalField(max_digits=12, decimal_places=3)
     reason = models.CharField(max_length=255, blank=True, null=True)
     reference_no = models.CharField(max_length=100, blank=True, null=True)
-    performed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    performed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, db_column='performed_by_id')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = 'stock_movements'
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.movement_type} {self.quantity} on {self.product.name}"
+        return f"{self.product.name} ({self.movement_type}: {self.quantity})"

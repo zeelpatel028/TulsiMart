@@ -17,21 +17,22 @@ class Customer(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
+        db_table = 'customers'
         ordering = ['-created_at']
-
 
     def __str__(self):
         return f"{self.name} ({self.phone})"
 
 
 class CustomerFeedback(models.Model):
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='feedbacks')
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='feedbacks', db_column='customer_id')
     rating = models.IntegerField(default=5) # 1 to 5
     comment = models.TextField(blank=True, null=True)
     order_ref = models.CharField(max_length=100, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = 'customer_feedback'
         ordering = ['-created_at']
 
     def __str__(self):

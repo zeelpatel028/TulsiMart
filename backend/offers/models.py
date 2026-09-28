@@ -25,6 +25,7 @@ class Coupon(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = 'coupons'
         ordering = ['-created_at']
 
     def __str__(self):
@@ -52,6 +53,7 @@ class FestivalOffer(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = 'festival_offers'
         ordering = ['-created_at']
 
     def __str__(self):
