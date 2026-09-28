@@ -22,15 +22,36 @@ if (import.meta.env.PROD) {
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
-  timeout: 30000,
+  timeout: 10000, // 10 seconds timeout
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Request interceptor for JWT token
+// Memory cache & In-flight request deduplication store
+const apiCache = new Map();
+const inFlightRequests = new Map();
+
+/**
+ * Clear memory cache by key prefix or purge all
+ * @param {string} [prefix] 
+ */
+export const clearApiCache = (prefix = '') => {
+  if (!prefix) {
+    apiCache.clear();
+    return;
+  }
+  for (const key of apiCache.keys()) {
+    if (key.startsWith(prefix)) {
+      apiCache.delete(key);
+    }
+  }
+};
+
+// Request interceptor for JWT token, timing metrics, and cache/dedup check
 apiClient.interceptors.request.use(
   (config) => {
+    config._startTime = performance.now();
     const token = localStorage.getItem('tm_access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -40,12 +61,73 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor for token expiration and cold-start retry handling
+// Cached / Deduplicated GET wrapper
+export const cachedGet = async (url, config = {}, cacheTtlMs = 15000) => {
+  const method = (config.method || 'get').toLowerCase();
+  if (method !== 'get') {
+    return apiClient.get(url, config);
+  }
+
+  const cacheKey = `${url}?${JSON.stringify(config.params || {})}`;
+
+  // 1. Check cache validity
+  if (cacheTtlMs > 0 && apiCache.has(cacheKey)) {
+    const entry = apiCache.get(cacheKey);
+    if (Date.now() - entry.timestamp < cacheTtlMs) {
+      return Promise.resolve(entry.data);
+    }
+    apiCache.delete(cacheKey);
+  }
+
+  // 2. Check in-flight request deduplication
+  if (inFlightRequests.has(cacheKey)) {
+    return inFlightRequests.get(cacheKey);
+  }
+
+  // 3. Initiate request and deduplicate
+  const requestPromise = apiClient.get(url, config)
+    .then((response) => {
+      if (cacheTtlMs > 0) {
+        apiCache.set(cacheKey, { timestamp: Date.now(), data: response });
+      }
+      return response;
+    })
+    .finally(() => {
+      inFlightRequests.delete(cacheKey);
+    });
+
+  inFlightRequests.set(cacheKey, requestPromise);
+  return requestPromise;
+};
+
+// Response interceptor for token expiration, dev timing logger, and retry handling
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (import.meta.env.DEV && response.config._startTime) {
+      const duration = Math.round(performance.now() - response.config._startTime);
+      const url = response.config.url || '';
+      const method = (response.config.method || 'get').toUpperCase();
+      console.log(`[API] ${method} ${url} ${response.status} - ${duration}ms`);
+    }
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
     if (!originalRequest) return Promise.reject(error);
+
+    if (import.meta.env.DEV && originalRequest._startTime) {
+      const duration = Math.round(performance.now() - originalRequest._startTime);
+      const url = originalRequest.url || '';
+      const method = (originalRequest.method || 'get').toUpperCase();
+      const status = error.response ? error.response.status : 'TIMEOUT/NETWORK_ERR';
+      console.warn(`[API FAILED] ${method} ${url} ${status} - ${duration}ms`);
+    }
+
+    // Invalidate cache on mutations (POST, PUT, PATCH, DELETE)
+    const method = (originalRequest.method || 'get').toLowerCase();
+    if (['post', 'put', 'patch', 'delete'].includes(method)) {
+      clearApiCache();
+    }
 
     const isAuthEndpoint = originalRequest.url?.includes('/core/auth/login/') ||
                           originalRequest.url?.includes('/core/auth/verify-otp/') ||
@@ -105,4 +187,5 @@ apiClient.interceptors.response.use(
 );
 
 export default apiClient;
+
 

@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { customersApi } from '../../api';
 import { useNotification } from '../../context/NotificationContext';
+import useDebounce from '../../hooks/useDebounce';
 
 export const CustomerList = () => {
   const { showToast } = useNotification();
@@ -35,6 +36,8 @@ export const CustomerList = () => {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+
+  const debouncedSearch = useDebounce(search, 350);
 
   // Modals
   const [selectedCustomer, setSelectedCustomer] = useState(null);
@@ -112,19 +115,28 @@ export const CustomerList = () => {
   });
 
   useEffect(() => {
-    loadCustomers();
-  }, [search, statusFilter]);
+    const controller = new AbortController();
+    loadCustomers(controller.signal);
+    return () => {
+      controller.abort();
+    };
+  }, [debouncedSearch, statusFilter]);
 
-  const loadCustomers = async () => {
+  const loadCustomers = async (signal) => {
     try {
       setLoading(true);
-      const res = await customersApi.getCustomers({
-        search,
-        status: statusFilter || undefined
-      });
+      const res = await customersApi.getCustomers(
+        {
+          search: debouncedSearch,
+          status: statusFilter || undefined
+        },
+        { signal }
+      );
       setCustomers(res.data?.results || res.data || []);
     } catch (err) {
-      console.error(err);
+      if (err.name !== 'CanceledError' && err.name !== 'AbortError') {
+        console.error(err);
+      }
     } finally {
       setLoading(false);
     }

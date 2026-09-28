@@ -1,15 +1,17 @@
-import apiClient from './axios';
+import apiClient, { cachedGet, clearApiCache } from './axios';
+
+export { clearApiCache };
 
 // Store Settings API
 export const settingsApi = {
-  getSettings: () => apiClient.get('/core/settings/'),
+  getSettings: () => cachedGet('/core/settings/', {}, 60000),
   updateSettings: (data) => apiClient.put('/core/settings/', data),
   patchSettings: (data) => apiClient.patch('/core/settings/', data),
 };
 
 // Login Accounts API
 export const loginAccountsApi = {
-  getAccounts: (params) => apiClient.get('/core/login-accounts/', { params }),
+  getAccounts: (params, config = {}) => apiClient.get('/core/login-accounts/', { params, ...config }),
   createAccount: (data) => apiClient.post('/core/login-accounts/', data),
   updateAccount: (id, data) => apiClient.put(`/core/login-accounts/${id}/`, data),
   deleteAccount: (id) => apiClient.delete(`/core/login-accounts/${id}/`),
@@ -23,30 +25,30 @@ export const authApi = {
   login: (data) => apiClient.post('/core/auth/login/', data),
   sendOtp: (data) => apiClient.post('/core/auth/login/', data),
   verifyOtp: (data) => apiClient.post('/core/auth/verify-otp/', data),
-  getMe: () => apiClient.get('/core/auth/me/'),
-  getSettings: () => apiClient.get('/core/settings/'),
+  getMe: () => cachedGet('/core/auth/me/', {}, 30000),
+  getSettings: () => cachedGet('/core/settings/', {}, 60000),
 
-  getStaff: (params) => apiClient.get('/core/staff/', { params }),
+  getStaff: (params, config = {}) => apiClient.get('/core/staff/', { params, ...config }),
 
   createStaff: (data) => apiClient.post('/core/staff/', data),
   updateStaff: (id, data) => apiClient.put(`/core/staff/${id}/`, data),
   deleteStaff: (id) => apiClient.delete(`/core/staff/${id}/`),
   toggleStaffStatus: (id) => apiClient.post(`/core/staff/${id}/toggle_status/`),
   updateStaffAttendance: (id, attendance_data) => apiClient.post(`/core/staff/${id}/update_attendance/`, { attendance_data }),
-  getActivityLogs: (params) => apiClient.get('/core/logs/', { params }),
+  getActivityLogs: (params, config = {}) => apiClient.get('/core/logs/', { params, ...config }),
 };
 
 
 // Inventory & Products API
 export const inventoryApi = {
-  getCategories: () => apiClient.get('/inventory/categories/'),
+  getCategories: () => cachedGet('/inventory/categories/', {}, 60000),
   createCategory: (data) => apiClient.post('/inventory/categories/', data),
-  getBrands: () => apiClient.get('/inventory/brands/'),
+  getBrands: () => cachedGet('/inventory/brands/', {}, 60000),
   createBrand: (data) => apiClient.post('/inventory/brands/', data),
-  getUnits: () => apiClient.get('/inventory/units/'),
+  getUnits: () => cachedGet('/inventory/units/', {}, 60000),
   createUnit: (data) => apiClient.post('/inventory/units/', data),
-  getProducts: (params) => apiClient.get('/inventory/products/', { params }),
-  getProduct: (id) => apiClient.get(`/inventory/products/${id}/`),
+  getProducts: (params, config = {}) => cachedGet('/inventory/products/', { params, ...config }, 10000),
+  getProduct: (id, config = {}) => cachedGet(`/inventory/products/${id}/`, config, 10000),
   getNextProductId: () => apiClient.get('/inventory/products/next_id/'),
   createProduct: (data) => apiClient.post('/inventory/products/', data),
   updateProduct: (id, data) => apiClient.put(`/inventory/products/${id}/`, data),
@@ -55,7 +57,7 @@ export const inventoryApi = {
   bulkUploadProducts: (formData) => apiClient.post('/inventory/products/bulk_upload/', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
-  getStockMovements: (params) => apiClient.get('/inventory/movements/', { params }),
+  getStockMovements: (params, config = {}) => apiClient.get('/inventory/movements/', { params, ...config }),
 };
 
 // Orders API
@@ -111,20 +113,20 @@ export const expensesApi = {
 
 // Offers API
 export const offersApi = {
-  getCoupons: (params) => apiClient.get('/offers/coupons/', { params }),
+  getCoupons: (params, config = {}) => cachedGet('/offers/coupons/', { params, ...config }, 30000),
   createCoupon: (data) => apiClient.post('/offers/coupons/', data),
   updateCoupon: (id, data) => apiClient.put(`/offers/coupons/${id}/`, data),
   deleteCoupon: (id) => apiClient.delete(`/offers/coupons/${id}/`),
   validateCoupon: (data) => apiClient.post('/offers/coupons/validate_code/', data),
-  getFestivalOffers: () => apiClient.get('/offers/festival-offers/'),
+  getFestivalOffers: (config = {}) => cachedGet('/offers/festival-offers/', config, 60000),
   createFestivalOffer: (data) => apiClient.post('/offers/festival-offers/', data),
 };
 
 // Analytics & Reports API
 export const analyticsApi = {
-  getDashboardSummary: () => apiClient.get('/analytics/dashboard-summary/'),
-  getSalesTrends: (params) => apiClient.get('/analytics/sales-trends/', { params }),
-  getReports: (params) => apiClient.get('/analytics/reports/', { params }),
+  getDashboardSummary: (config = {}) => cachedGet('/analytics/dashboard-summary/', config, 10000),
+  getSalesTrends: (params, config = {}) => apiClient.get('/analytics/sales-trends/', { params, ...config }),
+  getReports: (params, config = {}) => apiClient.get('/analytics/reports/', { params, ...config }),
 };
 
 // Gulla (Cash Drawer / Register) API
