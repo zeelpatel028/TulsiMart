@@ -73,7 +73,7 @@ export const ordersApi = {
 
 // Customers API
 export const customersApi = {
-  getCustomers: (params) => apiClient.get('/customers/customers/', { params }),
+  getCustomers: (params, config = {}) => cachedGet('/customers/customers/', { params, ...config }, 15000),
   getCustomer: (id) => apiClient.get(`/customers/customers/${id}/`),
   createCustomer: (data) => apiClient.post('/customers/customers/', data),
   updateCustomer: (id, data) => apiClient.put(`/customers/customers/${id}/`, data),
@@ -88,7 +88,7 @@ export const customersApi = {
 
 // Suppliers API
 export const suppliersApi = {
-  getSuppliers: (params) => apiClient.get('/suppliers/suppliers/', { params }),
+  getSuppliers: (params, config = {}) => cachedGet('/suppliers/suppliers/', { params, ...config }, 30000),
   createSupplier: (data) => apiClient.post('/suppliers/suppliers/', data),
   updateSupplier: (id, data) => apiClient.put(`/suppliers/suppliers/${id}/`, data),
   getPurchaseOrders: (params) => apiClient.get('/suppliers/purchase-orders/', { params }),
@@ -103,7 +103,7 @@ export const suppliersApi = {
 
 // Expenses API
 export const expensesApi = {
-  getCategories: () => apiClient.get('/expenses/categories/'),
+  getCategories: () => cachedGet('/expenses/categories/', {}, 60000),
   createCategory: (data) => apiClient.post('/expenses/categories/', data),
   getExpenses: (params) => apiClient.get('/expenses/expenses/', { params }),
   createExpense: (data) => apiClient.post('/expenses/expenses/', data),

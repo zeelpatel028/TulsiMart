@@ -36,6 +36,7 @@ import {
   UserCheck
 } from 'lucide-react';
 import { gullaApi, suppliersApi, expensesApi, customersApi, ordersApi, authApi, homeCashApi, bankApi } from '../../api';
+import { extractList } from '../../utils/apiHelpers';
 import { useNotification } from '../../context/NotificationContext';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -202,10 +203,10 @@ export const GullaManagement = () => {
         bankApi.getSummary(),
         homeCashApi.getHomeCashData()
       ]);
-      setSuppliers(suppRes.data?.results || suppRes.data || []);
-      setExpenseCategories(expCatRes.data?.results || expCatRes.data || []);
-      setCustomers(custRes.data?.results || custRes.data || []);
-      setOrders(ordRes.data?.results || ordRes.data || []);
+      setSuppliers(extractList(suppRes));
+      setExpenseCategories(extractList(expCatRes));
+      setCustomers(extractList(custRes));
+      setOrders(extractList(ordRes));
       setHomeCashAmount(parseFloat(setRes.data?.home_cash_amount || 0));
       setBankBalance(parseFloat(bankRes.data?.total_bank_balance || 0));
       if (homeRes.data?.denominations_breakdown) {

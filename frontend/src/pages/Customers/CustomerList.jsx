@@ -26,6 +26,7 @@ import {
   Calculator
 } from 'lucide-react';
 import { customersApi } from '../../api';
+import { extractList } from '../../utils/apiHelpers';
 import { useNotification } from '../../context/NotificationContext';
 import useDebounce from '../../hooks/useDebounce';
 
@@ -132,7 +133,7 @@ export const CustomerList = () => {
         },
         { signal }
       );
-      setCustomers(res.data?.results || res.data || []);
+      setCustomers(extractList(res));
     } catch (err) {
       if (err.name !== 'CanceledError' && err.name !== 'AbortError') {
         console.error(err);

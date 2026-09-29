@@ -18,6 +18,7 @@ import {
 
 // API
 import { suppliersApi, inventoryApi, gullaApi } from '../../api';
+import { extractList } from '../../utils/apiHelpers';
 
 // Sub-components
 import ProcurementKpiCards from './components/ProcurementKpiCards';
@@ -105,10 +106,10 @@ export const SupplierList = () => {
         gullaApi.getGullaSummary().catch(() => null)
       ]);
 
-      const fetchedSuppliers = suppliersRes.data?.results || suppliersRes.data || [];
-      const fetchedPOs = poRes.data?.results || poRes.data || [];
-      const fetchedPayments = paymentsRes.data?.results || paymentsRes.data || [];
-      const fetchedProducts = productsRes.data?.results || productsRes.data || [];
+      const fetchedSuppliers = extractList(suppliersRes);
+      const fetchedPOs = extractList(poRes);
+      const fetchedPayments = extractList(paymentsRes);
+      const fetchedProducts = extractList(productsRes);
 
       setSuppliers(fetchedSuppliers);
       setPurchaseOrders(fetchedPOs);
@@ -118,15 +119,15 @@ export const SupplierList = () => {
 
       // Generate GRN records
       const grns = fetchedPOs
-        .filter(po => po.status === 'RECEIVED')
+        .filter(po => po && po.status === 'RECEIVED')
         .map(po => ({
           id: `GRN-${po.id}`,
-          grn_number: `GRN-${po.po_number.replace('PO-', '')}`,
-          po_number: po.po_number,
-          supplier_name: po.supplier_name,
-          received_date: po.updated_at ? po.updated_at.split('T')[0] : po.order_date,
+          grn_number: `GRN-${po.po_number ? po.po_number.replace('PO-', '') : po.id}`,
+          po_number: po.po_number || `PO-${po.id}`,
+          supplier_name: po.supplier_name || 'N/A',
+          received_date: po.updated_at ? po.updated_at.split('T')[0] : (po.order_date || 'N/A'),
           total_items: po.items?.length || 1,
-          total_valuation: po.total_amount,
+          total_valuation: po.total_amount || 0,
           status: 'VERIFIED'
         }));
       setGrnList(grns);
@@ -138,30 +139,34 @@ export const SupplierList = () => {
 
   // KPI calculations
   const kpis = useMemo(() => {
-    const totalSuppliers = suppliers.length;
-    const activeSuppliers = suppliers.filter(s => s.is_active !== false).length;
-    const pendingPOs = purchaseOrders.filter(po => po.status === 'ORDERED' || po.status === 'DRAFT').length;
+    const suppArray = Array.isArray(suppliers) ? suppliers : [];
+    const poArray = Array.isArray(purchaseOrders) ? purchaseOrders : [];
+    const prodArray = Array.isArray(products) ? products : [];
+
+    const totalSuppliers = suppArray.length;
+    const activeSuppliers = suppArray.filter(s => s && s.is_active !== false).length;
+    const pendingPOs = poArray.filter(po => po && (po.status === 'ORDERED' || po.status === 'DRAFT')).length;
     
     const today = new Date().toISOString().split('T')[0];
     const currentMonth = today.substring(0, 7);
 
-    const todayPurchases = purchaseOrders
-      .filter(po => po.order_date === today)
+    const todayPurchases = poArray
+      .filter(po => po && po.order_date === today)
       .reduce((sum, po) => sum + parseFloat(po.total_amount || 0), 0);
 
-    const monthlyPurchases = purchaseOrders
-      .filter(po => po.order_date && po.order_date.startsWith(currentMonth))
+    const monthlyPurchases = poArray
+      .filter(po => po && po.order_date && po.order_date.startsWith(currentMonth))
       .reduce((sum, po) => sum + parseFloat(po.total_amount || 0), 0);
 
-    const pendingPayments = suppliers.reduce((sum, s) => sum + parseFloat(s.pending_balance || 0), 0);
-    const overduePayments = suppliers.filter(s => s.payment_terms === 'Net 7' || s.payment_terms === 'Net 15')
-      .reduce((sum, s) => sum + parseFloat(s.pending_balance || 0) * 0.4, 0);
+    const pendingPayments = suppArray.reduce((sum, s) => sum + parseFloat(s?.pending_balance || 0), 0);
+    const overduePayments = suppArray.filter(s => s && (s.payment_terms === 'Net 7' || s.payment_terms === 'Net 15'))
+      .reduce((sum, s) => sum + parseFloat(s?.pending_balance || 0) * 0.4, 0);
 
-    const productsOnOrder = purchaseOrders
-      .filter(po => po.status === 'ORDERED')
+    const productsOnOrder = poArray
+      .filter(po => po && po.status === 'ORDERED')
       .reduce((acc, po) => acc + (po.items?.length || 1), 0);
 
-    const lowStockReorderCount = products.filter(p => p.stock_quantity <= (p.reorder_level || 10)).length;
+    const lowStockReorderCount = prodArray.filter(p => p && p.stock_quantity <= (p.reorder_level || 10)).length;
 
     return {
       totalSuppliers, activeSuppliers, pendingPOs, todayPurchases,

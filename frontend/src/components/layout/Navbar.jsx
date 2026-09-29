@@ -26,6 +26,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { useTheme } from '../../context/ThemeContext';
 import { inventoryApi, ordersApi } from '../../api';
+import { extractList } from '../../utils/apiHelpers';
 import { EmptyState } from '../common/UiHelpers';
 
 export const Navbar = ({ onMenuClick, onOpenQuickOrder }) => {
@@ -71,8 +72,8 @@ export const Navbar = ({ onMenuClick, onOpenQuickOrder }) => {
           ordersApi.getOrders({ search: searchQuery })
         ]);
         setSearchResults({
-          products: (prodRes.data?.results || prodRes.data || []).slice(0, 5),
-          orders: (orderRes.data?.results || orderRes.data || []).slice(0, 5),
+          products: extractList(prodRes).slice(0, 5),
+          orders: extractList(orderRes).slice(0, 5),
         });
         setShowSearchDropdown(true);
       } catch (err) {

@@ -52,6 +52,7 @@ import { Badge } from '../../components/common/Badge';
 import { Modal } from '../../components/common/Modal';
 import { CartLoader } from '../../components/common/CartLoader';
 import { settingsApi, authApi, loginAccountsApi, homeCashApi, bankApi } from '../../api';
+import { extractList } from '../../utils/apiHelpers';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -166,7 +167,7 @@ export const SettingsPage = () => {
     setLoadingAccounts(true);
     try {
       const res = await loginAccountsApi.getAccounts();
-      setLoginAccounts(res.data?.results || res.data || []);
+      setLoginAccounts(extractList(res));
     } catch (err) {
       console.error('Failed to load login accounts:', err);
       showToast('Could not load login accounts from database.', 'error');
@@ -294,7 +295,15 @@ export const SettingsPage = () => {
     setLoadingHomeCash(true);
     try {
       const res = await homeCashApi.getHomeCashData();
-      setHomeCashData(res.data);
+      const payload = res.data?.data || res.data || {};
+      setHomeCashData({
+        home_cash_amount: parseFloat(payload.home_cash_amount || 0),
+        total_deposits: parseFloat(payload.total_deposits || 0),
+        total_withdrawals: parseFloat(payload.total_withdrawals || 0),
+        total_transactions: parseInt(payload.total_transactions || 0, 10),
+        denominations_breakdown: payload.denominations_breakdown || {},
+        history: Array.isArray(payload.history) ? payload.history : (Array.isArray(payload) ? payload : [])
+      });
     } catch (err) {
       console.error('Failed to fetch home cash data:', err);
     } finally {
@@ -306,7 +315,7 @@ export const SettingsPage = () => {
     setLoadingBankTx(true);
     try {
       const res = await bankApi.getTransactions();
-      setBankTransactions(res.data?.results || res.data || []);
+      setBankTransactions(extractList(res));
     } catch (err) {
       console.error('Failed to fetch bank transactions:', err);
     } finally {
@@ -1726,7 +1735,7 @@ export const SettingsPage = () => {
                   <Landmark className="w-3.5 h-3.5 text-emerald-400" /> Home Cash Vault
                 </div>
                 <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white font-heading">
-                  ₹{homeCashData.home_cash_amount.toFixed(2)}
+                  ₹{(parseFloat(homeCashData?.home_cash_amount || 0)).toFixed(2)}
                 </h2>
                 <p className="text-slate-300 text-xs sm:text-sm max-w-lg">
                   Total safe cash stored at home from Day-End Gulla Sweeps and manual deposits.
@@ -1774,7 +1783,7 @@ export const SettingsPage = () => {
                   Home Cash Balance
                 </span>
                 <span className="text-xl sm:text-2xl font-black text-[#384959] dark:text-emerald-400 font-heading tracking-tight block mt-0.5">
-                  ₹{homeCashData.home_cash_amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ₹{(parseFloat(homeCashData?.home_cash_amount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
             </div>
@@ -1789,7 +1798,7 @@ export const SettingsPage = () => {
                   Total Deposits & Sweeps
                 </span>
                 <span className="text-xl sm:text-2xl font-black text-[#384959] dark:text-sky-400 font-heading tracking-tight block mt-0.5">
-                  ₹{homeCashData.total_deposits.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ₹{(parseFloat(homeCashData?.total_deposits || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
             </div>
@@ -1804,7 +1813,7 @@ export const SettingsPage = () => {
                   Total Home Withdrawals
                 </span>
                 <span className="text-xl sm:text-2xl font-black text-[#384959] dark:text-rose-400 font-heading tracking-tight block mt-0.5">
-                  ₹{homeCashData.total_withdrawals.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ₹{(parseFloat(homeCashData?.total_withdrawals || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
             </div>
@@ -1819,7 +1828,7 @@ export const SettingsPage = () => {
                   Total Audit Entries
                 </span>
                 <span className="text-xl sm:text-2xl font-black text-[#384959] dark:text-amber-400 font-heading tracking-tight block mt-0.5">
-                  {homeCashData.total_transactions} Entries
+                  {homeCashData?.total_transactions || 0} Entries
                 </span>
               </div>
             </div>
@@ -2144,7 +2153,7 @@ export const SettingsPage = () => {
         isOpen={isHomeCashModalOpen}
         onClose={() => setIsHomeCashModalOpen(false)}
         title={homeCashModalType === 'DEPOSIT' ? 'Deposit Cash to Home Safe' : 'Withdraw Cash from Home Safe'}
-        subtitle={homeCashModalType === 'DEPOSIT' ? 'Record physical currency notes added to home safe' : `Record cash withdrawn from home safe (Current balance: ₹${homeCashData.home_cash_amount.toFixed(2)})`}
+        subtitle={homeCashModalType === 'DEPOSIT' ? 'Record physical currency notes added to home safe' : `Record cash withdrawn from home safe (Current balance: ₹${(parseFloat(homeCashData?.home_cash_amount || 0)).toFixed(2)})`}
         maxWidth="max-w-lg"
         footer={
           <div className="flex items-center justify-between w-full">

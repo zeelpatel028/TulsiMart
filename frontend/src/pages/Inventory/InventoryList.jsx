@@ -28,6 +28,7 @@ import {
   Filter
 } from 'lucide-react';
 import { inventoryApi, suppliersApi } from '../../api';
+import { extractList } from '../../utils/apiHelpers';
 import { getCachedData, setCachedData } from '../../utils/metaCache';
 import { useNotification } from '../../context/NotificationContext';
 import { Edit3 } from 'lucide-react';
@@ -104,9 +105,8 @@ export const InventoryList = () => {
         expiry: activeTab === 'near_expiry' ? 'near_expiry' : undefined,
       };
       const res = await inventoryApi.getProducts(params);
-      const data = res.data;
-      const fetchedProducts = data?.results || (Array.isArray(data) ? data : []);
-      const count = data?.count || fetchedProducts.length || 0;
+      const fetchedProducts = extractList(res);
+      const count = res.data?.pagination?.total_items || res.data?.count || fetchedProducts.length || 0;
       const pages = Math.ceil(count / 50) || 1;
 
       setProducts(fetchedProducts);
@@ -133,7 +133,7 @@ export const InventoryList = () => {
 
     try {
       const res = await inventoryApi.getStockMovements();
-      const data = res.data?.results || res.data || [];
+      const data = extractList(res);
       setMovements(data);
       setCachedData(cacheKey, data, 2 * 60 * 1000);
     } catch (err) {
@@ -184,9 +184,9 @@ export const InventoryList = () => {
         inventoryApi.getUnits(),
         suppliersApi.getSuppliers({ page_size: 100 })
       ]);
-      if (catRes.status === 'fulfilled') setCategories(catRes.value.data?.results || catRes.value.data || []);
-      if (unitRes.status === 'fulfilled') setUnits(unitRes.value.data?.results || unitRes.value.data || []);
-      if (suppRes.status === 'fulfilled') setSuppliers(suppRes.value.data?.results || suppRes.value.data || []);
+      if (catRes.status === 'fulfilled') setCategories(extractList(catRes.value));
+      if (unitRes.status === 'fulfilled') setUnits(extractList(unitRes.value));
+      if (suppRes.status === 'fulfilled') setSuppliers(extractList(suppRes.value));
     } catch (err) {
       console.error(err);
     }

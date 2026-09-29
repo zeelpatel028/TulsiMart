@@ -29,7 +29,9 @@ export const SuppliersDirectoryTab = ({
   onViewProfile,
   onPaySupplier
 }) => {
-  const filteredSuppliers = suppliers.filter(s => {
+  const suppList = Array.isArray(suppliers) ? suppliers : [];
+  const filteredSuppliers = suppList.filter(s => {
+    if (!s) return false;
     const matchesCategory = categoryFilter === 'ALL' || s.category === categoryFilter;
     const matchesSearch = !search || (
       (s.name && s.name.toLowerCase().includes(search.toLowerCase())) ||

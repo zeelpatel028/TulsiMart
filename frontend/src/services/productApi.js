@@ -2,40 +2,41 @@ import apiClient from './api';
 
 export const productApi = {
   getProducts: async (params = {}) => {
-    return await apiClient.get('/products/', { params });
+    return await apiClient.get('/inventory/products/', { params });
   },
 
   searchPOSProducts: async (query = '') => {
-    return await apiClient.get('/products/pos_search/', { params: { q: query } });
+    return await apiClient.get('/inventory/products/', { params: { search: query, page_size: 100 } });
   },
 
   getProduct: async (id) => {
-    return await apiClient.get(`/products/${id}/`);
+    return await apiClient.get(`/inventory/products/${id}/`);
   },
 
   createProduct: async (data) => {
-    return await apiClient.post('/products/', data);
+    return await apiClient.post('/inventory/products/', data);
   },
 
   updateProduct: async (id, data) => {
-    return await apiClient.put(`/products/${id}/`, data);
+    return await apiClient.put(`/inventory/products/${id}/`, data);
   },
 
   deleteProduct: async (id) => {
-    return await apiClient.delete(`/products/${id}/`);
+    return await apiClient.delete(`/inventory/products/${id}/`);
   },
 
   getCategories: async () => {
-    return await apiClient.get('/categories/');
+    return await apiClient.get('/inventory/categories/');
   },
 
   getBrands: async () => {
-    return await apiClient.get('/brands/');
+    return await apiClient.get('/inventory/brands/');
   },
 
   getUnits: async () => {
-    return await apiClient.get('/units/');
+    return await apiClient.get('/inventory/units/');
   }
 };
 
 export default productApi;
+

@@ -26,6 +26,7 @@ import {
   List
 } from 'lucide-react';
 import { ordersApi } from '../../api';
+import { extractList } from '../../utils/apiHelpers';
 import { getCachedData, setCachedData } from '../../utils/metaCache';
 import { useNotification } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
@@ -82,8 +83,8 @@ export const OrderList = () => {
         date_to: dateTo || undefined,
       };
       const res = await ordersApi.getOrders(params);
-      const fetchedOrders = res.data?.results || res.data || [];
-      const count = res.data?.count !== undefined ? res.data.count : fetchedOrders.length;
+      const fetchedOrders = extractList(res);
+      const count = res.data?.pagination?.total_items || res.data?.count || fetchedOrders.length;
       const pages = Math.ceil(count / 20) || 1;
 
       setOrders(fetchedOrders);

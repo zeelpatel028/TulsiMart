@@ -11,7 +11,8 @@ export const PurchaseOrdersTab = ({
   onOpenReceiveModal,
   onPayPO
 }) => {
-  if (purchaseOrders.length === 0) {
+  const poList = Array.isArray(purchaseOrders) ? purchaseOrders : [];
+  if (poList.length === 0) {
     return (
       <Card className="p-0 overflow-hidden font-sans border border-teal-100 dark:border-slate-800 rounded-2xl shadow-sm bg-white dark:bg-slate-900">
         <EmptyState
@@ -31,7 +32,7 @@ export const PurchaseOrdersTab = ({
     <div className="space-y-4 font-sans text-slate-800 dark:text-slate-100 selection:bg-[#80cbc4] selection:text-[#004d40]">
       {/* 🌟 Responsive Card Grid View (Image 2 POS Style) */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-4">
-        {purchaseOrders.map((po) => {
+        {poList.map((po) => {
           const total = parseFloat(po.total_amount || 0);
           const paid = parseFloat(po.paid_amount || 0);
           const due = Math.max(0, total - paid);

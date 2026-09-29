@@ -2,15 +2,15 @@ import apiClient from './api';
 
 export const expenseApi = {
   getExpenses: async (params = {}) => {
-    return await apiClient.get('/expenses/', { params });
+    return await apiClient.get('/expenses/expenses/', { params });
   },
 
   createExpense: async (data) => {
-    return await apiClient.post('/expenses/', data);
+    return await apiClient.post('/expenses/expenses/', data);
   },
 
   deleteExpense: async (id) => {
-    return await apiClient.delete(`/expenses/${id}/`);
+    return await apiClient.delete(`/expenses/expenses/${id}/`);
   },
 
   getCategories: async () => {
@@ -19,3 +19,4 @@ export const expenseApi = {
 };
 
 export default expenseApi;
+

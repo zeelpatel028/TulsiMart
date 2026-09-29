@@ -122,10 +122,10 @@ export const Dashboard = () => {
 
   const fetchDashboardAndCatalog = async () => {
     const cachedDash = getCachedData('dashboard_summary');
-    if (cachedDash) {
+    if (cachedDash && cachedDash.dashboardData && (cachedDash.dashboardData.kpis || cachedDash.dashboardData.total_products)) {
       setDashboardData(cachedDash.dashboardData);
-      setPopularProducts(cachedDash.popularProducts);
-      setCategoriesList(cachedDash.categoriesList);
+      setPopularProducts(cachedDash.popularProducts || []);
+      setCategoriesList(cachedDash.categoriesList || []);
       setLoading(false);
     } else {
       setLoading(true);
@@ -138,9 +138,14 @@ export const Dashboard = () => {
         inventoryApi.getCategories()
       ]);
 
-      const dashData = dashRes.status === 'fulfilled' ? dashRes.value.data : null;
-      const prodData = prodRes.status === 'fulfilled' ? prodRes.value.data : null;
-      const catData = catRes.status === 'fulfilled' ? catRes.value.data : null;
+      const rawDash = dashRes.status === 'fulfilled' ? dashRes.value.data : null;
+      const dashData = rawDash?.data || rawDash;
+
+      const rawProd = prodRes.status === 'fulfilled' ? prodRes.value.data : null;
+      const prodData = rawProd?.data || rawProd;
+
+      const rawCat = catRes.status === 'fulfilled' ? catRes.value.data : null;
+      const catData = rawCat?.data || rawCat;
 
       const prods = prodData?.results || (Array.isArray(prodData) ? prodData : []);
       const popular = Array.isArray(prods) && prods.length > 0 ? prods.slice(0, 8) : popularProducts;
@@ -197,7 +202,22 @@ export const Dashboard = () => {
     );
   }
 
-  const { kpis, daily_trends, category_breakdown, top_products, low_stock_items, recent_orders } = dashboardData;
+  const kpis = dashboardData?.kpis || {
+    today_sales: dashboardData?.total_sales || 0,
+    today_orders: dashboardData?.total_orders || 0,
+    total_orders: dashboardData?.total_orders || 0,
+    total_sales: dashboardData?.total_sales || 0,
+    low_stock_products: dashboardData?.low_stock_products || 0,
+    out_of_stock_products: 0,
+    total_products: dashboardData?.total_products || 0,
+    pending_orders: dashboardData?.pending_orders || 0,
+    total_customers: dashboardData?.total_customers || 0
+  };
+
+  const daily_trends = Array.isArray(dashboardData?.daily_trends) ? dashboardData.daily_trends : [];
+  const low_stock_items = Array.isArray(dashboardData?.low_stock_items) ? dashboardData.low_stock_items : [];
+  const recent_orders = Array.isArray(dashboardData?.recent_orders) ? dashboardData.recent_orders : [];
+
 
   const PALETTE_COLORS = ['#00695C', '#009688', '#4DB6AC', '#80CBC4', '#E0F2F1', '#263238'];
 

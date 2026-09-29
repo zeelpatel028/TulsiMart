@@ -129,7 +129,7 @@ export const LoginPage = () => {
           showToast('📩 Security OTP Sent to your email inbox.', 'info');
         } else {
           showToast('Welcome back! Login successful.', 'success');
-          const from = location.state?.from?.pathname || '/billing';
+          const from = location.state?.from?.pathname || '/dashboard';
           navigate(from, { replace: true });
         }
       } else {
@@ -157,7 +157,7 @@ export const LoginPage = () => {
       const res = await verifyOtp(username.trim(), otpCode);
       if (res.success) {
         showToast('🎉 Security OTP Verified! Welcome to POS Portal.', 'success');
-        const from = location.state?.from?.pathname || '/billing';
+        const from = location.state?.from?.pathname || '/dashboard';
         navigate(from, { replace: true });
       } else {
         showToast(res.error || 'Invalid or expired OTP code.', 'error');

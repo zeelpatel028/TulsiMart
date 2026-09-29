@@ -20,6 +20,7 @@ import {
   List
 } from 'lucide-react';
 import { analyticsApi, inventoryApi } from '../../api';
+import { extractList } from '../../utils/apiHelpers';
 import { useNotification } from '../../context/NotificationContext';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -61,7 +62,7 @@ export const ReportsPage = () => {
   const loadCategories = async () => {
     try {
       const res = await inventoryApi.getCategories();
-      setCategories(res.data?.results || res.data || []);
+      setCategories(extractList(res));
     } catch (err) {
       console.error(err);
     }
@@ -77,9 +78,16 @@ export const ReportsPage = () => {
         category: selectedCategory || undefined,
         search: search || undefined
       });
-      setReportData(res.data || { summary: {}, data: [] });
+      const payload = res.data?.data || res.data || {};
+      const summary = typeof payload.summary === 'object' && payload.summary !== null && !Array.isArray(payload.summary) 
+        ? payload.summary 
+        : (typeof res.data?.summary === 'object' && res.data?.summary !== null ? res.data.summary : {});
+      const rawRows = payload.data || payload.results || payload.records || (Array.isArray(payload) ? payload : []);
+      const rows = extractList(rawRows);
+      setReportData({ summary, data: rows });
     } catch (err) {
       console.error(err);
+      setReportData({ summary: {}, data: [] });
     } finally {
       setLoading(false);
     }
@@ -87,11 +95,12 @@ export const ReportsPage = () => {
 
   // Export to Excel (.xlsx)
   const handleExportExcel = () => {
-    if (!reportData.data || reportData.data.length === 0) {
+    const rows = Array.isArray(reportData?.data) ? reportData.data : [];
+    if (rows.length === 0) {
       showToast('No report records available to export', 'error');
       return;
     }
-    const ws = XLSX.utils.json_to_sheet(reportData.data);
+    const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, `${reportType.toUpperCase()}_Report`);
     XLSX.writeFile(wb, `TulsiMart_${reportType}_report_${new Date().toISOString().split('T')[0]}.xlsx`);
@@ -100,7 +109,8 @@ export const ReportsPage = () => {
 
   // Export to PDF
   const handleExportPDF = () => {
-    if (!reportData.data || reportData.data.length === 0) {
+    const reportRows = Array.isArray(reportData?.data) ? reportData.data : [];
+    if (reportRows.length === 0) {
       showToast('No report records available to export', 'error');
       return;
     }
@@ -116,8 +126,8 @@ export const ReportsPage = () => {
     doc.setTextColor(100, 116, 139);
     doc.text(`Generated on: ${new Date().toLocaleString('en-IN')} | Store: Tulsi Mart POS`, 14, 24);
 
-    const headers = Object.keys(reportData.data[0]);
-    const rows = reportData.data.map(row => headers.map(h => row[h]));
+    const headers = Object.keys(reportRows[0] || {});
+    const rows = reportRows.map(row => headers.map(h => row[h]));
 
     autoTable(doc, {
       startY: 30,
@@ -179,12 +189,16 @@ export const ReportsPage = () => {
         {/* Middle Body: Key Metrics & Details */}
         <div className="flex items-center justify-between text-xs py-2.5 my-1 border-t border-b border-teal-100/60 dark:border-slate-800">
           <div className="min-w-0 pr-2 space-y-1">
-            {keys.filter(k => k !== titleKey && k !== subTitleKey && k !== dateKey && k !== amountKey && k !== badgeKey).slice(0, 2).map((k, i) => (
-              <p key={i} className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                <span className="font-bold capitalize">{k.replace(/_/g, ' ')}:</span>{' '}
-                <span className="font-semibold text-slate-800 dark:text-slate-200">{String(row[k])}</span>
-              </p>
-            ))}
+            {keys.filter(k => k !== titleKey && k !== subTitleKey && k !== dateKey && k !== amountKey && k !== badgeKey).slice(0, 2).map((k, i) => {
+              const cellVal = row[k];
+              if (cellVal === null || cellVal === undefined || typeof cellVal === 'object') return null;
+              return (
+                <p key={i} className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                  <span className="font-bold capitalize">{k.replace(/_/g, ' ')}:</span>{' '}
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">{String(cellVal)}</span>
+                </p>
+              );
+            })}
           </div>
           {amountVal !== null && !isNaN(amountVal) && (
             <div className="text-right shrink-0">
@@ -288,14 +302,18 @@ export const ReportsPage = () => {
       </div>
 
       {/* Summary KPI Highlights */}
-      {reportData.summary && Object.keys(reportData.summary).length > 0 && (
+      {reportData.summary && typeof reportData.summary === 'object' && Object.keys(reportData.summary).length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {Object.entries(reportData.summary).map(([key, val], idx) => (
-            <div key={idx} className="p-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs rounded-2xl border border-teal-100 dark:border-slate-800 shadow-2xs hover:border-teal-300 dark:hover:border-slate-700 transition-all">
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider truncate block leading-none mb-1.5">{key}</span>
-              <p className="text-base sm:text-lg font-black text-[#00796b] dark:text-[#80cbc4] font-heading leading-tight">{val}</p>
-            </div>
-          ))}
+          {Object.entries(reportData.summary)
+            .filter(([_, val]) => val !== null && val !== undefined && typeof val !== 'object')
+            .map(([key, val], idx) => (
+              <div key={idx} className="p-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs rounded-2xl border border-teal-100 dark:border-slate-800 shadow-2xs hover:border-teal-300 dark:hover:border-slate-700 transition-all">
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider truncate block leading-none mb-1.5">{key.replace(/_/g, ' ')}</span>
+                <p className="text-base sm:text-lg font-black text-[#00796b] dark:text-[#80cbc4] font-heading leading-tight">
+                  {typeof val === 'number' && val > 99 ? `₹${val.toLocaleString('en-IN')}` : String(val)}
+                </p>
+              </div>
+            ))}
         </div>
       )}
 
@@ -375,7 +393,7 @@ export const ReportsPage = () => {
           <div className="w-8 h-8 rounded-full border-2 border-[#00796b] border-t-transparent animate-spin mx-auto mb-2" />
           <p className="text-xs font-bold text-slate-600 dark:text-slate-400">Compiling Financial Statement...</p>
         </div>
-      ) : !reportData.data || reportData.data.length === 0 ? (
+      ) : (!Array.isArray(reportData?.data) || reportData.data.length === 0) ? (
         <EmptyState
           icon={FileSpreadsheet}
           title="No Report Records Found"
@@ -394,7 +412,7 @@ export const ReportsPage = () => {
             <table className="w-full min-w-[700px] text-left text-xs border-collapse">
               <thead className="sticky top-0 z-10 bg-slate-100/90 dark:bg-slate-800/90 backdrop-blur-xs shadow-2xs">
                 <tr className="border-b border-teal-100 dark:border-slate-700/80 text-[#00796b] dark:text-[#80cbc4] font-black uppercase tracking-wider text-[11px] whitespace-nowrap">
-                  {Object.keys(reportData.data[0]).map((h, i) => (
+                  {Object.keys(reportData.data[0] || {}).map((h, i) => (
                     <th key={i} className="py-3 px-4 capitalize">{h.replace(/_/g, ' ')}</th>
                   ))}
                 </tr>
@@ -404,7 +422,13 @@ export const ReportsPage = () => {
                   <tr key={rIdx} className="hover:bg-teal-50/40 dark:hover:bg-slate-800/60 transition-colors">
                     {Object.values(row).map((val, cIdx) => (
                       <td key={cIdx} className="py-3 px-4 text-slate-800 dark:text-slate-200 whitespace-nowrap">
-                        {typeof val === 'number' && val > 99 ? `₹${val.toLocaleString('en-IN')}` : String(val)}
+                        {val === null || val === undefined 
+                          ? '-' 
+                          : typeof val === 'object' 
+                            ? JSON.stringify(val) 
+                            : typeof val === 'number' && val > 99 
+                              ? `₹${val.toLocaleString('en-IN')}` 
+                              : String(val)}
                       </td>
                     ))}
                   </tr>

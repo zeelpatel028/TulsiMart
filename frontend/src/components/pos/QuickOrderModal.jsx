@@ -18,6 +18,7 @@ import {
   Percent
 } from 'lucide-react';
 import { inventoryApi, ordersApi, customersApi, offersApi } from '../../api';
+import { extractList } from '../../utils/apiHelpers';
 import { useNotification } from '../../context/NotificationContext';
 import confetti from 'canvas-confetti';
 
@@ -67,8 +68,8 @@ export const QuickOrderModal = ({ isOpen, onClose, onOrderCreated }) => {
         inventoryApi.getProducts({ is_active: 'true' }),
         inventoryApi.getCategories()
       ]);
-      setProducts(prodRes.data?.results || prodRes.data || []);
-      setCategories(catRes.data?.results || catRes.data || []);
+      setProducts(extractList(prodRes));
+      setCategories(extractList(catRes));
     } catch (err) {
       console.error(err);
     } finally {

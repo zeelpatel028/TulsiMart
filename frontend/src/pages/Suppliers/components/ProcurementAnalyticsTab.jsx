@@ -9,7 +9,8 @@ import * as XLSX from 'xlsx';
 
 export const ProcurementAnalyticsTab = ({ suppliers, onShowToast }) => {
   const handleExportReport = (format) => {
-    const exportData = suppliers.map(s => ({
+    const suppList = Array.isArray(suppliers) ? suppliers : [];
+    const exportData = suppList.map(s => ({
       'Supplier ID': `SUP-${s.id}`,
       'Company Name': s.company_name || s.name,
       'Contact Person': s.name,

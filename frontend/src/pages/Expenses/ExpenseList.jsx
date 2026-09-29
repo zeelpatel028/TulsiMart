@@ -33,6 +33,7 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 import { expensesApi, gullaApi, ordersApi, suppliersApi } from '../../api';
+import { extractList } from '../../utils/apiHelpers';
 import { useNotification } from '../../context/NotificationContext';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -88,11 +89,11 @@ export const ExpenseList = () => {
         ordersApi.getOrders(),
         suppliersApi.getPurchaseOrders()
       ]);
-      setExpenses(expRes.data?.results || expRes.data || []);
-      setCategories(catRes.data?.results || catRes.data || []);
+      setExpenses(extractList(expRes));
+      setCategories(extractList(catRes));
       setSummary(sumRes.data);
-      setOrders(ordRes.data?.results || ordRes.data || []);
-      setPurchaseOrders(poRes.data?.results || poRes.data || []);
+      setOrders(extractList(ordRes));
+      setPurchaseOrders(extractList(poRes));
     } catch (err) {
       console.error(err);
     } finally {

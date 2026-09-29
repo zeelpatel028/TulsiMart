@@ -21,6 +21,7 @@ import {
   Ticket
 } from 'lucide-react';
 import { offersApi } from '../../api';
+import { extractList } from '../../utils/apiHelpers';
 import { useNotification } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
 
@@ -63,8 +64,8 @@ export const OffersList = () => {
         offersApi.getCoupons(),
         offersApi.getFestivalOffers()
       ]);
-      setCoupons(couponRes.data?.results || couponRes.data || []);
-      setFestivals(festRes.data?.results || festRes.data || []);
+      setCoupons(extractList(couponRes));
+      setFestivals(extractList(festRes));
     } catch (err) {
       console.error(err);
     } finally {

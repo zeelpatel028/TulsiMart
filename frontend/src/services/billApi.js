@@ -2,24 +2,25 @@ import apiClient from './api';
 
 export const billApi = {
   getBills: async (params = {}) => {
-    return await apiClient.get('/orders/', { params });
+    return await apiClient.get('/orders/orders/', { params });
   },
 
   getBillDetails: async (id) => {
-    return await apiClient.get(`/orders/${id}/`);
+    return await apiClient.get(`/orders/orders/${id}/`);
   },
 
   createBill: async (orderData) => {
-    return await apiClient.post('/orders/', orderData);
+    return await apiClient.post('/orders/orders/', orderData);
   },
 
-  cancelBill: async (id, reason = '') => {
-    return await apiClient.post(`/orders/${id}/cancel/`, { reason });
+  cancelBill: async (id, data = {}) => {
+    return await apiClient.post(`/orders/orders/${id}/update_status/`, { status: 'CANCELLED', ...data });
   },
 
   getTodayCollection: async () => {
-    return await apiClient.get('/gulla/today/');
+    return await apiClient.get('/core/gulla/');
   }
 };
 
 export default billApi;
+

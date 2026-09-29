@@ -5,7 +5,8 @@ import { EmptyState } from '../../../components/common/UiHelpers';
 import { Package, CheckCircle2 } from 'lucide-react';
 
 export const GrnLedgerTab = ({ grnList }) => {
-  if (grnList.length === 0) {
+  const safeList = Array.isArray(grnList) ? grnList : [];
+  if (safeList.length === 0) {
     return (
       <Card className="p-0 overflow-hidden font-sans border border-teal-100 dark:border-slate-800 rounded-2xl shadow-sm bg-white dark:bg-slate-900">
         <EmptyState
@@ -22,7 +23,7 @@ export const GrnLedgerTab = ({ grnList }) => {
     <div className="space-y-4 font-sans text-slate-800 dark:text-slate-100 selection:bg-[#80cbc4] selection:text-[#004d40]">
       {/* 🌟 Responsive Card Grid View (Image 2 POS Style) */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-4">
-        {grnList.map((grn) => (
+        {safeList.map((grn) => (
           <div
             key={grn.id}
             className="bg-white dark:bg-slate-900 rounded-2xl border border-teal-200/80 dark:border-slate-800 p-4 space-y-3 shadow-2xs hover:shadow-md hover:border-[#00796b] dark:hover:border-[#80cbc4] transition-all flex flex-col justify-between"

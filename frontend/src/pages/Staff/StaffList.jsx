@@ -29,6 +29,7 @@ import {
   Tag
 } from 'lucide-react';
 import { authApi, expensesApi, gullaApi } from '../../api';
+import { extractList } from '../../utils/apiHelpers';
 import { useNotification } from '../../context/NotificationContext';
 
 export const StaffList = () => {
@@ -201,7 +202,7 @@ export const StaffList = () => {
     try {
       setLoading(true);
       const res = await authApi.getStaff({ search });
-      const list = res.data?.results || res.data || [];
+      const list = extractList(res);
       setStaffList(list);
 
       setAttendance((prev) => {

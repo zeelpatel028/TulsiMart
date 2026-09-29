@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { inventoryApi, suppliersApi } from '../../api';
+import { extractList } from '../../utils/apiHelpers';
 import { useNotification } from '../../context/NotificationContext';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
@@ -97,19 +98,19 @@ export const AddProductPage = () => {
 
       let catList = [];
       if (catRes.status === 'fulfilled') {
-        catList = catRes.value.data?.results || catRes.value.data || [];
+        catList = extractList(catRes.value);
         setCategories(catList);
       }
 
       let unitList = [];
       if (unitRes.status === 'fulfilled') {
-        unitList = unitRes.value.data?.results || unitRes.value.data || [];
+        unitList = extractList(unitRes.value);
         setUnits(unitList);
       }
 
       let suppList = [];
       if (suppRes.status === 'fulfilled') {
-        suppList = suppRes.value.data?.results || suppRes.value.data || [];
+        suppList = extractList(suppRes.value);
         setSuppliers(suppList);
       }
 
@@ -118,8 +119,8 @@ export const AddProductPage = () => {
       }
 
       // Pre-select defaults if available
-      const defaultKg = unitList.find(u => u.short_name.toLowerCase() === 'kg') || unitList[0];
-      const defaultG = unitList.find(u => u.short_name.toLowerCase() === 'g') || unitList[0];
+      const defaultKg = Array.isArray(unitList) ? (unitList.find(u => u?.short_name && u.short_name.toLowerCase() === 'kg') || unitList[0]) : null;
+      const defaultG = Array.isArray(unitList) ? (unitList.find(u => u?.short_name && u.short_name.toLowerCase() === 'g') || unitList[0]) : null;
       
       setFormData(prev => ({
         ...prev,
@@ -179,8 +180,9 @@ export const AddProductPage = () => {
   };
 
   // Unit conversion ratio calculation
-  const prodUnitObj = units.find(u => String(u.id) === String(formData.unit));
-  const sellUnitObj = units.find(u => String(u.id) === String(formData.selling_unit));
+  const unitsList = Array.isArray(units) ? units : [];
+  const prodUnitObj = unitsList.find(u => u && String(u.id) === String(formData.unit));
+  const sellUnitObj = unitsList.find(u => u && String(u.id) === String(formData.selling_unit));
   const conversionRatio = getUnitConversionRatio(prodUnitObj, sellUnitObj);
 
   // Field validation

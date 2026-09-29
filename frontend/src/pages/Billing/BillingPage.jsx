@@ -54,6 +54,7 @@ import { inventoryApi, customersApi, ordersApi, offersApi, gullaApi, suppliersAp
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { getUnitConversionRatio } from '../../utils/unitConversion';
+import { extractList, formatUnit, formatCategory, formatCustomer, formatSupplier } from '../../utils/apiHelpers';
 
 // Helper to detect loose weight or volume units
 const isWeightOrVolumeUnit = (unit) => {
@@ -99,6 +100,9 @@ const getQtyForPresetWeight = (presetLabel, baseUnit) => {
   }
   return 1.0;
 };
+
+
+
 
 
 export const BillingPage = () => {
@@ -419,21 +423,23 @@ export const BillingPage = () => {
         expensesApi.getCategories()
       ]);
 
-      if (prodRes.status === 'fulfilled') setProducts(prodRes.value.data?.results || prodRes.value.data || []);
-      if (catRes.status === 'fulfilled') setCategories(catRes.value.data?.results || catRes.value.data || []);
-      if (custRes.status === 'fulfilled') setCustomers(custRes.value.data?.results || custRes.value.data || []);
-      if (coupRes.status === 'fulfilled') setCoupons(coupRes.value.data?.results || coupRes.value.data || []);
+      if (prodRes.status === 'fulfilled') setProducts(extractList(prodRes.value));
+      if (catRes.status === 'fulfilled') setCategories(extractList(catRes.value));
+      if (custRes.status === 'fulfilled') setCustomers(extractList(custRes.value));
+      if (coupRes.status === 'fulfilled') setCoupons(extractList(coupRes.value));
       if (gullaRes.status === 'fulfilled') {
-        setGullaData(gullaRes.value.data);
-        const netNotes = gullaRes.value.data?.notes_and_coins_summary?.net_drawer_notes || {};
+        const gBody = gullaRes.value.data?.data || gullaRes.value.data;
+        setGullaData(gBody);
+        const netNotes = gBody?.notes_and_coins_summary?.net_drawer_notes || {};
         const formatted = {};
         [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach((d) => {
           formatted[d] = Math.max(0, parseInt(netNotes[d] || netNotes[String(d)] || 0, 10));
         });
         setGullaDrawerNotes(formatted);
       }
-      if (suppRes.status === 'fulfilled') setSuppliers(suppRes.value.data?.results || suppRes.value.data || []);
-      if (expCatRes.status === 'fulfilled') setExpenseCategories(expCatRes.value.data?.results || expCatRes.value.data || []);
+      if (suppRes.status === 'fulfilled') setSuppliers(extractList(suppRes.value));
+      if (expCatRes.status === 'fulfilled') setExpenseCategories(extractList(expCatRes.value));
+
     } catch (err) {
       console.error(err);
       showToast('Failed to load catalog or customers', 'error');
@@ -517,11 +523,11 @@ export const BillingPage = () => {
         loadGullaSummary(),
         (async () => {
           const r = await customersApi.getCustomers({ page_size: 100 });
-          setCustomers(r.data?.results || r.data || []);
+          setCustomers(extractList(r));
         })(),
         (async () => {
           const r = await suppliersApi.getSuppliers();
-          setSuppliers(r.data?.results || r.data || []);
+          setSuppliers(extractList(r));
         })()
       ]);
     } catch (err) {
@@ -586,7 +592,7 @@ export const BillingPage = () => {
         if (selectedCategory && selectedCategory !== 'ALL') params.category = selectedCategory;
 
         const res = await inventoryApi.getProducts(params);
-        setProducts(res.data?.results || res.data || []);
+        setProducts(extractList(res));
       } catch (err) {
         console.error('Failed to search billing products', err);
       } finally {
@@ -604,7 +610,7 @@ export const BillingPage = () => {
       if (searchQuery.trim()) params.search = searchQuery.trim();
 
       const res = await inventoryApi.getProducts(params);
-      setProducts(res.data?.results || res.data || []);
+      setProducts(extractList(res));
     } catch (err) {
       console.error('Failed to filter by category', err);
     } finally {
@@ -619,7 +625,8 @@ export const BillingPage = () => {
     if (!query) return;
 
     // 1. Instant check in currently loaded products state
-    let matchedProduct = products.find(
+    const safeProds = extractList(products);
+    let matchedProduct = safeProds.find(
       (p) => (p.barcode && p.barcode.toLowerCase() === query.toLowerCase()) || 
              (p.sku && p.sku.toLowerCase() === query.toLowerCase())
     );
@@ -628,13 +635,14 @@ export const BillingPage = () => {
     if (!matchedProduct) {
       try {
         const res = await inventoryApi.getProducts({ barcode: query, page_size: 1 });
-        const items = res.data?.results || res.data || [];
+        const items = extractList(res);
+
         if (items.length > 0) {
           matchedProduct = items[0];
         } else {
           // Fallback to SKU lookup
           const skuRes = await inventoryApi.getProducts({ sku: query, page_size: 1 });
-          const skuItems = skuRes.data?.results || skuRes.data || [];
+          const skuItems = extractList(skuRes);
           if (skuItems.length > 0) {
             matchedProduct = skuItems[0];
           }
@@ -1023,16 +1031,18 @@ export const BillingPage = () => {
   };
 
   // Filter Catalog
-  const filteredProducts = products.filter((p) => {
+  const safeProducts = extractList(products);
+  const filteredProducts = safeProducts.filter((p) => {
     const matchesCategory = selectedCategory === 'ALL' || p.category_name === selectedCategory || p.category === selectedCategory;
     const matchesSearch =
       !searchQuery ||
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.name && p.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (p.sku && p.sku.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (p.barcode && p.barcode.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (p.brand_name && p.brand_name.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesCategory && matchesSearch;
   });
+
 
   // Complete Order & Checkout Handler
   const handleCompleteCheckout = async () => {
@@ -1090,15 +1100,20 @@ export const BillingPage = () => {
         tendered_notes: paymentMethod === 'CASH' ? noteCounts : null,
         change_notes: paymentMethod === 'CASH' && changeVal > 0 ? changeNotes : null,
         coupon_code: currentCart.couponCode || '',
-        items: cartItems.map((item) => ({
-          product: item.product.id,
-          product_name: item.product.name,
-          sku: item.product.sku || '',
-          quantity: item.quantity,
-          unit_price: parseFloat(item.unitPrice.toFixed(2)),
-          gst_percent: parseFloat(item.gstPercent.toFixed(2)),
-          total_price: parseFloat((item.unitPrice * item.quantity).toFixed(2))
-        }))
+        items: cartItems.map((item) => {
+          const lineSubtotal = parseFloat((item.unitPrice * item.quantity).toFixed(2));
+          return {
+            product_id: item.product.id,
+            product: item.product.id,
+            product_name: item.product.name,
+            sku: item.product.sku || '',
+            quantity: item.quantity,
+            unit_price: parseFloat(item.unitPrice.toFixed(2)),
+            gst_percent: parseFloat(item.gstPercent.toFixed(2)),
+            subtotal: lineSubtotal,
+            total_price: lineSubtotal
+          };
+        })
       };
 
       const res = await ordersApi.createOrder(payload);
@@ -1119,7 +1134,7 @@ export const BillingPage = () => {
         loadGullaSummary(),
         (async () => {
           const r = await inventoryApi.getProducts({ page_size: 1000 });
-          setProducts(r.data?.results || r.data || []);
+          setProducts(extractList(r));
         })()
       ]);
 
@@ -1403,7 +1418,7 @@ export const BillingPage = () => {
                             </span>
                           ) : (
                             <span className="text-[9px] font-extrabold text-[#00796b] dark:text-[#80cbc4] uppercase tracking-wider truncate">
-                              {product.category_name || 'Grocery'}
+                              {formatCategory(product.category_name || product.category)}
                             </span>
                           )}
                           <button
@@ -1423,8 +1438,9 @@ export const BillingPage = () => {
 
                         {/* Pack size / Unit */}
                         <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
-                          {product.unit_name || product.unit || 'pack'}
+                          {formatUnit(product.unit_name || product.unit)}
                         </div>
+
                       </div>
 
                       {/* Stock Quantity Tag & Price Row */}
@@ -1581,7 +1597,8 @@ export const BillingPage = () => {
               ) : (
                 <div className="max-h-64 overflow-y-auto custom-scrollbar-thin touch-pan space-y-2 pr-1">
                   {cartItems.map((item) => {
-                    const unitShort = item.productUnitShort || item.sellingUnitShort || item.product.unit_name || item.product.unit || 'unit';
+                    const unitShort = formatUnit(item.productUnitShort || item.sellingUnitShort || item.product?.unit_name || item.product?.unit);
+
                     const qty = parseFloat(item.quantity) || 0;
                     const price = parseFloat(item.unitPrice) || 0;
                     const lineTotal = price * qty;

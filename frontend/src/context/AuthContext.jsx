@@ -50,13 +50,18 @@ export const AuthProvider = ({ children }) => {
         ]);
 
         if (settingsRes.status === 'fulfilled' && settingsRes.value?.data) {
-          setStoreSettings(settingsRes.value.data);
-          localStorage.setItem('tm_store_settings', JSON.stringify(settingsRes.value.data));
+          const sData = settingsRes.value.data.data || settingsRes.value.data;
+          setStoreSettings(sData);
+          localStorage.setItem('tm_store_settings', JSON.stringify(sData));
         }
 
         if (savedToken && meRes.status === 'fulfilled' && meRes.value?.data) {
-          const resData = meRes.value.data;
-          setUser(resData.user);
+          const resData = meRes.value.data.data || meRes.value.data;
+          const userObj = resData.user || (resData.id ? resData : null);
+          if (userObj) {
+            setUser(userObj);
+            localStorage.setItem('tm_user', JSON.stringify(userObj));
+          }
           if (resData.store_settings) {
             setStoreSettings(resData.store_settings);
             localStorage.setItem('tm_store_settings', JSON.stringify(resData.store_settings));
@@ -65,7 +70,6 @@ export const AuthProvider = ({ children }) => {
             setPermissions(resData.permissions);
             localStorage.setItem('tm_permissions', JSON.stringify(resData.permissions));
           }
-          localStorage.setItem('tm_user', JSON.stringify(resData.user));
         } else if (savedToken && meRes.status === 'rejected') {
           console.warn('Invalid or expired session token, resetting auth state.');
           localStorage.removeItem('tm_access_token');
@@ -88,8 +92,9 @@ export const AuthProvider = ({ children }) => {
   const sendOtp = async (username, password) => {
     try {
       const res = await authApi.sendOtp({ username, password });
-      if (res.data && !res.data.otp_required && res.data.access) {
-        const { access, refresh, user: userData, store_settings: settings, permissions: userPerms } = res.data;
+      const payload = res.data?.data || res.data;
+      if (payload && !payload.otp_required && !payload.require_otp && payload.access) {
+        const { access, refresh, user: userData, store_settings: settings, permissions: userPerms } = payload;
         setToken(access);
         setUser(userData);
         if (settings) {
@@ -104,7 +109,7 @@ export const AuthProvider = ({ children }) => {
         if (refresh) localStorage.setItem('tm_refresh_token', refresh);
         localStorage.setItem('tm_user', JSON.stringify(userData));
       }
-      return { success: true, data: res.data };
+      return { success: true, data: payload };
     } catch (err) {
       const msg = extractErrorMessage(err, 'Invalid username or password');
       return { success: false, error: msg };
@@ -115,17 +120,20 @@ export const AuthProvider = ({ children }) => {
   const verifyOtp = async (username, otp) => {
     try {
       const res = await authApi.verifyOtp({ username, otp });
-      const { access, refresh, user: userData, store_settings: settings, permissions: userPerms } = res.data;
+      const payload = res.data?.data || res.data;
+      const { access, refresh, user: userData, store_settings: settings, permissions: userPerms } = payload;
       
       setToken(access);
       setUser(userData);
-      setStoreSettings(settings);
+      if (settings) {
+        setStoreSettings(settings);
+        localStorage.setItem('tm_store_settings', JSON.stringify(settings));
+      }
       setPermissions(userPerms || null);
 
       localStorage.setItem('tm_access_token', access);
-      localStorage.setItem('tm_refresh_token', refresh);
+      if (refresh) localStorage.setItem('tm_refresh_token', refresh);
       localStorage.setItem('tm_user', JSON.stringify(userData));
-      localStorage.setItem('tm_store_settings', JSON.stringify(settings));
       if (userPerms) {
         localStorage.setItem('tm_permissions', JSON.stringify(userPerms));
       }
@@ -140,17 +148,20 @@ export const AuthProvider = ({ children }) => {
   const login = async (username, password) => {
     try {
       const res = await authApi.login({ username, password });
-      const { access, refresh, user: userData, store_settings: settings, permissions: userPerms } = res.data;
+      const payload = res.data?.data || res.data;
+      const { access, refresh, user: userData, store_settings: settings, permissions: userPerms } = payload;
       
       setToken(access);
       setUser(userData);
-      setStoreSettings(settings);
+      if (settings) {
+        setStoreSettings(settings);
+        localStorage.setItem('tm_store_settings', JSON.stringify(settings));
+      }
       setPermissions(userPerms || null);
 
       localStorage.setItem('tm_access_token', access);
-      localStorage.setItem('tm_refresh_token', refresh);
+      if (refresh) localStorage.setItem('tm_refresh_token', refresh);
       localStorage.setItem('tm_user', JSON.stringify(userData));
-      localStorage.setItem('tm_store_settings', JSON.stringify(settings));
       if (userPerms) {
         localStorage.setItem('tm_permissions', JSON.stringify(userPerms));
       }
@@ -161,6 +172,7 @@ export const AuthProvider = ({ children }) => {
       return { success: false, error: msg };
     }
   };
+
 
   const logout = () => {
     setUser(null);

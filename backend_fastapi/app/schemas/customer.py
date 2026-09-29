@@ -1,0 +1,57 @@
+from datetime import datetime
+from typing import Optional, List
+from pydantic import BaseModel, EmailStr, ConfigDict
+
+
+class CustomerCreate(BaseModel):
+    name: str
+    phone: str
+    email: Optional[EmailStr] = None
+    address: Optional[str] = None
+    city: Optional[str] = "Mumbai"
+    pincode: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class CustomerUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[EmailStr] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    pincode: Optional[str] = None
+    status: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class CustomerResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    phone: str
+    email: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    pincode: Optional[str] = None
+    status: str
+    notes: Optional[str] = None
+    created_at: datetime
+
+
+class FeedbackCreate(BaseModel):
+    rating: int = 5
+    comment: Optional[str] = None
+    order_ref: Optional[str] = None
+
+
+class FeedbackResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    customer_id: int
+    rating: int
+    comment: Optional[str] = None
+    order_ref: Optional[str] = None
+    created_at: datetime
+    customer_name: Optional[str] = None
