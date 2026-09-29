@@ -62,7 +62,7 @@ class Settings(BaseSettings):
 
     # CORS
     FRONTEND_URL: Union[str, List[str]] = Field(
-        default=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"]
+        default=["https://tulsi-mart.vercel.app", "http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"]
     )
 
     @field_validator("FRONTEND_URL", mode="before")
