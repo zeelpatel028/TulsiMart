@@ -1,8 +1,7 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from datetime import date, datetime, timedelta
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, or_, case, Integer
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import Session
+from sqlalchemy import func, case, or_
 
 from app.models.user import LoginAccount
 from app.models.product import Product
@@ -11,18 +10,18 @@ from app.models.customer import Customer
 
 
 class AnalyticsService:
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: Session):
         self.db = db
 
-    async def get_dashboard_summary(self) -> Dict[str, Any]:
+    def get_dashboard_summary(self) -> Dict[str, Any]:
         """
         Efficient aggregate query combining key metrics into minimal SQL calls
         """
         today_start = datetime.combine(date.today(), datetime.min.time())
 
         # 1. Total, Low Stock & Out of Stock Products
-        product_stats = await self.db.execute(
-            select(
+        prod_row = (
+            self.db.query(
                 func.count(Product.id).label("total_products"),
                 func.coalesce(
                     func.sum(
@@ -43,15 +42,15 @@ class AnalyticsService:
                     0
                 ).label("out_of_stock_products")
             )
+            .first()
         )
-        prod_row = product_stats.first()
         total_products = int(prod_row[0]) if prod_row else 0
         low_stock_products = int(prod_row[1]) if prod_row else 0
         out_of_stock_products = int(prod_row[2]) if prod_row else 0
 
         # 2. Overall Orders & Revenue
-        order_stats = await self.db.execute(
-            select(
+        ord_row = (
+            self.db.query(
                 func.count(Order.id).label("total_orders"),
                 func.coalesce(func.sum(Order.total_amount), 0).label("total_sales"),
                 func.coalesce(
@@ -64,32 +63,33 @@ class AnalyticsService:
                     0
                 ).label("pending_orders")
             )
+            .first()
         )
-        ord_row = order_stats.first()
         total_orders = int(ord_row[0]) if ord_row else 0
         total_sales = float(ord_row[1]) if ord_row else 0.0
         pending_orders = int(ord_row[2]) if ord_row else 0
 
         # 3. Today's Orders & Revenue
-        today_order_stats = await self.db.execute(
-            select(
+        today_row = (
+            self.db.query(
                 func.count(Order.id).label("today_orders"),
                 func.coalesce(func.sum(Order.total_amount), 0).label("today_sales")
-            ).where(Order.created_at >= today_start)
+            )
+            .filter(Order.created_at >= today_start)
+            .first()
         )
-        today_row = today_order_stats.first()
         today_orders = today_row[0] if today_row else 0
         today_sales = float(today_row[1]) if today_row else 0.0
 
         # 4. Total Customers
-        cust_res = await self.db.execute(select(func.count(Customer.id)))
-        total_customers = cust_res.scalar_one_or_none() or 0
+        total_customers = self.db.query(func.count(Customer.id)).scalar() or 0
 
         # 5. Low stock items list
-        low_stock_res = await self.db.execute(
-            select(Product)
-            .where(Product.stock_quantity <= Product.min_stock_alert)
+        low_stock_items_query = (
+            self.db.query(Product)
+            .filter(Product.stock_quantity <= Product.min_stock_alert)
             .limit(10)
+            .all()
         )
         low_stock_items = [
             {
@@ -98,14 +98,15 @@ class AnalyticsService:
                 "sku": p.sku,
                 "stock_quantity": p.stock_quantity,
                 "min_stock_alert": p.min_stock_alert
-            } for p in low_stock_res.scalars().all()
+            } for p in low_stock_items_query
         ]
 
         # 6. Recent Orders (Last 5)
-        recent_orders_res = await self.db.execute(
-            select(Order)
+        recent_orders_query = (
+            self.db.query(Order)
             .order_by(Order.id.desc())
             .limit(5)
+            .all()
         )
         recent_orders = [
             {
@@ -117,11 +118,11 @@ class AnalyticsService:
                 "payment_status": getattr(o, "payment_status", "PAID") or "PAID",
                 "status": o.status,
                 "created_at": o.created_at.isoformat() if o.created_at else None
-            } for o in recent_orders_res.scalars().all()
+            } for o in recent_orders_query
         ]
 
         # 7. Daily Trends (Last 7 days)
-        daily_trends = await self.get_sales_trends(7)
+        daily_trends = self.get_sales_trends(7)
 
         kpis = {
             "today_sales": today_sales,
@@ -135,14 +136,46 @@ class AnalyticsService:
             "total_customers": total_customers,
         }
 
+        # 8. Category Breakdown from Database
+        from app.models.product import Category
+        cat_rows = (
+            self.db.query(
+                Category.name,
+                func.count(Product.id).label("product_count")
+            )
+            .join(Product, Product.category_id == Category.id, isouter=True)
+            .group_by(Category.name)
+            .all()
+        )
+        category_breakdown = [
+            {"name": row[0], "value": row[1]} for row in cat_rows if row[0]
+        ]
+
+        # 9. Top Products from Database
+        top_prod_rows = (
+            self.db.query(Product)
+            .filter(Product.is_active == True)
+            .order_by(Product.stock_quantity.desc())
+            .limit(5)
+            .all()
+        )
+        top_products = [
+            {
+                "id": p.id,
+                "name": p.name,
+                "sku": p.sku,
+                "price": float(p.selling_price),
+                "stock": float(p.stock_quantity)
+            } for p in top_prod_rows
+        ]
+
         return {
             "kpis": kpis,
             "daily_trends": daily_trends,
-            "category_breakdown": [],
-            "top_products": [],
+            "category_breakdown": category_breakdown,
+            "top_products": top_products,
             "low_stock_items": low_stock_items,
             "recent_orders": recent_orders,
-            # Top-level backward compatibility keys
             "total_products": total_products,
             "low_stock_products": low_stock_products,
             "total_orders": total_orders,
@@ -151,26 +184,365 @@ class AnalyticsService:
             "total_customers": total_customers
         }
 
+    def get_sales_trends(self, days: Optional[int] = None, period: Optional[str] = "month") -> Dict[str, Any]:
+        if days:
+            num_days = days
+        else:
+            p = (period or "month").lower()
+            if p == "day":
+                num_days = 1
+            elif p == "week":
+                num_days = 7
+            elif p == "year":
+                num_days = 365
+            else:
+                num_days = 30
 
-    async def get_sales_trends(self, days: int = 7) -> List[Dict[str, Any]]:
-        start_date = datetime.now() - timedelta(days=days)
-        query = select(
-            func.date(Order.created_at).label("order_date"),
-            func.count(Order.id).label("order_count"),
-            func.coalesce(func.sum(Order.total_amount), 0).label("total_sales")
-        ).where(Order.created_at >= start_date).group_by(func.date(Order.created_at)).order_by(func.date(Order.created_at).asc())
+        start_date = datetime.now() - timedelta(days=num_days)
 
-        res = await self.db.execute(query)
-        return [
+        # 1. Orders grouped by date
+        orders_query = (
+            self.db.query(
+                func.date(Order.created_at).label("order_date"),
+                func.count(Order.id).label("order_count"),
+                func.coalesce(func.sum(Order.total_amount), 0).label("total_sales")
+            )
+            .filter(Order.created_at >= start_date)
+            .group_by(func.date(Order.created_at))
+            .order_by(func.date(Order.created_at).asc())
+            .all()
+        )
+
+        # 2. Expenses grouped by date
+        from app.models.expense import Expense
+        expenses_query = (
+            self.db.query(
+                func.date(Expense.date).label("exp_date"),
+                func.coalesce(func.sum(Expense.amount), 0).label("total_expense")
+            )
+            .filter(Expense.date >= start_date.date())
+            .group_by(func.date(Expense.date))
+            .all()
+        )
+        expense_map = {str(row[0]): float(row[1]) for row in expenses_query}
+
+        comparison_data = []
+        for row in orders_query:
+            d_str = str(row[0])
+            rev = float(row[2])
+            exp = expense_map.get(d_str, 0.0)
+            profit = max(0.0, rev - exp)
+            margin = round((profit / rev * 100), 1) if rev > 0 else 0.0
+            comparison_data.append({
+                "label": d_str,
+                "date": d_str,
+                "revenue": rev,
+                "expenses": exp,
+                "profit": profit,
+                "orders": int(row[1]),
+                "margin_pct": margin
+            })
+
+        if not comparison_data:
+            today_str = str(date.today())
+            comparison_data.append({
+                "label": today_str,
+                "date": today_str,
+                "revenue": 0.0,
+                "expenses": 0.0,
+                "profit": 0.0,
+                "orders": 0,
+                "margin_pct": 0.0
+            })
+
+        # 3. Payment methods breakdown
+        pm_rows = (
+            self.db.query(
+                Order.payment_method,
+                func.coalesce(func.sum(Order.total_amount), 0).label("total_amount"),
+                func.count(Order.id).label("txn_count")
+            )
+            .filter(Order.created_at >= start_date)
+            .group_by(Order.payment_method)
+            .all()
+        )
+        payment_methods = [
             {
-                "date": str(row[0]),
-                "orders": row[1],
-                "sales": float(row[2])
-            } for row in res.all()
+                "method": row[0] or "CASH",
+                "amount": float(row[1]),
+                "count": int(row[2])
+            }
+            for row in pm_rows
         ]
+        if not payment_methods:
+            payment_methods = [
+                {"method": "CASH", "amount": 0.0, "count": 0},
+                {"method": "UPI", "amount": 0.0, "count": 0},
+                {"method": "CARD", "amount": 0.0, "count": 0}
+            ]
 
-    async def get_reports(self) -> Dict[str, Any]:
+        # 4. Category performance
+        from app.models.product import Category, Product
+        from app.models.order import OrderItem
+        cat_rows = (
+            self.db.query(
+                Category.name,
+                func.coalesce(func.sum(OrderItem.subtotal), 0).label("category_revenue")
+            )
+            .join(Product, Product.category_id == Category.id)
+            .join(OrderItem, OrderItem.product_id == Product.id)
+            .join(Order, OrderItem.order_id == Order.id)
+            .filter(Order.created_at >= start_date)
+            .group_by(Category.name)
+            .all()
+        )
+        category_performance = [
+            {"category": row[0], "revenue": float(row[1])} for row in cat_rows if row[0]
+        ]
+        if not category_performance:
+            all_cats = self.db.query(Category.name).all()
+            category_performance = [{"category": c[0], "revenue": 0.0} for c in all_cats if c[0]]
+
         return {
-            "summary": await self.get_dashboard_summary(),
-            "trends": await self.get_sales_trends(30)
+            "comparison_data": comparison_data,
+            "monthly_comparison": comparison_data,
+            "payment_methods": payment_methods,
+            "category_performance": category_performance,
+            "daily_trends": comparison_data
         }
+
+    def get_reports(
+        self,
+        report_type: Optional[str] = "sales",
+        date_from: Optional[str] = None,
+        date_to: Optional[str] = None,
+        category: Optional[str] = None,
+        search: Optional[str] = None
+    ) -> Dict[str, Any]:
+        rtype = (report_type or "sales").lower()
+
+        # 1. Sales Report
+        if rtype == "sales":
+            query = self.db.query(Order)
+            if date_from:
+                try:
+                    query = query.filter(Order.created_at >= datetime.fromisoformat(date_from))
+                except Exception:
+                    pass
+            if date_to:
+                try:
+                    query = query.filter(Order.created_at <= datetime.fromisoformat(date_to + "T23:59:59"))
+                except Exception:
+                    pass
+            if search:
+                pattern = f"%{search}%"
+                query = query.filter(or_(Order.order_number.ilike(pattern), Order.customer_name.ilike(pattern)))
+
+            orders = query.order_by(Order.created_at.desc()).all()
+            data = [
+                {
+                    "order_number": o.order_number,
+                    "date": o.created_at.strftime("%Y-%m-%d %H:%M") if o.created_at else "",
+                    "customer_name": o.customer_name or "Walk-in Customer",
+                    "payment_method": o.payment_method or "CASH",
+                    "status": o.status or "COMPLETED",
+                    "total_amount": float(o.total_amount)
+                }
+                for o in orders
+            ]
+            total_rev = sum(d["total_amount"] for d in data)
+            total_cnt = len(data)
+            summary = {
+                "total_revenue": round(total_rev, 2),
+                "total_orders": total_cnt,
+                "average_order_value": round(total_rev / total_cnt, 2) if total_cnt > 0 else 0.0
+            }
+            return {"summary": summary, "data": data}
+
+        # 2. GST Tax Report
+        elif rtype == "gst":
+            query = self.db.query(Order)
+            if date_from:
+                try:
+                    query = query.filter(Order.created_at >= datetime.fromisoformat(date_from))
+                except Exception:
+                    pass
+            if date_to:
+                try:
+                    query = query.filter(Order.created_at <= datetime.fromisoformat(date_to + "T23:59:59"))
+                except Exception:
+                    pass
+
+            orders = query.order_by(Order.created_at.desc()).all()
+            data = [
+                {
+                    "invoice_number": o.invoice_number or o.order_number,
+                    "date": o.created_at.strftime("%Y-%m-%d") if o.created_at else "",
+                    "customer_name": o.customer_name or "Walk-in Customer",
+                    "taxable_amount": float(o.subtotal),
+                    "gst_tax_amount": float(o.tax_amount),
+                    "total_amount": float(o.total_amount)
+                }
+                for o in orders
+            ]
+            taxable_tot = sum(d["taxable_amount"] for d in data)
+            gst_tot = sum(d["gst_tax_amount"] for d in data)
+            grand_tot = sum(d["total_amount"] for d in data)
+            summary = {
+                "taxable_subtotal": round(taxable_tot, 2),
+                "total_gst_tax": round(gst_tot, 2),
+                "total_invoiced": round(grand_tot, 2)
+            }
+            return {"summary": summary, "data": data}
+
+        # 3. Inventory Valuation
+        elif rtype == "inventory":
+            from app.models.product import Category
+            query = self.db.query(Product).join(Category, Product.category_id == Category.id, isouter=True)
+            if category:
+                query = query.filter(Category.name.ilike(f"%{category}%"))
+            if search:
+                pattern = f"%{search}%"
+                query = query.filter(or_(Product.name.ilike(pattern), Product.sku.ilike(pattern)))
+
+            products = query.order_by(Product.name.asc()).all()
+            data = [
+                {
+                    "sku": p.sku,
+                    "product_name": p.name,
+                    "category": p.category.name if p.category else "General",
+                    "stock_quantity": float(p.stock_quantity),
+                    "cost_price": float(p.cost_price),
+                    "selling_price": float(p.selling_price),
+                    "total_valuation": float(p.cost_price * p.stock_quantity)
+                }
+                for p in products
+            ]
+            tot_qty = sum(d["stock_quantity"] for d in data)
+            tot_val = sum(d["total_valuation"] for d in data)
+            summary = {
+                "total_products": len(data),
+                "total_stock_quantity": round(tot_qty, 2),
+                "total_inventory_valuation": round(tot_val, 2)
+            }
+            return {"summary": summary, "data": data}
+
+        # 4. Profit & Loss (P&L)
+        elif rtype == "profit":
+            from app.models.expense import Expense
+            from app.models.supplier import PurchaseOrder
+            sales_res = self.db.query(func.coalesce(func.sum(Order.total_amount), 0)).scalar() or 0.0
+            expense_res = self.db.query(func.coalesce(func.sum(Expense.amount), 0)).scalar() or 0.0
+            po_res = self.db.query(func.coalesce(func.sum(PurchaseOrder.total_amount), 0)).scalar() or 0.0
+
+            total_revenue = float(sales_res)
+            cogs = float(po_res) * 0.7 if po_res > 0 else total_revenue * 0.6
+            expenses = float(expense_res)
+            gross_profit = total_revenue - cogs
+            net_profit = gross_profit - expenses
+
+            trends = self.get_sales_trends(30)
+            data = [
+                {
+                    "date": t["date"],
+                    "sales_revenue": t["sales"],
+                    "estimated_cogs": round(t["sales"] * 0.6, 2),
+                    "estimated_expenses": round(t["sales"] * 0.15, 2),
+                    "daily_net_profit": round(t["sales"] * 0.25, 2)
+                }
+                for t in trends
+            ]
+            summary = {
+                "total_sales_revenue": round(total_revenue, 2),
+                "total_cogs": round(cogs, 2),
+                "operating_expenses": round(expenses, 2),
+                "net_profit": round(net_profit, 2)
+            }
+            return {"summary": summary, "data": data}
+
+        # 5. Operating Expenses
+        elif rtype == "expense":
+            from app.models.expense import Expense, ExpenseCategory
+            query = self.db.query(Expense).join(ExpenseCategory, Expense.category_id == ExpenseCategory.id, isouter=True)
+            if date_from:
+                try:
+                    query = query.filter(Expense.date >= datetime.fromisoformat(date_from).date())
+                except Exception:
+                    pass
+            if date_to:
+                try:
+                    query = query.filter(Expense.date <= datetime.fromisoformat(date_to).date())
+                except Exception:
+                    pass
+            if search:
+                query = query.filter(Expense.title.ilike(f"%{search}%"))
+
+            expenses = query.order_by(Expense.date.desc()).all()
+            data = [
+                {
+                    "title": e.title,
+                    "category": e.category.name if e.category else "General",
+                    "expense_date": str(e.date) if e.date else "",
+                    "payment_method": e.payment_method or "CASH",
+                    "amount": float(e.amount)
+                }
+                for e in expenses
+            ]
+            tot_exp = sum(d["amount"] for d in data)
+            summary = {
+                "total_expense_amount": round(tot_exp, 2),
+                "total_expense_entries": len(data)
+            }
+            return {"summary": summary, "data": data}
+
+        # 6. Customer Growth
+        elif rtype == "customer":
+            query = self.db.query(Customer)
+            if search:
+                pattern = f"%{search}%"
+                query = query.filter(or_(Customer.name.ilike(pattern), Customer.phone.ilike(pattern)))
+
+            customers = query.order_by(Customer.created_at.desc()).all()
+            data = [
+                {
+                    "customer_name": c.name,
+                    "mobile": c.phone,
+                    "city": c.city or "Mumbai",
+                    "status": c.status or "ACTIVE",
+                    "registered_on": c.created_at.strftime("%Y-%m-%d") if c.created_at else ""
+                }
+                for c in customers
+            ]
+            summary = {
+                "total_registered_customers": len(data),
+                "active_customers": len([c for c in data if c["status"] == "ACTIVE"])
+            }
+            return {"summary": summary, "data": data}
+
+        # 7. Procurement & Purchase Orders
+        elif rtype == "purchase":
+            from app.models.supplier import PurchaseOrder, Supplier
+            query = self.db.query(PurchaseOrder).join(Supplier, PurchaseOrder.supplier_id == Supplier.id, isouter=True)
+            if search:
+                query = query.filter(PurchaseOrder.po_number.ilike(f"%{search}%"))
+
+            pos = query.order_by(PurchaseOrder.created_at.desc()).all()
+            data = [
+                {
+                    "po_number": po.po_number,
+                    "supplier_name": po.supplier.name if po.supplier else "N/A",
+                    "order_date": po.created_at.strftime("%Y-%m-%d") if po.created_at else "",
+                    "status": po.status,
+                    "total_amount": float(po.total_amount)
+                }
+                for po in pos
+            ]
+            tot_po_val = sum(d["total_amount"] for d in data)
+            summary = {
+                "total_purchase_orders": len(data),
+                "total_procurement_value": round(tot_po_val, 2)
+            }
+            return {"summary": summary, "data": data}
+
+        # Default fallback to Sales Report
+        return self.get_reports(report_type="sales", date_from=date_from, date_to=date_to, category=category, search=search)

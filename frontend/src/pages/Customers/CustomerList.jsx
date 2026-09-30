@@ -23,7 +23,9 @@ import {
   CreditCard,
   Receipt,
   CheckCheck,
-  Calculator
+  Calculator,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 import { customersApi } from '../../api';
 import { extractList } from '../../utils/apiHelpers';
@@ -37,6 +39,7 @@ export const CustomerList = () => {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [viewMode, setViewMode] = useState('table');
 
   const debouncedSearch = useDebounce(search, 350);
 
@@ -364,6 +367,32 @@ export const CustomerList = () => {
             Blocked
           </button>
         </div>
+
+        {/* View Switcher: Grid vs Table */}
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700 shrink-0">
+          <button
+            onClick={() => setViewMode('grid')}
+            title="Grid View (Cards)"
+            className={`p-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              viewMode === 'grid'
+                ? 'bg-white dark:bg-slate-700 text-[#00796b] dark:text-[#80cbc4] shadow-xs font-bold'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+          >
+            <LayoutGrid className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setViewMode('table')}
+            title="Table View (List)"
+            className={`p-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              viewMode === 'table'
+                ? 'bg-white dark:bg-slate-700 text-[#00796b] dark:text-[#80cbc4] shadow-xs font-bold'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+          >
+            <List className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Customer Cards Grid */}
@@ -386,7 +415,7 @@ export const CustomerList = () => {
             setStatusFilter('');
           }}
         />
-      ) : (
+      ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {customers.map((c) => {
             const hasKhataDue = Number(c.pending_payments || 0) > 0;
@@ -476,6 +505,79 @@ export const CustomerList = () => {
             );
           })}
         </div>
+      ) : (
+        /* TABLE VIEW */
+        <Card className="p-0 overflow-hidden">
+          <div className="overflow-x-auto max-h-[640px] overflow-y-auto custom-scrollbar touch-pan">
+            <table className="w-full min-w-[750px] text-left text-xs border-collapse">
+              <thead className="sticky top-0 z-10 bg-teal-50/80 dark:bg-slate-800 shadow-xs">
+                <tr className="bg-teal-50/80 dark:bg-slate-800 border-b border-teal-200/80 dark:border-slate-800 text-[#00695c] dark:text-teal-300 font-extrabold uppercase tracking-wider text-[11px] whitespace-nowrap">
+                  <th className="py-3.5 px-4">Customer Details</th>
+                  <th className="py-3.5 px-4">Address / City</th>
+                  <th className="py-3.5 px-4 text-center">Orders</th>
+                  <th className="py-3.5 px-4 text-right">Total Spent</th>
+                  <th className="py-3.5 px-4 text-right">Khata Credit Due</th>
+                  <th className="py-3.5 px-4 text-center">Status</th>
+                  <th className="py-3.5 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                {customers.map((c) => {
+                  const hasKhataDue = Number(c.pending_payments || 0) > 0;
+                  return (
+                    <tr key={c.id} className="hover:bg-teal-50/40 dark:hover:bg-slate-800/60 transition-colors whitespace-nowrap">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-[#00695C]/10 text-[#00695C] dark:text-[#4DB6AC] flex items-center justify-center font-bold text-xs shrink-0">
+                            {c.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-900 dark:text-slate-100">{c.name}</p>
+                            <p className="text-[11px] text-slate-500 font-mono">{c.phone}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-slate-600 dark:text-slate-300">
+                        {c.address ? `${c.address}, ${c.city}` : c.city || 'Mumbai'}
+                      </td>
+                      <td className="py-3 px-4 text-center font-bold text-slate-900 dark:text-slate-100">
+                        {c.total_orders || 0}
+                      </td>
+                      <td className="py-3 px-4 text-right font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                        ₹{Number(c.total_spent || 0).toFixed(2)}
+                      </td>
+                      <td className="py-3 px-4 text-right font-black font-mono">
+                        <span className={hasKhataDue ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400'}>
+                          ₹{Number(c.pending_payments || 0).toFixed(2)}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <Badge variant={c.status === 'ACTIVE' ? 'success' : 'danger'} size="xs">
+                          {c.status}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {hasKhataDue && (
+                            <button
+                              onClick={() => handleOpenKhataModal(c)}
+                              className="px-2.5 py-1 text-xs font-bold text-white bg-[#00796b] hover:bg-[#004d40] rounded-lg shadow-2xs transition-colors cursor-pointer"
+                            >
+                              Pay Khata
+                            </button>
+                          )}
+                          <Button variant="light" size="xs" icon={Eye} onClick={() => handleOpenProfile(c)}>
+                            Profile
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
 
       {/* Customer Profile Modal with Purchase & Khata History */}

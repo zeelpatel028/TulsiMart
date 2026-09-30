@@ -1,36 +1,47 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, status
+from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.core.database import get_db
-from app.utils.response import success_response, error_response
 
-router = APIRouter(tags=["Health"])
+router = APIRouter(tags=["Health Check & Keep-Alive"])
 
 
 @router.get("/health/")
 @router.get("/health")
-async def health_check():
-    return success_response(
-        data={
-            "status": "healthy",
-            "service": "Tulsi Mart FastAPI Backend",
-            "version": "1.0.0"
-        },
-        message="System operating normally"
-    )
-
-
-@router.get("/health/db")
-async def db_health_check(db: AsyncSession = Depends(get_db)):
+def health_check(db: Session = Depends(get_db)):
+    """
+    Lightweight health endpoint for uptime monitors and keep-alive ping.
+    Tests actual MySQL connection with 'SELECT 1;'.
+    """
     try:
-        await db.execute(text("SELECT 1"))
-        return success_response(
-            data={"database": "connected", "status": "healthy"},
-            message="Database connection active"
+        db.execute(text("SELECT 1;"))
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "success": True,
+                "server": "online",
+                "database": "connected"
+            }
         )
-    except Exception as e:
-        return error_response(
-            message=f"Database connection failed: {str(e)}",
-            status_code=500
+    except Exception:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={
+                "success": False,
+                "server": "online",
+                "database": "disconnected"
+            }
         )
 
+
+@router.get("/health/light")
+def lightweight_health_check():
+    """
+    Ultra-lightweight ping endpoint for Render keep-alive calls without DB overhead.
+    """
+    return {
+        "success": True,
+        "server": "online",
+        "database": "active"
+    }

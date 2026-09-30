@@ -21,8 +21,8 @@ class Customer(Base):
     pincode: Mapped[Optional[str]] = mapped_column(String(15), nullable=True)
     status: Mapped[str] = mapped_column(String(15), default="ACTIVE", index=True)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now, server_default=func.now(), index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now, server_default=func.now(), onupdate=datetime.now)
 
     feedbacks: Mapped[List[CustomerFeedback]] = relationship("CustomerFeedback", back_populates="customer", cascade="all, delete-orphan")
     orders: Mapped[List[Order]] = relationship("Order", back_populates="customer")
@@ -36,6 +36,6 @@ class CustomerFeedback(Base):
     rating: Mapped[int] = mapped_column(Integer, default=5, nullable=False)
     comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     order_ref: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now, server_default=func.now())
 
     customer: Mapped[Customer] = relationship("Customer", back_populates="feedbacks")

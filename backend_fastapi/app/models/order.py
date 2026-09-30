@@ -43,8 +43,8 @@ class Order(Base):
     created_by_id: Mapped[Optional[int]] = mapped_column(ForeignKey("login.id", ondelete="SET NULL"), nullable=True)
     delivery_partner: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now, server_default=func.now(), index=True, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now, server_default=func.now(), onupdate=datetime.now, nullable=False)
 
     customer: Mapped[Optional[Customer]] = relationship("Customer", back_populates="orders")
     items: Mapped[List[OrderItem]] = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
@@ -84,6 +84,6 @@ class PaymentTransaction(Base):
     payment_method: Mapped[str] = mapped_column(String(20), nullable=False)
     status: Mapped[str] = mapped_column(String(20), default="PAID", nullable=False)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now, server_default=func.now(), index=True)
 
     order: Mapped[Order] = relationship("Order", back_populates="transactions")

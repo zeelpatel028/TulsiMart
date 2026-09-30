@@ -1,36 +1,38 @@
 from typing import List, Tuple, Optional
 import time, random
 from fastapi import HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
+from datetime import date
 from app.repositories.order_repository import OrderRepository
 from app.repositories.product_repository import ProductRepository
 from app.models.order import Order, OrderItem, PaymentTransaction
 from app.models.product import StockMovement
+from app.models.store import CashRegisterEntry, BankTransaction
 from app.schemas.order import OrderCreate, OrderStatusUpdate
 
 
 class OrderService:
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: Session):
         self.db = db
         self.repo = OrderRepository(db)
         self.product_repo = ProductRepository(db)
 
-    async def generate_order_number(self) -> str:
+    def generate_order_number(self) -> str:
         timestamp = int(time.time() * 1000)
         rnd = random.randint(100, 999)
         return f"ORD-{timestamp}-{rnd}"
 
-    async def generate_invoice_number(self) -> str:
+    def generate_invoice_number(self) -> str:
         timestamp = int(time.time())
         return f"INV-{timestamp}"
 
-    async def create_order(self, data: OrderCreate, created_by_id: Optional[int] = None) -> Order:
+    def create_order(self, data: OrderCreate, created_by_id: Optional[int] = None) -> Order:
         if not data.items:
             raise HTTPException(status_code=400, detail="Order must contain at least one item")
 
-        order_number = await self.generate_order_number()
-        invoice_number = await self.generate_invoice_number()
+        order_number = self.generate_order_number()
+        invoice_number = self.generate_invoice_number()
 
         # Step 1: Create Order instance
         order = Order(
@@ -62,7 +64,7 @@ class OrderService:
         for item_data in data.items:
             product = None
             if item_data.product_id:
-                product = await self.repo.get_product_for_update(item_data.product_id)
+                product = self.repo.get_product_for_update(item_data.product_id)
 
             if product:
                 current_stock = float(product.stock_quantity)
@@ -100,7 +102,7 @@ class OrderService:
 
         order.items = order_items
 
-        # Step 3: Record payment transaction
+        # Step 3: Record payment transaction & live register log
         if data.payment_status == "PAID" or data.total_amount > 0:
             transaction = PaymentTransaction(
                 transaction_id=f"TXN-{order_number}",
@@ -111,47 +113,76 @@ class OrderService:
             )
             order.transactions = [transaction]
 
-        created_order = await self.repo.create_order(order)
-        return await self.get_order(created_order.id)
+            # Log to Gulla / CashRegisterEntry if CASH
+            if data.payment_method == "CASH":
+                cash_entry = CashRegisterEntry(
+                    entry_type="BILL_SALE",
+                    amount=data.total_amount,
+                    date=date.today(),
+                    notes=f"Counter Bill #{invoice_number} - {data.customer_name or 'Walk-in Customer'}",
+                    denomination_counts=data.tendered_notes,
+                    reference_id=invoice_number,
+                    created_by_name=data.customer_name or "POS Cashier"
+                )
+                self.db.add(cash_entry)
 
-    async def get_order(self, order_id: int) -> Order:
-        order = await self.repo.get_by_id(order_id)
+            # Log to BankTransaction if UPI or CARD
+            elif data.payment_method in ["UPI", "CARD"]:
+                bank_tx = BankTransaction(
+                    transaction_type="UPI_IN" if data.payment_method == "UPI" else "CARD_IN",
+                    amount=data.total_amount,
+                    reference_number=invoice_number,
+                    notes=f"POS Digital Sale ({data.payment_method}) - Invoice #{invoice_number}",
+                    date=date.today(),
+                    created_by_name=data.customer_name or "POS Cashier"
+                )
+                self.db.add(bank_tx)
+
+        created_order = self.repo.create_order(order)
+        return self.get_order(created_order.id)
+
+    def get_order(self, order_id: int) -> Order:
+        order = self.repo.get_by_id(order_id)
         if not order:
             raise HTTPException(status_code=404, detail="Order not found")
         return order
 
-    async def list_orders(
+    def list_orders(
         self,
         customer_id: Optional[int] = None,
         status: Optional[str] = None,
         payment_status: Optional[str] = None,
         search: Optional[str] = None,
+        date_from: Optional[str] = None,
+        date_to: Optional[str] = None,
         page: int = 1,
         limit: int = 20
     ) -> Tuple[List[Order], int]:
-        return await self.repo.list_orders(
+        return self.repo.list_orders(
             customer_id=customer_id,
             status=status,
             payment_status=payment_status,
             search=search,
+            date_from=date_from,
+            date_to=date_to,
             page=page,
             limit=limit
         )
 
-    async def update_status(self, order_id: int, status_str: Optional[str] = None, payment_status_str: Optional[str] = None) -> Order:
-        order = await self.get_order(order_id)
+    def update_status(self, order_id: int, status_str: Optional[str] = None, payment_status_str: Optional[str] = None) -> Order:
+        order = self.get_order(order_id)
         if status_str:
             order.status = status_str
         if payment_status_str:
             order.payment_status = payment_status_str
-        await self.db.flush()
-        return await self.get_order(order_id)
+        self.db.flush()
+        return self.get_order(order_id)
 
-    async def toggle_payment_status(self, order_id: int, payment_status: str) -> Order:
-        order = await self.get_order(order_id)
+    def toggle_payment_status(self, order_id: int, payment_status: str) -> Order:
+        order = self.get_order(order_id)
         order.payment_status = payment_status
-        await self.db.flush()
-        return await self.get_order(order_id)
+        self.db.flush()
+        return self.get_order(order_id)
 
-    async def list_payments(self, page: int = 1, limit: int = 20) -> Tuple[List[PaymentTransaction], int]:
-        return await self.repo.list_payments(page=page, limit=limit)
+    def list_payments(self, page: int = 1, limit: int = 20) -> Tuple[List[PaymentTransaction], int]:
+        return self.repo.list_payments(page=page, limit=limit)

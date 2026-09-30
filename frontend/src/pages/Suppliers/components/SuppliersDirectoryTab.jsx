@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '../../../components/common/Button';
 import { Badge } from '../../../components/common/Badge';
 import { SearchInput, EmptyState } from '../../../components/common/UiHelpers';
@@ -13,8 +13,11 @@ import {
   Edit, 
   Trash2,
   CreditCard,
-  Building
+  Building,
+  LayoutGrid,
+  List
 } from 'lucide-react';
+import { Card } from '../../../components/common/Card';
 
 export const SuppliersDirectoryTab = ({
   suppliers,
@@ -29,6 +32,7 @@ export const SuppliersDirectoryTab = ({
   onViewProfile,
   onPaySupplier
 }) => {
+  const [viewMode, setViewMode] = useState('table');
   const suppList = Array.isArray(suppliers) ? suppliers : [];
   const filteredSuppliers = suppList.filter(s => {
     if (!s) return false;
@@ -54,18 +58,45 @@ export const SuppliersDirectoryTab = ({
           />
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto no-scrollbar">
-          <span className="text-xs font-bold text-slate-500 whitespace-nowrap hidden sm:inline">Category:</span>
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-sky-500/20"
-          >
-            <option value="ALL">All Wholesale Categories</option>
-            {supplierCategories.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
+        <div className="flex items-center gap-2.5 w-full sm:w-auto justify-between sm:justify-end">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+            <span className="text-xs font-bold text-slate-500 whitespace-nowrap hidden sm:inline">Category:</span>
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-sky-500/20"
+            >
+              <option value="ALL">All Wholesale Categories</option>
+              {supplierCategories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700 shrink-0">
+            <button
+              onClick={() => setViewMode('grid')}
+              title="Grid View (Cards)"
+              className={`p-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                viewMode === 'grid'
+                  ? 'bg-white dark:bg-slate-700 text-[#00695c] dark:text-[#80cbc4] shadow-xs font-bold'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('table')}
+              title="Table View (List)"
+              className={`p-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                viewMode === 'table'
+                  ? 'bg-white dark:bg-slate-700 text-[#00695c] dark:text-[#80cbc4] shadow-xs font-bold'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+            >
+              <List className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -79,7 +110,7 @@ export const SuppliersDirectoryTab = ({
           onAction={onAddSupplier}
           actionIcon={Plus}
         />
-      ) : (
+      ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredSuppliers.map((s) => {
             const pendingBal = Number(s.pending_balance || 0);
@@ -193,6 +224,98 @@ export const SuppliersDirectoryTab = ({
             );
           })}
         </div>
+      ) : (
+        /* TABLE VIEW */
+        <Card className="p-0 overflow-hidden">
+          <div className="overflow-x-auto max-h-[640px] overflow-y-auto custom-scrollbar touch-pan">
+            <table className="w-full min-w-[750px] text-left text-xs border-collapse">
+              <thead className="sticky top-0 z-10 bg-teal-50/80 dark:bg-slate-800 shadow-xs">
+                <tr className="bg-teal-50/80 dark:bg-slate-800 border-b border-teal-200/80 dark:border-slate-800 text-[#00695c] dark:text-teal-300 font-extrabold uppercase tracking-wider text-[11px] whitespace-nowrap">
+                  <th className="py-3.5 px-4">Supplier / Company</th>
+                  <th className="py-3.5 px-4">Category</th>
+                  <th className="py-3.5 px-4">Phone / GSTIN</th>
+                  <th className="py-3.5 px-4 text-right">Credit Limit</th>
+                  <th className="py-3.5 px-4 text-right">Pending Balance</th>
+                  <th className="py-3.5 px-4 text-center">Status</th>
+                  <th className="py-3.5 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                {filteredSuppliers.map((s) => {
+                  const pendingBal = Number(s.pending_balance || 0);
+                  return (
+                    <tr key={s.id} className="hover:bg-teal-50/40 dark:hover:bg-slate-800/60 transition-colors whitespace-nowrap">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-[#00695C]/10 text-[#00695C] dark:text-[#4DB6AC] flex items-center justify-center font-black text-xs shrink-0">
+                            {(s.company_name || s.name || 'S')[0].toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-900 dark:text-slate-100">{s.company_name || s.name}</p>
+                            <p className="text-[11px] text-slate-500">Contact: {s.name}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-slate-700 dark:text-slate-300">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                          {s.category || 'General Grocery'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <p className="font-mono font-bold text-slate-800 dark:text-slate-200">{s.phone}</p>
+                        {s.gstin && <p className="text-[10px] font-mono text-slate-400">GST: {s.gstin}</p>}
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono font-bold text-slate-600 dark:text-slate-400">
+                        ₹{Number(s.credit_limit || 0).toLocaleString('en-IN')}
+                      </td>
+                      <td className="py-3 px-4 text-right font-black font-mono">
+                        <span className={pendingBal > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}>
+                          ₹{pendingBal.toLocaleString('en-IN')}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <Badge variant={s.is_active !== false ? 'success' : 'secondary'} size="xs">
+                          {s.is_active !== false ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {onPaySupplier && (
+                            <Button
+                              variant="primary"
+                              size="xs"
+                              icon={CreditCard}
+                              onClick={() => onPaySupplier(s)}
+                              className="!bg-[#00695C] hover:!bg-[#004D40] !text-white font-bold"
+                            >
+                              Pay
+                            </Button>
+                          )}
+                          <Button
+                            variant="light"
+                            size="xs"
+                            icon={Eye}
+                            onClick={() => onViewProfile(s)}
+                            className="font-bold"
+                          >
+                            Ledger
+                          </Button>
+                          <button
+                            onClick={() => onEditSupplier(s)}
+                            className="p-1 text-slate-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                            title="Edit"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
     </div>
   );

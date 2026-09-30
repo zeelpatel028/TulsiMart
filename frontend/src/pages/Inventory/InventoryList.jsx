@@ -100,14 +100,16 @@ export const InventoryList = () => {
     try {
       const params = {
         page,
-        search,
+        limit: 500,
+        page_size: 500,
+        search: search || undefined,
         stock_status: stockFilter !== 'all' ? stockFilter : undefined,
         expiry: activeTab === 'near_expiry' ? 'near_expiry' : undefined,
       };
       const res = await inventoryApi.getProducts(params);
       const fetchedProducts = extractList(res);
       const count = res.data?.pagination?.total_items || res.data?.count || fetchedProducts.length || 0;
-      const pages = Math.ceil(count / 50) || 1;
+      const pages = Math.ceil(count / 500) || 1;
 
       setProducts(fetchedProducts);
       setTotalCount(count);
@@ -492,7 +494,7 @@ export const InventoryList = () => {
                               {p.name}
                             </h3>
                             <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                              {p.category_name || 'General'}
+                              {p.category?.name || p.category_name || 'General'}
                             </p>
                           </div>
                         </div>
@@ -523,7 +525,7 @@ export const InventoryList = () => {
                               {stockQty}
                             </span>
                             <span className="text-[11px] text-slate-400 font-normal">
-                              {p.unit_name || p.selling_unit || 'units'}
+                              {p.unit?.short_name || p.unit?.name || p.unit_name || p.selling_unit || 'pc'}
                             </span>
                           </div>
                         </div>
@@ -531,7 +533,7 @@ export const InventoryList = () => {
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-slate-500 dark:text-slate-400 font-medium">Min Alert Level</span>
                           <span className="text-slate-600 dark:text-slate-400 font-semibold">
-                            {minAlert} {p.unit_name || 'units'}
+                            {minAlert} {p.unit?.short_name || p.unit?.name || p.unit_name || 'pc'}
                           </span>
                         </div>
 
@@ -604,7 +606,7 @@ export const InventoryList = () => {
                               <img src={p.image || '/logo.png'} alt="" className="w-10 h-10 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0 bg-slate-50 dark:bg-slate-800" />
                               <div>
                                 <p className="font-bold text-slate-900 dark:text-slate-100">{p.name}</p>
-                                <p className="text-[10px] text-slate-400 dark:text-slate-500">{p.category_name || 'General'} • ₹{p.selling_price}</p>
+                                <p className="text-[10px] text-slate-400 dark:text-slate-500">{p.category?.name || p.category_name || 'General'} • ₹{p.selling_price}</p>
                               </div>
                             </div>
                           </td>
@@ -617,10 +619,10 @@ export const InventoryList = () => {
                             <span className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
                               {stockQty}
                             </span>{' '}
-                            <span className="text-[10px] text-slate-400">{p.unit_name || p.selling_unit || 'units'}</span>
+                            <span className="text-[10px] text-slate-400">{p.unit?.short_name || p.unit?.name || p.unit_name || p.selling_unit || 'pc'}</span>
                           </td>
                           <td className="py-3 px-4 text-center text-slate-500 dark:text-slate-400">
-                            {minAlert} {p.unit_name || 'units'}
+                            {minAlert} {p.unit?.short_name || p.unit?.name || p.unit_name || 'pc'}
                           </td>
                           <td className="py-3 px-4 text-center">
                             <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase ${
@@ -718,17 +720,22 @@ export const InventoryList = () => {
                         </Badge>
                       </td>
                       <td className="py-3 px-4 text-center font-bold">
-                        <span
-                          className={
-                            m.quantity_changed > 0
-                              ? 'text-emerald-600 dark:text-emerald-400'
-                              : m.quantity_changed < 0
-                              ? 'text-rose-600 dark:text-rose-400'
-                              : 'text-slate-500 dark:text-slate-400'
-                          }
-                        >
-                          {m.quantity_changed > 0 ? `+${m.quantity_changed}` : m.quantity_changed}
-                        </span>
+                        {(() => {
+                          const changeVal = m.quantity ?? m.quantity_changed ?? 0;
+                          return (
+                            <span
+                              className={
+                                changeVal > 0
+                                  ? 'text-emerald-600 dark:text-emerald-400'
+                                  : changeVal < 0
+                                  ? 'text-rose-600 dark:text-rose-400'
+                                  : 'text-slate-500 dark:text-slate-400'
+                              }
+                            >
+                              {changeVal > 0 ? `+${changeVal}` : changeVal}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="py-3 px-4 text-center font-extrabold text-slate-900 dark:text-slate-100">
                         {m.balance_after}

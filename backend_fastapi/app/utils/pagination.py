@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 class PaginationParams(BaseModel):
     page: int = Field(default=1, ge=1, description="Page number starting from 1")
-    limit: int = Field(default=20, ge=1, le=100, description="Items per page (max 100)")
+    limit: int = Field(default=500, ge=1, le=1000, description="Items per page (max 1000)")
 
     @property
     def offset(self) -> int:

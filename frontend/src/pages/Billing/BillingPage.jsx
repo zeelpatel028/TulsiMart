@@ -118,11 +118,36 @@ export const BillingPage = () => {
 
   // Catalog Data
   const [products, setProducts] = useState([]);
+  const [allCatalogProducts, setAllCatalogProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [barcodeInput, setBarcodeInput] = useState('');
   const [loadingCatalog, setLoadingCatalog] = useState(false);
+
+  const filterCatalogLocally = (searchVal, catName, masterList) => {
+    let source = masterList || allCatalogProducts;
+    if (!source || source.length === 0) return [];
+
+    if (catName && catName !== 'ALL') {
+      const catLower = catName.toLowerCase();
+      source = source.filter(p => {
+        const cName = (p.category?.name || p.category_name || p.category || '').toString().toLowerCase();
+        return cName === catLower;
+      });
+    }
+
+    if (searchVal && searchVal.trim()) {
+      const q = searchVal.trim().toLowerCase();
+      source = source.filter(p => 
+        (p.name && p.name.toLowerCase().includes(q)) ||
+        (p.sku && p.sku.toLowerCase().includes(q)) ||
+        (p.barcode && p.barcode.toLowerCase().includes(q)) ||
+        (p.product_code && p.product_code.toLowerCase().includes(q))
+      );
+    }
+    return source;
+  };
 
   // Mobile view switcher state ('catalog' | 'cart')
   const [mobileTab, setMobileTab] = useState('catalog');
@@ -423,7 +448,11 @@ export const BillingPage = () => {
         expensesApi.getCategories()
       ]);
 
-      if (prodRes.status === 'fulfilled') setProducts(extractList(prodRes.value));
+      if (prodRes.status === 'fulfilled') {
+        const catalogList = extractList(prodRes.value);
+        setAllCatalogProducts(catalogList);
+        setProducts(catalogList);
+      }
       if (catRes.status === 'fulfilled') setCategories(extractList(catRes.value));
       if (custRes.status === 'fulfilled') setCustomers(extractList(custRes.value));
       if (coupRes.status === 'fulfilled') setCoupons(extractList(coupRes.value));
@@ -580,41 +609,52 @@ export const BillingPage = () => {
     const val = e.target.value;
     setSearchQuery(val);
 
+    // Instant local memory filtering for ultra-fast POS search (0ms UI lag)
+    if (allCatalogProducts.length > 0) {
+      setProducts(filterCatalogLocally(val, selectedCategory, allCatalogProducts));
+    }
+
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
 
     searchTimeoutRef.current = setTimeout(async () => {
       try {
-        setLoadingCatalog(true);
         const params = { page_size: 1000 };
         if (val.trim()) params.search = val.trim();
         if (selectedCategory && selectedCategory !== 'ALL') params.category = selectedCategory;
 
         const res = await inventoryApi.getProducts(params);
-        setProducts(extractList(res));
+        const fetched = extractList(res);
+        if (fetched && fetched.length > 0) {
+          setProducts(fetched);
+        }
       } catch (err) {
         console.error('Failed to search billing products', err);
-      } finally {
-        setLoadingCatalog(false);
       }
     }, 300);
   };
 
   const handleSelectCategory = async (catName) => {
     setSelectedCategory(catName);
+
+    // Instant local memory filtering for ultra-fast category switching (0ms UI lag)
+    if (allCatalogProducts.length > 0) {
+      setProducts(filterCatalogLocally(searchQuery, catName, allCatalogProducts));
+    }
+
     try {
-      setLoadingCatalog(true);
       const params = { page_size: 1000 };
       if (catName !== 'ALL') params.category = catName;
       if (searchQuery.trim()) params.search = searchQuery.trim();
 
       const res = await inventoryApi.getProducts(params);
-      setProducts(extractList(res));
+      const fetched = extractList(res);
+      if (fetched && fetched.length > 0) {
+        setProducts(fetched);
+      }
     } catch (err) {
       console.error('Failed to filter by category', err);
-    } finally {
-      setLoadingCatalog(false);
     }
   };
 

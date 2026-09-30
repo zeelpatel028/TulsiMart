@@ -27,7 +27,7 @@ class Supplier(Base):
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     bank_details: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now, server_default=func.now())
 
     purchase_orders: Mapped[List[PurchaseOrder]] = relationship("PurchaseOrder", back_populates="supplier")
     payments: Mapped[List[SupplierPayment]] = relationship("SupplierPayment", back_populates="supplier")
@@ -61,7 +61,7 @@ class PurchaseOrder(Base):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     po_number: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
     supplier_id: Mapped[int] = mapped_column(ForeignKey("suppliers.id", ondelete="CASCADE"), index=True, nullable=False)
-    order_date: Mapped[date] = mapped_column(Date, nullable=False)
+    order_date: Mapped[date] = mapped_column(Date, default=date.today, nullable=False)
     expected_delivery: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     received_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="ORDERED", index=True, nullable=False)
@@ -71,7 +71,7 @@ class PurchaseOrder(Base):
     total_amount: Mapped[float] = mapped_column(Numeric(12, 2), default=0.00)
     paid_amount: Mapped[float] = mapped_column(Numeric(12, 2), default=0.00)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now, server_default=func.now(), index=True)
 
     supplier: Mapped[Supplier] = relationship("Supplier", back_populates="purchase_orders")
     items: Mapped[List[PurchaseOrderItem]] = relationship("PurchaseOrderItem", back_populates="purchase_order", cascade="all, delete-orphan")
@@ -107,11 +107,11 @@ class GoodsReceiptNote(Base):
     grn_number: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
     purchase_order_id: Mapped[int] = mapped_column(ForeignKey("purchase_orders.id", ondelete="CASCADE"), nullable=False)
     supplier_id: Mapped[int] = mapped_column(ForeignKey("suppliers.id", ondelete="CASCADE"), nullable=False)
-    received_date: Mapped[date] = mapped_column(Date, server_default=func.current_date(), nullable=False)
+    received_date: Mapped[date] = mapped_column(Date, default=date.today, server_default=func.current_date(), nullable=False)
     received_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     total_valuation: Mapped[float] = mapped_column(Numeric(12, 2), default=0.00)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now, server_default=func.now())
 
     purchase_order: Mapped[PurchaseOrder] = relationship("PurchaseOrder", back_populates="grns")
 
@@ -125,8 +125,8 @@ class SupplierPayment(Base):
     amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
     payment_method: Mapped[str] = mapped_column(String(30), default="BANK_TRANSFER")
     reference_number: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    payment_date: Mapped[date] = mapped_column(Date, nullable=False)
+    payment_date: Mapped[date] = mapped_column(Date, default=date.today, nullable=False)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now, server_default=func.now())
 
     supplier: Mapped[Supplier] = relationship("Supplier", back_populates="payments")

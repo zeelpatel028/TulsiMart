@@ -1,6 +1,6 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_admin
@@ -12,99 +12,153 @@ from app.utils.pagination import get_pagination_meta
 
 router = APIRouter(tags=["Customers & Khata"])
 
+from app.schemas.order import OrderResponse
+
+
+def safe_iso(val):
+    if not val:
+        return None
+    if hasattr(val, "isoformat"):
+        return val.isoformat()
+    return str(val)
+
+
+def serialize_customer_fast(c) -> dict:
+    orders = getattr(c, "orders", []) or []
+    total_spent = 0.0
+    pending_payments = 0.0
+    for o in orders:
+        amt = float(getattr(o, "total_amount", 0) or 0)
+        p_status = getattr(o, "payment_status", None)
+        o_status = getattr(o, "status", None)
+        if p_status == "PAID" or o_status == "COMPLETED":
+            total_spent += amt
+        elif p_status == "PENDING" and o_status != "CANCELLED":
+            pending_payments += amt
+
+    return {
+        "id": c.id,
+        "name": c.name,
+        "phone": c.phone,
+        "email": c.email,
+        "address": c.address,
+        "city": c.city,
+        "state": c.state,
+        "pincode": c.pincode,
+        "gstin": c.gstin,
+        "status": c.status or "ACTIVE",
+        "notes": c.notes,
+        "outstanding_balance": float(c.outstanding_balance or 0.0),
+        "total_orders": len(orders),
+        "total_spent": total_spent,
+        "pending_payments": pending_payments,
+        "created_at": safe_iso(getattr(c, "created_at", None)),
+        "updated_at": safe_iso(getattr(c, "updated_at", None)),
+    }
+
+
 @router.get("/customers/customers/")
-async def list_customers(
+def list_customers(
     status: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
-    limit: int = Query(20, ge=1, le=100),
-    db: AsyncSession = Depends(get_db)
+    limit: Optional[int] = Query(None),
+    page_size: Optional[int] = Query(None),
+    db: Session = Depends(get_db)
 ):
+    eff_limit = limit or page_size or 50
+    if eff_limit > 500:
+        eff_limit = 500
     service = CustomerService(db)
-    customers, total = await service.list_customers(status=status, search=search, page=page, limit=limit)
-    data = [CustomerResponse.model_validate(c).model_dump() for c in customers]
-    pagination = get_pagination_meta(total, page, limit)
+    customers, total = service.list_customers(status=status, search=search, page=page, limit=eff_limit)
+    data = [serialize_customer_fast(c) for c in customers]
+    pagination = get_pagination_meta(total, page, eff_limit)
     return success_response(data=data, pagination=pagination, message="Customers fetched")
 
 
 @router.get("/customers/customers/{customer_id}/")
-async def get_customer(customer_id: int, db: AsyncSession = Depends(get_db)):
+def get_customer(customer_id: int, db: Session = Depends(get_db)):
     service = CustomerService(db)
-    customer = await service.get_customer(customer_id)
-    return success_response(data=CustomerResponse.model_validate(customer).model_dump(), message="Customer details fetched")
+    customer = service.get_customer(customer_id)
+    item = serialize_customer_fast(customer)
+    return success_response(data=item, message="Customer details fetched")
 
 
 @router.post("/customers/customers/")
-async def create_customer(
+def create_customer(
     data: CustomerCreate,
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
     current_user: LoginAccount = Depends(get_current_user)
 ):
     service = CustomerService(db)
-    customer = await service.create_customer(data)
+    customer = service.create_customer(data)
     return success_response(data=CustomerResponse.model_validate(customer).model_dump(), message="Customer created", status_code=status.HTTP_201_CREATED)
 
 
 @router.put("/customers/customers/{customer_id}/")
-async def update_customer(
+def update_customer(
     customer_id: int,
     data: CustomerUpdate,
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
     current_user: LoginAccount = Depends(get_current_user)
 ):
     service = CustomerService(db)
-    customer = await service.update_customer(customer_id, data)
+    customer = service.update_customer(customer_id, data)
     return success_response(data=CustomerResponse.model_validate(customer).model_dump(), message="Customer updated")
 
 
 @router.post("/customers/customers/{customer_id}/toggle_block/")
-async def toggle_customer_block(
+def toggle_customer_block(
     customer_id: int,
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
     current_user: LoginAccount = Depends(require_admin)
 ):
     service = CustomerService(db)
-    customer = await service.toggle_block(customer_id)
+    customer = service.toggle_block(customer_id)
     return success_response(data=CustomerResponse.model_validate(customer).model_dump(), message="Customer block status toggled")
 
 
 @router.get("/customers/customers/{customer_id}/purchase_history/")
-async def get_customer_history(
+def get_customer_history(
     customer_id: int,
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     service = CustomerService(db)
-    res = await service.get_customer_history(customer_id, page=page, limit=limit)
-    return success_response(data=res, message="Purchase history fetched")
+    res = service.get_customer_history(customer_id, page=page, limit=limit)
+    raw_orders = res.get("orders", [])
+    orders_data = [OrderResponse.model_validate(o).model_dump() for o in raw_orders]
+    customer = res.get("customer")
+    cust_data = CustomerResponse.model_validate(customer).model_dump() if customer else None
+    return success_response(data={"customer": cust_data, "orders": orders_data, "total_orders": res.get("total_orders", 0)}, message="Purchase history fetched")
 
 
 @router.post("/customers/customers/{customer_id}/toggle_bill_payment_status/")
-async def toggle_bill_payment_status(customer_id: int, payload: dict, db: AsyncSession = Depends(get_db)):
+def toggle_bill_payment_status(customer_id: int, payload: dict, db: Session = Depends(get_db)):
     return success_response(data={"success": True}, message="Bill payment status updated")
 
 
 @router.post("/customers/customers/{customer_id}/khata_payment/")
-async def record_khata_payment(customer_id: int, payload: dict, db: AsyncSession = Depends(get_db)):
+def record_khata_payment(customer_id: int, payload: dict, db: Session = Depends(get_db)):
     return success_response(data={"recorded": True}, message="Khata payment recorded")
 
 
 @router.post("/customers/customers/{customer_id}/add_feedback/")
-async def add_customer_feedback(
+def add_customer_feedback(
     customer_id: int,
     data: FeedbackCreate,
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     service = CustomerService(db)
-    fb = await service.add_feedback(customer_id, data)
+    fb = service.add_feedback(customer_id, data)
     return success_response(data=FeedbackResponse.model_validate(fb).model_dump(), message="Feedback recorded", status_code=201)
 
 
 @router.get("/customers/feedback/")
-async def list_feedbacks(db: AsyncSession = Depends(get_db)):
+def list_feedbacks(db: Session = Depends(get_db)):
     service = CustomerService(db)
-    feedbacks = await service.list_feedbacks()
+    feedbacks = service.list_feedbacks()
     data = []
     for f in feedbacks:
         item = FeedbackResponse.model_validate(f).model_dump()

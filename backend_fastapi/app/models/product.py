@@ -20,7 +20,7 @@ class Category(Base):
     image: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now, server_default=func.now(), nullable=False)
 
     products: Mapped[List[Product]] = relationship("Product", back_populates="category", cascade="all, delete-orphan")
 
@@ -32,7 +32,7 @@ class Brand(Base):
     name: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now, server_default=func.now(), nullable=False)
 
     products: Mapped[List[Product]] = relationship("Product", back_populates="brand")
 
@@ -95,8 +95,8 @@ class Product(Base):
     short_description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     is_featured: Mapped[bool] = mapped_column(Boolean, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now, server_default=func.now(), index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now, server_default=func.now(), onupdate=datetime.now)
 
     # Relationships
     category: Mapped[Optional[Category]] = relationship("Category", back_populates="products")
@@ -122,7 +122,7 @@ class StockMovement(Base):
     reason: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     reference_no: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     performed_by_id: Mapped[Optional[int]] = mapped_column(ForeignKey("login.id", ondelete="SET NULL"), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now, server_default=func.now(), index=True)
 
     product: Mapped[Product] = relationship("Product", back_populates="stock_movements")
     performed_by: Mapped[Optional[LoginAccount]] = relationship("LoginAccount", foreign_keys=[performed_by_id])

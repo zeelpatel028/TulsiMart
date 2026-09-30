@@ -30,9 +30,9 @@ def setup_cors(app: FastAPI) -> None:
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=list(clean_origins),
+        allow_origin_regex=r".*",
         allow_credentials=True,
-        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_methods=["*"],
         allow_headers=["*"],
-        expose_headers=["X-Process-Time"],
+        expose_headers=["*"],
     )

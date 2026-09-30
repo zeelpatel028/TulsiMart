@@ -1,45 +1,43 @@
 from typing import Optional, List, Tuple
 from datetime import date
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from app.models.offer import Coupon, FestivalOffer
 
 
 class OfferRepository:
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: Session):
         self.db = db
 
-    async def list_coupons(self, page: int = 1, limit: int = 20) -> Tuple[List[Coupon], int]:
+    def list_coupons(self, page: int = 1, limit: int = 20) -> Tuple[List[Coupon], int]:
         offset = (page - 1) * limit
-        count_res = await self.db.execute(select(func.count(Coupon.id)))
-        total = count_res.scalar_one()
+        total = self.db.query(func.count(Coupon.id)).scalar() or 0
+        coupons = self.db.query(Coupon).order_by(Coupon.id.desc()).offset(offset).limit(limit).all()
+        return coupons, total
 
-        query = select(Coupon).order_by(Coupon.id.desc()).offset(offset).limit(limit)
-        res = await self.db.execute(query)
-        return list(res.scalars().all()), total
+    def get_coupon_by_code(self, code: str) -> Optional[Coupon]:
+        return self.db.query(Coupon).filter(Coupon.code == code).first()
 
-    async def get_coupon_by_code(self, code: str) -> Optional[Coupon]:
-        res = await self.db.execute(select(Coupon).where(Coupon.code == code))
-        return res.scalars().first()
+    def get_coupon_by_id(self, coupon_id: int) -> Optional[Coupon]:
+        return self.db.query(Coupon).filter(Coupon.id == coupon_id).first()
 
-    async def get_coupon_by_id(self, coupon_id: int) -> Optional[Coupon]:
-        res = await self.db.execute(select(Coupon).where(Coupon.id == coupon_id))
-        return res.scalars().first()
-
-    async def create_coupon(self, coupon: Coupon) -> Coupon:
+    def create_coupon(self, coupon: Coupon) -> Coupon:
         self.db.add(coupon)
-        await self.db.flush()
-        await self.db.refresh(coupon)
+        self.db.commit()
+        self.db.refresh(coupon)
         return coupon
 
-    async def list_festival_offers(self) -> List[FestivalOffer]:
-        query = select(FestivalOffer).where(FestivalOffer.is_active == True).order_by(FestivalOffer.start_date.desc())
-        res = await self.db.execute(query)
-        return list(res.scalars().all())
+    def list_festival_offers(self) -> List[FestivalOffer]:
+        return (
+            self.db.query(FestivalOffer)
+            .filter(FestivalOffer.is_active == True)
+            .order_by(FestivalOffer.start_date.desc())
+            .all()
+        )
 
-    async def create_festival_offer(self, offer: FestivalOffer) -> FestivalOffer:
+    def create_festival_offer(self, offer: FestivalOffer) -> FestivalOffer:
         self.db.add(offer)
-        await self.db.flush()
-        await self.db.refresh(offer)
+        self.db.commit()
+        self.db.refresh(offer)
         return offer

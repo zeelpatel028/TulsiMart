@@ -38,6 +38,10 @@ class CustomerResponse(BaseModel):
     notes: Optional[str] = None
     created_at: datetime
 
+    total_orders: int = 0
+    total_spent: float = 0.0
+    pending_payments: float = 0.0
+
 
 class FeedbackCreate(BaseModel):
     rating: int = 5

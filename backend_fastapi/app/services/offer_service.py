@@ -1,7 +1,7 @@
 from typing import List, Tuple, Optional
 from datetime import date
 from fastapi import HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from app.repositories.offer_repository import OfferRepository
 from app.models.offer import Coupon, FestivalOffer
@@ -9,15 +9,15 @@ from app.schemas.offer import CouponCreate, FestivalOfferCreate, ValidateCouponR
 
 
 class OfferService:
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: Session):
         self.db = db
         self.repo = OfferRepository(db)
 
-    async def list_coupons(self, page: int = 1, limit: int = 20) -> Tuple[List[Coupon], int]:
-        return await self.repo.list_coupons(page=page, limit=limit)
+    def list_coupons(self, page: int = 1, limit: int = 20) -> Tuple[List[Coupon], int]:
+        return self.repo.list_coupons(page=page, limit=limit)
 
-    async def create_coupon(self, data: CouponCreate) -> Coupon:
-        existing = await self.repo.get_coupon_by_code(data.code.upper())
+    def create_coupon(self, data: CouponCreate) -> Coupon:
+        existing = self.repo.get_coupon_by_code(data.code.upper())
         if existing:
             raise HTTPException(status_code=400, detail=f"Coupon code '{data.code}' already exists")
 
@@ -34,17 +34,17 @@ class OfferService:
             usage_limit=data.usage_limit,
             is_active=data.is_active
         )
-        return await self.repo.create_coupon(coupon)
+        return self.repo.create_coupon(coupon)
 
-    async def delete_coupon(self, coupon_id: int) -> None:
-        coupon = await self.repo.get_coupon_by_id(coupon_id)
+    def delete_coupon(self, coupon_id: int) -> None:
+        coupon = self.repo.get_coupon_by_id(coupon_id)
         if not coupon:
             raise HTTPException(status_code=404, detail="Coupon not found")
-        await self.db.delete(coupon)
-        await self.db.flush()
+        self.db.delete(coupon)
+        self.db.flush()
 
-    async def validate_coupon(self, data: ValidateCouponRequest) -> dict:
-        coupon = await self.repo.get_coupon_by_code(data.code.upper())
+    def validate_coupon(self, data: ValidateCouponRequest) -> dict:
+        coupon = self.repo.get_coupon_by_code(data.code.upper())
         if not coupon:
             raise HTTPException(status_code=404, detail="Invalid coupon code")
 
@@ -76,10 +76,10 @@ class OfferService:
             "message": f"Coupon '{coupon.code}' applied successfully!"
         }
 
-    async def list_festival_offers(self) -> List[FestivalOffer]:
-        return await self.repo.list_festival_offers()
+    def list_festival_offers(self) -> List[FestivalOffer]:
+        return self.repo.list_festival_offers()
 
-    async def create_festival_offer(self, data: FestivalOfferCreate) -> FestivalOffer:
+    def create_festival_offer(self, data: FestivalOfferCreate) -> FestivalOffer:
         offer = FestivalOffer(
             title=data.title,
             subtitle=data.subtitle,
@@ -90,4 +90,4 @@ class OfferService:
             end_date=data.end_date,
             is_active=data.is_active
         )
-        return await self.repo.create_festival_offer(offer)
+        return self.repo.create_festival_offer(offer)

@@ -174,10 +174,10 @@ export const ExpenseList = () => {
   };
 
   const chartData = (summary?.category_breakdown || [])
-    .filter(c => parseFloat(c.total || 0) > 0)
+    .filter(c => parseFloat(c.total || c.amount || 0) > 0)
     .map(c => ({
-      name: c.category__name || 'General Overheads',
-      value: parseFloat(c.total || 0)
+      name: c.category || c.category_name || c.category__name || 'General Overheads',
+      value: parseFloat(c.total || c.amount || 0)
     }));
 
   return (
@@ -403,7 +403,7 @@ export const ExpenseList = () => {
                   <div className="flex items-center justify-between text-xs pt-2 border-t border-[#E0F2F1] dark:border-slate-800 gap-2">
                     <div className="space-y-0.5">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E0F2F1] text-[#00695C] dark:bg-teal-950/80 dark:text-teal-300 border border-[#B2DFDB] dark:border-teal-800/60 whitespace-nowrap">
-                        {e.category_name || 'General'}
+                        {e.category?.name || e.category_name || 'General'}
                       </span>
                       {e.paid_to && e.paid_to !== '-' && (
                         <p className="text-[10px] text-slate-500 font-medium">Paid to: {e.paid_to}</p>
@@ -520,7 +520,7 @@ export const ExpenseList = () => {
                         </td>
                         <td className="py-3 px-4 whitespace-nowrap">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#E0F2F1] text-[#00695C] dark:bg-teal-950/80 dark:text-teal-300 border border-[#B2DFDB] dark:border-teal-800/60 whitespace-nowrap">
-                            {e.category_name || 'General'}
+                            {e.category?.name || e.category_name || 'General'}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-slate-700 dark:text-slate-300 font-medium">{e.paid_to || '-'}</td>

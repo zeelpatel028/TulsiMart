@@ -1,18 +1,18 @@
 from typing import Dict, Any, Optional
 from fastapi import HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from app.repositories.user_repository import UserRepository
 from app.core.security import verify_password, create_access_token, create_refresh_token
 
 
 class AuthService:
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: Session):
         self.db = db
         self.repo = UserRepository(db)
 
-    async def login(self, username: str, password: str) -> Dict[str, Any]:
-        user = await self.repo.get_by_username(username)
+    def login(self, username: str, password: str) -> Dict[str, Any]:
+        user = self.repo.get_by_username(username)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -54,8 +54,8 @@ class AuthService:
             "permissions": ["all"] if user.role == "ADMIN" else ["view", "pos"]
         }
 
-    async def verify_otp(self, username: str, otp: str) -> Dict[str, Any]:
-        user = await self.repo.get_by_username(username)
+    def verify_otp(self, username: str, otp: str) -> Dict[str, Any]:
+        user = self.repo.get_by_username(username)
         if not user:
             raise HTTPException(status_code=400, detail="User not found")
 

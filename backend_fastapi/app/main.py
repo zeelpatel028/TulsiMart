@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.core.config import settings
 from app.core.logging_config import setup_logging, logger
-from app.core.database import engine, Base
+from app.core.database import engine
 from app.middleware.cors import setup_cors
 from app.middleware.error_handler import setup_exception_handlers
 from app.middleware.request_logging import RequestLoggingMiddleware
@@ -37,14 +37,14 @@ async def lifespan(app: FastAPI):
     logger.info("Initializing Tulsi Mart FastAPI Backend...")
 
     # Safely attempt database table initialization & seeding
-    await init_db()
+    init_db()
 
     yield
 
     # Shutdown tasks
     logger.info("Shutting down Tulsi Mart FastAPI Backend...")
     try:
-        await engine.dispose()
+        engine.dispose()
     except Exception:
         pass
 
@@ -78,7 +78,7 @@ app.include_router(health.router, prefix=api_prefix)
 
 
 @app.get("/")
-async def root():
+def root():
     return {
         "success": True,
         "message": "Welcome to Tulsi Mart FastAPI Backend Service",
@@ -90,4 +90,3 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run("app.main:app", host="0.0.0.0", port=port)
-

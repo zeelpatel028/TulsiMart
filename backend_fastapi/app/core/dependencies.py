@@ -1,7 +1,7 @@
 from typing import List, Callable, Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from sqlalchemy import select
 
 from app.core.database import get_db
@@ -11,9 +11,9 @@ from app.models.user import LoginAccount
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/core/auth/login/", auto_error=False)
 
 
-async def get_current_user(
+def get_current_user(
     token: Optional[str] = Depends(oauth2_scheme),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ) -> LoginAccount:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -33,14 +33,12 @@ async def get_current_user(
             uid = int(user_id)
         except (ValueError, TypeError):
             raise credentials_exception
-        result = await db.execute(select(LoginAccount).where(LoginAccount.id == uid))
-        user = result.scalars().first()
+        user = db.query(LoginAccount).filter(LoginAccount.id == uid).first()
     else:
         username = payload.get("username")
         if not username:
             raise credentials_exception
-        result = await db.execute(select(LoginAccount).where(LoginAccount.username == username))
-        user = result.scalars().first()
+        user = db.query(LoginAccount).filter(LoginAccount.username == username).first()
 
     if user is None or not user.is_active:
         raise HTTPException(
@@ -52,7 +50,7 @@ async def get_current_user(
 
 
 def require_roles(allowed_roles: List[str]) -> Callable:
-    async def role_checker(current_user: LoginAccount = Depends(get_current_user)) -> LoginAccount:
+    def role_checker(current_user: LoginAccount = Depends(get_current_user)) -> LoginAccount:
         if current_user.role not in allowed_roles and current_user.role != 'ADMIN':
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
