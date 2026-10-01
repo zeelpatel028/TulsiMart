@@ -23,18 +23,20 @@ def safe_iso(val):
     return str(val)
 
 
-def serialize_customer_fast(c) -> dict:
-    orders = getattr(c, "orders", []) or []
-    total_spent = 0.0
-    pending_payments = 0.0
-    for o in orders:
-        amt = float(getattr(o, "total_amount", 0) or 0)
-        p_status = getattr(o, "payment_status", None)
-        o_status = getattr(o, "status", None)
-        if p_status == "PAID" or o_status == "COMPLETED":
-            total_spent += amt
-        elif p_status == "PENDING" and o_status != "CANCELLED":
-            pending_payments += amt
+def serialize_customer_fast(c, stats: Optional[dict] = None) -> dict:
+    if stats is None:
+        stats = {"total_orders": 0, "total_spent": 0.0, "pending_payments": 0.0}
+        orders = getattr(c, "orders", None)
+        if orders is not None and len(orders) > 0:
+            for o in orders:
+                amt = float(getattr(o, "total_amount", 0) or 0)
+                p_status = getattr(o, "payment_status", None)
+                o_status = getattr(o, "status", None)
+                if p_status == "PAID" or o_status == "COMPLETED":
+                    stats["total_spent"] += amt
+                elif p_status == "PENDING" and o_status != "CANCELLED":
+                    stats["pending_payments"] += amt
+            stats["total_orders"] = len(orders)
 
     return {
         "id": c.id,
@@ -43,15 +45,15 @@ def serialize_customer_fast(c) -> dict:
         "email": c.email,
         "address": c.address,
         "city": c.city,
-        "state": c.state,
+        "state": getattr(c, "state", "Maharashtra"),
         "pincode": c.pincode,
-        "gstin": c.gstin,
+        "gstin": getattr(c, "gstin", None),
         "status": c.status or "ACTIVE",
         "notes": c.notes,
-        "outstanding_balance": float(c.outstanding_balance or 0.0),
-        "total_orders": len(orders),
-        "total_spent": total_spent,
-        "pending_payments": pending_payments,
+        "outstanding_balance": float(stats.get("pending_payments", 0.0)),
+        "total_orders": stats.get("total_orders", 0),
+        "total_spent": stats.get("total_spent", 0.0),
+        "pending_payments": stats.get("pending_payments", 0.0),
         "created_at": safe_iso(getattr(c, "created_at", None)),
         "updated_at": safe_iso(getattr(c, "updated_at", None)),
     }
@@ -70,8 +72,8 @@ def list_customers(
     if eff_limit > 500:
         eff_limit = 500
     service = CustomerService(db)
-    customers, total = service.list_customers(status=status, search=search, page=page, limit=eff_limit)
-    data = [serialize_customer_fast(c) for c in customers]
+    customers, stats_map, total = service.list_customers(status=status, search=search, page=page, limit=eff_limit)
+    data = [serialize_customer_fast(c, stats_map.get(c.id)) for c in customers]
     pagination = get_pagination_meta(total, page, eff_limit)
     return success_response(data=data, pagination=pagination, message="Customers fetched")
 
@@ -80,7 +82,8 @@ def list_customers(
 def get_customer(customer_id: int, db: Session = Depends(get_db)):
     service = CustomerService(db)
     customer = service.get_customer(customer_id)
-    item = serialize_customer_fast(customer)
+    stats = service.get_customer_stats(customer_id)
+    item = serialize_customer_fast(customer, stats)
     return success_response(data=item, message="Customer details fetched")
 
 
@@ -92,7 +95,8 @@ def create_customer(
 ):
     service = CustomerService(db)
     customer = service.create_customer(data)
-    return success_response(data=CustomerResponse.model_validate(customer).model_dump(), message="Customer created", status_code=status.HTTP_201_CREATED)
+    stats = service.get_customer_stats(customer.id)
+    return success_response(data=serialize_customer_fast(customer, stats), message="Customer created", status_code=status.HTTP_201_CREATED)
 
 
 @router.put("/customers/customers/{customer_id}/")
@@ -104,7 +108,8 @@ def update_customer(
 ):
     service = CustomerService(db)
     customer = service.update_customer(customer_id, data)
-    return success_response(data=CustomerResponse.model_validate(customer).model_dump(), message="Customer updated")
+    stats = service.get_customer_stats(customer.id)
+    return success_response(data=serialize_customer_fast(customer, stats), message="Customer updated")
 
 
 @router.post("/customers/customers/{customer_id}/toggle_block/")
@@ -115,7 +120,8 @@ def toggle_customer_block(
 ):
     service = CustomerService(db)
     customer = service.toggle_block(customer_id)
-    return success_response(data=CustomerResponse.model_validate(customer).model_dump(), message="Customer block status toggled")
+    stats = service.get_customer_stats(customer.id)
+    return success_response(data=serialize_customer_fast(customer, stats), message="Customer block status toggled")
 
 
 @router.get("/customers/customers/{customer_id}/purchase_history/")
@@ -130,18 +136,25 @@ def get_customer_history(
     raw_orders = res.get("orders", [])
     orders_data = [OrderResponse.model_validate(o).model_dump() for o in raw_orders]
     customer = res.get("customer")
-    cust_data = CustomerResponse.model_validate(customer).model_dump() if customer else None
+    stats = res.get("stats", {})
+    cust_data = serialize_customer_fast(customer, stats) if customer else None
     return success_response(data={"customer": cust_data, "orders": orders_data, "total_orders": res.get("total_orders", 0)}, message="Purchase history fetched")
 
 
 @router.post("/customers/customers/{customer_id}/toggle_bill_payment_status/")
 def toggle_bill_payment_status(customer_id: int, payload: dict, db: Session = Depends(get_db)):
-    return success_response(data={"success": True}, message="Bill payment status updated")
+    service = CustomerService(db)
+    order_id = payload.get("order_id")
+    target_status = payload.get("target_status", "PAID")
+    res = service.toggle_bill_payment_status(customer_id, order_id=order_id, target_status=target_status)
+    return success_response(data=res, message=res.get("message", "Bill payment status updated"))
 
 
 @router.post("/customers/customers/{customer_id}/khata_payment/")
 def record_khata_payment(customer_id: int, payload: dict, db: Session = Depends(get_db)):
-    return success_response(data={"recorded": True}, message="Khata payment recorded")
+    service = CustomerService(db)
+    res = service.record_khata_payment(customer_id, payload)
+    return success_response(data=res, message=res.get("message", "Khata payment recorded"))
 
 
 @router.post("/customers/customers/{customer_id}/add_feedback/")
@@ -166,3 +179,4 @@ def list_feedbacks(db: Session = Depends(get_db)):
             item["customer_name"] = f.customer.name
         data.append(item)
     return success_response(data=data, message="Feedback list fetched")
+

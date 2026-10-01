@@ -6,11 +6,11 @@ from datetime import datetime
 # URL of your Render backend health check endpoint
 RENDER_URL = os.environ.get(
     "RENDER_BACKEND_URL",
-    "https://tulsi-mart-backend.onrender.com/api/health/light"
+    "https://tulsi-mart-backend.onrender.com/health"
 )
 
-# Interval in seconds (default 60 seconds)
-PING_INTERVAL = int(os.environ.get("PING_INTERVAL", "60"))
+# Interval in seconds (default 180 seconds = 3 minutes)
+PING_INTERVAL = int(os.environ.get("PING_INTERVAL", "180"))
 
 def ping_server():
     """

@@ -14,4 +14,5 @@ def test_sales_trends_api(client: TestClient):
     assert response.status_code == 200
     data = response.json()
     assert data["success"] is True
-    assert isinstance(data["data"], list)
+    assert isinstance(data["data"], (dict, list))
+

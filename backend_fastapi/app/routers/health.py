@@ -1,47 +1,22 @@
-from fastapi import APIRouter, Depends, status
-from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
-from sqlalchemy import text
-from app.core.database import get_db
+from fastapi import APIRouter, status
 
 router = APIRouter(tags=["Health Check & Keep-Alive"])
 
 
-@router.get("/health/")
-@router.get("/health")
-def health_check(db: Session = Depends(get_db)):
+@router.get("/health", status_code=status.HTTP_200_OK)
+@router.get("/health/", status_code=status.HTTP_200_OK)
+def health_check():
     """
-    Lightweight health endpoint for uptime monitors and keep-alive ping.
-    Tests actual MySQL connection with 'SELECT 1;'.
+    Production-safe health check endpoint for external uptime monitors and keep-alive.
+    Returns status: ok
     """
-    try:
-        db.execute(text("SELECT 1;"))
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={
-                "success": True,
-                "server": "online",
-                "database": "connected"
-            }
-        )
-    except Exception:
-        return JSONResponse(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            content={
-                "success": False,
-                "server": "online",
-                "database": "disconnected"
-            }
-        )
+    return {"status": "ok"}
 
 
-@router.get("/health/light")
+@router.get("/health/light", status_code=status.HTTP_200_OK)
 def lightweight_health_check():
     """
-    Ultra-lightweight ping endpoint for Render keep-alive calls without DB overhead.
+    Lightweight ping endpoint for external uptime monitors.
     """
-    return {
-        "success": True,
-        "server": "online",
-        "database": "active"
-    }
+    return {"status": "ok"}
+

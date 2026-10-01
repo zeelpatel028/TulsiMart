@@ -2,8 +2,8 @@ const http = require('http');
 const https = require('https');
 
 // Render backend health endpoint URL
-const RENDER_URL = process.env.RENDER_BACKEND_URL || 'https://tulsi-mart-backend.onrender.com/api/health/light';
-const INTERVAL_MS = (parseInt(process.env.PING_INTERVAL, 10) || 60) * 1000; // Default 60 seconds
+const RENDER_URL = process.env.RENDER_BACKEND_URL || 'https://tulsi-mart-backend.onrender.com/health';
+const INTERVAL_MS = (parseInt(process.env.PING_INTERVAL, 10) || 180) * 1000; // Default 3 minutes (180 seconds)
 
 function pingServer() {
   const client = RENDER_URL.startsWith('https') ? https : http;

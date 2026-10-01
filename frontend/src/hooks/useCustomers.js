@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import customerApi from '../services/customerApi';
+import { extractList } from '../utils/apiHelpers';
 
 export const useCustomers = () => {
   const [customers, setCustomers] = useState([]);
@@ -11,7 +12,7 @@ export const useCustomers = () => {
     setError(null);
     try {
       const data = await customerApi.getCustomers(params);
-      setCustomers(data.results || data);
+      setCustomers(extractList(data));
     } catch (err) {
       setError(err.message || 'Failed to load customers');
     } finally {
@@ -23,3 +24,4 @@ export const useCustomers = () => {
 };
 
 export default useCustomers;
+

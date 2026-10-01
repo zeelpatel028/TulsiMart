@@ -2,8 +2,8 @@ name: Render Keep-Alive Auto-Ping
 
 on:
   schedule:
-    # Runs every 5 minutes automatically
-    - cron: '*/5 * * * *'
+    # Runs every 3 minutes automatically
+    - cron: '*/3 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -12,4 +12,5 @@ jobs:
     steps:
       - name: Ping Render Backend Service
         run: |
-          curl -s -X GET "https://tulsi-mart-backend.onrender.com/api/health/light" -m 15 || true
+          curl -s -X GET "${{ secrets.RENDER_BACKEND_URL || 'https://tulsi-mart-backend.onrender.com/health' }}" -m 15 || true
+

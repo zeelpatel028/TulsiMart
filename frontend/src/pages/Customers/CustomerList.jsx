@@ -151,7 +151,8 @@ export const CustomerList = () => {
     try {
       setLoadingHistory(true);
       const res = await customersApi.getCustomerHistory(c.id);
-      setCustomerOrders(res.data || []);
+      const orders = extractList(res.data?.data?.orders || res.data?.orders || res.data?.data || res.data);
+      setCustomerOrders(orders);
     } catch (err) {
       console.error(err);
     } finally {
@@ -207,17 +208,19 @@ export const CustomerList = () => {
         order_id: khataForm.order_id || undefined,
       });
 
-      showToast(res.data?.message || 'Khata payment recorded successfully!', 'success');
+      const newPending = res.data?.data?.new_pending_payments ?? res.data?.new_pending_payments ?? 0;
+      showToast(res.data?.message || res.data?.data?.message || 'Khata payment recorded successfully!', 'success');
       setIsKhataModalOpen(false);
       loadCustomers();
 
       // If customer profile is currently open, refresh their ledger
       if (selectedCustomer && selectedCustomer.id === khataCustomer.id) {
         const historyRes = await customersApi.getCustomerHistory(khataCustomer.id);
-        setCustomerOrders(historyRes.data || []);
+        const orders = extractList(historyRes.data?.data?.orders || historyRes.data?.orders || historyRes.data?.data || historyRes.data);
+        setCustomerOrders(orders);
         setSelectedCustomer({
           ...selectedCustomer,
-          pending_payments: res.data?.new_pending_payments ?? 0
+          pending_payments: newPending
         });
       }
     } catch (err) {
@@ -233,16 +236,18 @@ export const CustomerList = () => {
         order_id: order.id,
         target_status: targetStatus
       });
-      showToast(res.data?.message || `Bill status updated to ${targetStatus}!`, 'success');
+      const newPending = res.data?.data?.new_pending_payments ?? res.data?.new_pending_payments ?? customer.pending_payments;
+      showToast(res.data?.message || res.data?.data?.message || `Bill status updated to ${targetStatus}!`, 'success');
       
       // Refresh customer history and main customer list
       const historyRes = await customersApi.getCustomerHistory(customer.id);
-      setCustomerOrders(historyRes.data || []);
+      const orders = extractList(historyRes.data?.data?.orders || historyRes.data?.orders || historyRes.data?.data || historyRes.data);
+      setCustomerOrders(orders);
       
       if (selectedCustomer && selectedCustomer.id === customer.id) {
         setSelectedCustomer({
           ...selectedCustomer,
-          pending_payments: res.data?.new_pending_payments ?? selectedCustomer.pending_payments
+          pending_payments: newPending
         });
       }
       loadCustomers();

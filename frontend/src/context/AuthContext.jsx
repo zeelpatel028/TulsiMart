@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { authApi, settingsApi, healthApi } from '../api';
+import { authApi, settingsApi } from '../api';
 
 const AuthContext = createContext(null);
 
@@ -86,14 +86,6 @@ export const AuthProvider = ({ children }) => {
     };
 
     initAuth();
-  }, []);
-
-  // Periodic keep-alive health ping every 45s to prevent Render cold-starts
-  useEffect(() => {
-    const pingInterval = setInterval(() => {
-      healthApi.check().catch(() => {});
-    }, 45000);
-    return () => clearInterval(pingInterval);
   }, []);
 
 

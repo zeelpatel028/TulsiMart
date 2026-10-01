@@ -77,6 +77,16 @@ app.include_router(admin.router, prefix=api_prefix)
 app.include_router(health.router, prefix=api_prefix)
 
 
+@app.get("/health", tags=["Health Check"])
+@app.get("/health/", tags=["Health Check"])
+def root_health_check():
+    """
+    Root /health endpoint for external uptime monitors and Render health check.
+    Returns status: ok
+    """
+    return {"status": "ok"}
+
+
 @app.get("/")
 def root():
     return {

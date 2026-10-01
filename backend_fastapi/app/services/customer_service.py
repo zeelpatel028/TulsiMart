@@ -1,10 +1,11 @@
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Dict, Any
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.repositories.customer_repository import CustomerRepository
 from app.repositories.order_repository import OrderRepository
 from app.models.customer import Customer, CustomerFeedback
+from app.models.order import Order
 from app.schemas.customer import CustomerCreate, CustomerUpdate, FeedbackCreate
 
 
@@ -20,8 +21,11 @@ class CustomerService:
         search: Optional[str] = None,
         page: int = 1,
         limit: int = 20
-    ) -> Tuple[List[Customer], int]:
+    ) -> Tuple[List[Customer], Dict[int, Dict[str, Any]], int]:
         return self.repo.list_customers(status=status, search=search, page=page, limit=limit)
+
+    def get_customer_stats(self, customer_id: int) -> Dict[str, Any]:
+        return self.repo.get_customer_stats(customer_id)
 
     def get_customer(self, customer_id: int) -> Customer:
         customer = self.repo.get_by_id(customer_id)
@@ -61,10 +65,64 @@ class CustomerService:
     def get_customer_history(self, customer_id: int, page: int = 1, limit: int = 20):
         customer = self.get_customer(customer_id)
         orders, total = self.order_repo.list_orders(customer_id=customer_id, page=page, limit=limit)
+        stats = self.repo.get_customer_stats(customer_id)
         return {
             "customer": customer,
             "orders": orders,
-            "total_orders": total
+            "total_orders": total,
+            "stats": stats
+        }
+
+    def toggle_bill_payment_status(self, customer_id: int, order_id: int, target_status: str) -> dict:
+        self.get_customer(customer_id)
+        order = self.db.query(Order).filter(Order.id == order_id).first()
+        if not order:
+            raise HTTPException(status_code=404, detail="Order not found")
+
+        order.payment_status = target_status
+        self.db.flush()
+
+        stats = self.repo.get_customer_stats(customer_id)
+        return {
+            "success": True,
+            "order_id": order.id,
+            "new_status": target_status,
+            "new_pending_payments": stats["pending_payments"],
+            "message": f"Bill #{order.order_number} status updated to {target_status}"
+        }
+
+    def record_khata_payment(self, customer_id: int, payload: dict) -> dict:
+        customer = self.get_customer(customer_id)
+        order_id = payload.get("order_id")
+        amount = float(payload.get("amount", 0.0) or 0.0)
+
+        if order_id:
+            order = self.db.query(Order).filter(Order.id == order_id).first()
+            if order:
+                order.payment_status = "PAID"
+        else:
+            pending_orders = (
+                self.db.query(Order)
+                .filter(Order.customer_id == customer_id, Order.payment_status == "PENDING", Order.status != "CANCELLED")
+                .order_by(Order.id.asc())
+                .all()
+            )
+            remaining = amount
+            for p_order in pending_orders:
+                p_amt = float(p_order.total_amount or 0.0)
+                if remaining >= p_amt:
+                    p_order.payment_status = "PAID"
+                    remaining -= p_amt
+                else:
+                    break
+
+        self.db.flush()
+        stats = self.repo.get_customer_stats(customer_id)
+        return {
+            "success": True,
+            "recorded": True,
+            "new_pending_payments": stats["pending_payments"],
+            "message": f"Recorded Khata payment of ₹{amount:.2f} for {customer.name}"
         }
 
     def add_feedback(self, customer_id: int, data: FeedbackCreate) -> CustomerFeedback:
@@ -79,3 +137,4 @@ class CustomerService:
 
     def list_feedbacks(self) -> List[CustomerFeedback]:
         return self.repo.list_feedbacks()
+
