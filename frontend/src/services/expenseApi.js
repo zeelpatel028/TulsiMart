@@ -1,22 +1,29 @@
-import apiClient from './api';
+import apiClient, { cachedGet, clearApiCache } from '../api/axios';
 
 export const expenseApi = {
-  getExpenses: async (params = {}) => {
-    return await apiClient.get('/expenses/expenses/', { params });
+  getCategories: (config = {}) => cachedGet('/expenses/categories/', config, 60000),
+  createCategory: async (data, config = {}) => {
+    clearApiCache('/expenses');
+    return await apiClient.post('/expenses/categories/', data, config);
   },
 
-  createExpense: async (data) => {
-    return await apiClient.post('/expenses/expenses/', data);
+  getExpenses: (params = {}, config = {}) => {
+    return apiClient.get('/expenses/expenses/', { params, ...config });
   },
 
-  deleteExpense: async (id) => {
-    return await apiClient.delete(`/expenses/expenses/${id}/`);
+  createExpense: async (data, config = {}) => {
+    clearApiCache('/expenses');
+    return await apiClient.post('/expenses/expenses/', data, config);
   },
 
-  getCategories: async () => {
-    return await apiClient.get('/expenses/categories/');
+  deleteExpense: async (id, config = {}) => {
+    clearApiCache('/expenses');
+    return await apiClient.delete(`/expenses/expenses/${id}/`, config);
+  },
+
+  getExpenseSummary: (config = {}) => {
+    return apiClient.get('/expenses/expenses/summary/', config);
   }
 };
 
 export default expenseApi;
-

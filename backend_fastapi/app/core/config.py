@@ -15,10 +15,10 @@ class Settings(BaseSettings):
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api"
 
-    # Database Settings - Pure MySQL
+    # Database Settings (No hardcoded passwords or secrets in python code)
     DATABASE_URL: str = Field(
         default="",
-        description="MySQL Database Connection String"
+        description="Database Connection String (MySQL for Vercel/Render Cloud, SQLite3 for Localhost)"
     )
     MYSQL_URL: str = Field(default="", description="Raw MySQL Connection URL")
     DB_NAME: str = Field(default="defaultdb")
@@ -28,39 +28,50 @@ class Settings(BaseSettings):
     DB_PORT: int = Field(default=3306)
     DB_SSL_MODE: str = Field(default="REQUIRED")
 
+    # Localhost SQLite Fallback Connection
+    LOCAL_SQLITE_URL: str = "sqlite:///./tulsimart.db"
+
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def assemble_db_connection(cls, v: str, info) -> str:
-        if v and isinstance(v, str) and v.strip():
-            url = v.strip()
-            # Normalize any existing mysql/postgres/aiomysql prefix to mysql+pymysql
-            if url.startswith("mysql+aiomysql://"):
-                url = url.replace("mysql+aiomysql://", "mysql+pymysql://", 1)
-            elif url.startswith("mysql://"):
-                url = url.replace("mysql://", "mysql+pymysql://", 1)
-            elif url.startswith("postgresql://") or url.startswith("postgres://"):
-                raise ValueError("PostgreSQL is not supported. Tulsi Mart backend requires MySQL.")
-            elif url.startswith("sqlite"):
-                raise ValueError("SQLite is not supported. Tulsi Mart backend requires MySQL.")
-            return url
+        # 1. Detect if running in Cloud Hosted Environment (Vercel / Render / Production website/app)
+        is_cloud_env = (
+            os.getenv("VERCEL") is not None
+            or os.getenv("RENDER") is not None
+            or os.getenv("VERCEL_ENV") is not None
+            or os.getenv("RENDER_SERVICE_ID") is not None
+            or os.getenv("ENVIRONMENT", "").lower() in ["production", "prod", "cloud", "render", "vercel"]
+        )
 
-        values = info.data if info else {}
-        mysql_url = values.get("MYSQL_URL")
-        if mysql_url and isinstance(mysql_url, str) and mysql_url.strip():
-            url = mysql_url.strip()
-            if url.startswith("mysql://"):
-                url = url.replace("mysql://", "mysql+pymysql://", 1)
-            elif url.startswith("mysql+aiomysql://"):
-                url = url.replace("mysql+aiomysql://", "mysql+pymysql://", 1)
-            return url
+        # 2. If running on Cloud Website/App (Vercel / Render / Production), connect to MySQL (Aiven)
+        if is_cloud_env:
+            values = info.data if info else {}
+            cloud_url = (
+                values.get("MYSQL_URL")
+                or os.getenv("MYSQL_URL")
+                or (v if (v and not str(v).startswith("sqlite")) else "")
+            )
+            if cloud_url and isinstance(cloud_url, str) and cloud_url.strip() and not cloud_url.strip().startswith("sqlite"):
+                url = cloud_url.strip()
+                if url.startswith("mysql://"):
+                    return url.replace("mysql://", "mysql+pymysql://", 1)
+                elif url.startswith("mysql+aiomysql://"):
+                    return url.replace("mysql+aiomysql://", "mysql+pymysql://", 1)
+                return url
 
-        db_user = values.get("DB_USER", "avnadmin")
-        db_pass = values.get("DB_PASSWORD", "")
-        db_host = values.get("DB_HOST", "localhost")
-        db_port = values.get("DB_PORT", 3306)
-        db_name = values.get("DB_NAME", "defaultdb")
-        
-        return f"mysql+pymysql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
+            db_user = values.get("DB_USER") or os.getenv("DB_USER", "avnadmin")
+            db_pass = values.get("DB_PASSWORD") or os.getenv("DB_PASSWORD", "")
+            db_host = values.get("DB_HOST") or os.getenv("DB_HOST", "tulsi-mart-08-zeelptl028-e556.e.aivencloud.com")
+            db_port = values.get("DB_PORT") or os.getenv("DB_PORT", 18925)
+            db_name = values.get("DB_NAME") or os.getenv("DB_NAME", "defaultdb")
+            if db_pass:
+                return f"mysql+pymysql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
+
+        # 3. If running locally from VS Code or local machine, connect to SQLite3
+        if v and isinstance(v, str) and v.strip() and v.strip().startswith("sqlite"):
+            return v.strip()
+
+        return "sqlite:///./tulsimart.db"
 
     # Production-Safe Connection Pool Settings
     DB_POOL_SIZE: int = 10
@@ -105,3 +116,5 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+

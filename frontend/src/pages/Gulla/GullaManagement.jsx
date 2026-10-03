@@ -158,7 +158,7 @@ export const GullaManagement = () => {
     try {
       setRefreshing(true);
       const res = await gullaApi.getGullaSummary(dateToFetch ? { date: dateToFetch } : {});
-      const data = res.data || {};
+      const data = res?.data?.data || res?.data || {};
       setSummary({
         opening_float: parseFloat(data.opening_float) || 0,
         cash_in_manual: parseFloat(data.manual_cash_in) || 0,
@@ -174,7 +174,7 @@ export const GullaManagement = () => {
         total_cash_out: parseFloat(data.total_cash_outflow) || 0,
         net_cash_in_gulla: parseFloat(data.net_cash_in_gulla) || 0,
         total_digital: parseFloat(data.digital_sales?.total_digital) || 0,
-        entries: data.recent_entries || data.entries || [],
+        entries: data.entries || data.recent_entries || [],
         cash_tender_logs: data.cash_tender_logs || [],
         notes_and_coins_summary: data.notes_and_coins_summary || {}
       });
@@ -207,10 +207,13 @@ export const GullaManagement = () => {
       setExpenseCategories(extractList(expCatRes));
       setCustomers(extractList(custRes));
       setOrders(extractList(ordRes));
-      setHomeCashAmount(parseFloat(setRes.data?.home_cash_amount || 0));
-      setBankBalance(parseFloat(bankRes.data?.total_bank_balance || 0));
-      if (homeRes.data?.denominations_breakdown) {
-        setHomeVaultNotes(homeRes.data.denominations_breakdown);
+      const setData = setRes?.data?.data || setRes?.data || {};
+      const bankData = bankRes?.data?.data || bankRes?.data || {};
+      const homeData = homeRes?.data?.data || homeRes?.data || {};
+      setHomeCashAmount(parseFloat(setData.home_cash_amount || 0));
+      setBankBalance(parseFloat(bankData.total_bank_balance || 0));
+      if (homeData.denominations_breakdown) {
+        setHomeVaultNotes(homeData.denominations_breakdown);
       }
     } catch (err) {
       console.error(err);
@@ -226,12 +229,13 @@ export const GullaManagement = () => {
         custom_amount: eodCustomAmount ? parseFloat(eodCustomAmount) : undefined
       };
       const res = await gullaApi.eodSweep(payload);
-      showToast(res.data?.message || 'Day-End Cash Sweep to Home Safe successful!', 'success');
+      const resData = res?.data?.data || res?.data || {};
+      showToast(resData.message || res?.data?.message || 'Day-End Cash Sweep to Home Safe successful!', 'success');
       setIsEodModalOpen(false);
-      if (res.data?.home_cash_amount !== undefined) {
-        setHomeCashAmount(res.data.home_cash_amount);
+      if (resData.home_cash_amount !== undefined) {
+        setHomeCashAmount(resData.home_cash_amount);
       }
-      fetchGullaData();
+      fetchGullaData(selectedDate);
     } catch (err) {
       showToast(err.response?.data?.message || 'Failed to perform EOD Cash Sweep', 'error');
     } finally {
@@ -246,7 +250,8 @@ export const GullaManagement = () => {
     const calcPhysicalFromPython = async () => {
       try {
         const res = await gullaApi.calculateNotes({ denomination_counts: counts });
-        setTotalPhysicalCash(res.data?.total_amount || 0);
+        const resData = res?.data?.data || res?.data || {};
+        setTotalPhysicalCash(resData.total_amount || 0);
       } catch (err) {
         console.error(err);
       }
@@ -308,7 +313,8 @@ export const GullaManagement = () => {
     try {
       // Delegate calculation & notes string formatting to Python Backend API
       const res = await gullaApi.calculateNotes({ denomination_counts: updatedCounts });
-      const { total_amount, notes_summary } = res.data;
+      const resData = res?.data?.data || res?.data || {};
+      const { total_amount, notes_summary } = resData;
 
       setEntryFormData(prev => ({
         ...prev,
@@ -347,7 +353,8 @@ export const GullaManagement = () => {
 
     try {
       const res = await gullaApi.calculateNotes({ denomination_counts: newCounts });
-      const { total_amount, notes_summary } = res.data;
+      const resData = res?.data?.data || res?.data || {};
+      const { total_amount, notes_summary } = resData;
       setEntryFormData(prev => ({
         ...prev,
         amount: total_amount > 0 ? String(total_amount) : prev.amount,
@@ -362,11 +369,12 @@ export const GullaManagement = () => {
     try {
       setEodSweeping(true);
       const res = await gullaApi.eodSweep({ only_high_notes: true });
-      showToast(res.data?.message || '11:30 PM High-Notes Auto Sweep executed successfully!', 'success');
-      if (res.data?.home_cash_amount !== undefined) {
-        setHomeCashAmount(res.data.home_cash_amount);
+      const resData = res?.data?.data || res?.data || {};
+      showToast(resData.message || res?.data?.message || '11:30 PM High-Notes Auto Sweep executed successfully!', 'success');
+      if (resData.home_cash_amount !== undefined) {
+        setHomeCashAmount(resData.home_cash_amount);
       }
-      fetchGullaData();
+      fetchGullaData(selectedDate);
     } catch (err) {
       showToast(err.response?.data?.message || err.response?.data?.error || 'Failed to perform 11:30 PM Auto Sweep', 'error');
     } finally {
@@ -379,9 +387,10 @@ export const GullaManagement = () => {
     try {
       setTogglingAutoSweep(true);
       const res = await gullaApi.toggleAutoSweep({ enabled: newState });
+      const resData = res?.data?.data || res?.data || {};
       setAuto1130SweepEnabled(newState);
-      showToast(res.data?.message || `11:30 PM Automatic Money Withdraw System is now ${newState ? 'ON (Active)' : 'OFF (Disabled)'}.`, 'success');
-      fetchGullaData();
+      showToast(resData.message || res?.data?.message || `11:30 PM Automatic Money Withdraw System is now ${newState ? 'ON (Active)' : 'OFF (Disabled)'}.`, 'success');
+      fetchGullaData(selectedDate);
     } catch (err) {
       showToast(err.response?.data?.message || 'Failed to update auto sweep setting', 'error');
     } finally {
@@ -393,15 +402,16 @@ export const GullaManagement = () => {
     try {
       setHomeVaultLoading(true);
       const res = await homeCashApi.getHomeCashData();
-      setHomeVaultHistory(res.data?.history || []);
-      if (res.data?.home_cash_amount !== undefined) {
-        setHomeCashAmount(res.data.home_cash_amount);
+      const resData = res?.data?.data || res?.data || {};
+      setHomeVaultHistory(resData.history || extractList(res) || []);
+      if (resData.home_cash_amount !== undefined) {
+        setHomeCashAmount(resData.home_cash_amount);
       }
-      if (res.data?.auto_1130_sweep_enabled !== undefined) {
-        setAuto1130SweepEnabled(res.data.auto_1130_sweep_enabled);
+      if (resData.auto_1130_sweep_enabled !== undefined) {
+        setAuto1130SweepEnabled(resData.auto_1130_sweep_enabled);
       }
-      if (res.data?.denominations_breakdown) {
-        setHomeVaultNotes(res.data.denominations_breakdown);
+      if (resData.denominations_breakdown) {
+        setHomeVaultNotes(resData.denominations_breakdown);
       }
       setIsHomeVaultModalOpen(true);
     } catch (err) {
@@ -418,8 +428,9 @@ export const GullaManagement = () => {
 
     try {
       const res = await gullaApi.calculateNotes({ denomination_counts: updatedCounts });
-      if (res.data?.total_amount > 0) {
-        setVaultFormAmount(String(res.data.total_amount));
+      const resData = res?.data?.data || res?.data || {};
+      if (resData.total_amount > 0) {
+        setVaultFormAmount(String(resData.total_amount));
       }
     } catch (err) {
       console.error(err);
@@ -455,14 +466,15 @@ export const GullaManagement = () => {
       setVaultFormNoteCounts({ 500: '', 200: '', 100: '', 50: '', 20: '', 10: '', 5: '', 2: '', 1: '' });
 
       const res = await homeCashApi.getHomeCashData();
-      setHomeVaultHistory(res.data?.history || []);
-      if (res.data?.home_cash_amount !== undefined) {
-        setHomeCashAmount(res.data.home_cash_amount);
+      const resData = res?.data?.data || res?.data || {};
+      setHomeVaultHistory(resData.history || extractList(res) || []);
+      if (resData.home_cash_amount !== undefined) {
+        setHomeCashAmount(resData.home_cash_amount);
       }
-      if (res.data?.denominations_breakdown) {
-        setHomeVaultNotes(res.data.denominations_breakdown);
+      if (resData.denominations_breakdown) {
+        setHomeVaultNotes(resData.denominations_breakdown);
       }
-      fetchGullaData();
+      fetchGullaData(selectedDate);
     } catch (err) {
       showToast(err.response?.data?.detail || err.response?.data?.message || 'Failed to record Home Safe Vault transaction', 'error');
     } finally {

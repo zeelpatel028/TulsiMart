@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
@@ -6,28 +6,25 @@ import { Modal } from '../../components/common/Modal';
 import { SearchInput, Pagination, ConfirmDialog, EmptyState } from '../../components/common/UiHelpers';
 import { 
   Users, 
+  UserCheck, 
   Plus, 
   Phone, 
   Mail, 
   MapPin, 
   ShoppingBag, 
-  IndianRupee, 
-  Ban, 
-  CheckCircle, 
-  Star, 
-  Clock, 
   Eye, 
-  Sparkles,
-  MessageSquareQuote,
-  Wallet,
-  CreditCard,
-  Receipt,
-  CheckCheck,
-  Calculator,
-  LayoutGrid,
-  List
+  Edit2, 
+  Trash2, 
+  ShieldAlert, 
+  Wallet, 
+  Receipt, 
+  Calculator, 
+  LayoutGrid, 
+  List, 
+  RefreshCw, 
+  AlertCircle
 } from 'lucide-react';
-import { customersApi } from '../../api';
+import { customerApi } from '../../services/customerApi';
 import { extractList } from '../../utils/apiHelpers';
 import { useNotification } from '../../context/NotificationContext';
 import useDebounce from '../../hooks/useDebounce';
@@ -35,48 +32,231 @@ import useDebounce from '../../hooks/useDebounce';
 export const CustomerList = () => {
   const { showToast } = useNotification();
 
+  // Primary Data State
   const [customers, setCustomers] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [viewMode, setViewMode] = useState('table');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+  // Filters & Search
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL'); // ALL, ACTIVE, BLOCKED
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' (Image matching Bill Page style) or 'table'
   const debouncedSearch = useDebounce(search, 350);
 
-  // Modals
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [customerOrders, setCustomerOrders] = useState([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [submittingForm, setSubmittingForm] = useState(false);
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
-  // Khata Payment Modal State
-  const [isKhataModalOpen, setIsKhataModalOpen] = useState(false);
+  // Modals State
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [historyData, setHistoryData] = useState({ orders: [], stats: null, total_orders: 0 });
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  // Add / Edit Form Modal
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    address: '',
+    city: 'Mumbai',
+    pincode: '',
+    notes: '',
+  });
+
+  // Khata Payment Modal
+  const [isKhataOpen, setIsKhataOpen] = useState(false);
   const [khataCustomer, setKhataCustomer] = useState(null);
   const [khataForm, setKhataForm] = useState({
     amount: '',
     cash_tendered: '',
     payment_method: 'CASH',
-    notes: 'Khata Balance Cleared',
+    notes: 'Khata Payment',
     order_id: null,
   });
   const [submittingKhata, setSubmittingKhata] = useState(false);
-
-  // Note Denomination Counter for Khata Customer Payment
   const [khataNoteCounts, setKhataNoteCounts] = useState({ 500: '', 200: '', 100: '', 50: '', 20: '', 10: '', 5: '', 1: '' });
 
-  const autoCalculateDenominations = (amount) => {
-    let remaining = Math.max(0, Math.round(Number(amount) || 0));
-    const denoms = [500, 200, 100, 50, 20, 10, 5, 1];
-    const breakdown = {};
-    for (const d of denoms) {
-      if (remaining >= d) {
-        const count = Math.floor(remaining / d);
-        breakdown[d] = count;
-        remaining = remaining % d;
+  // Delete Dialog State
+  const [deletingCustomer, setDeletingCustomer] = useState(null);
+  const [submittingDelete, setSubmittingDelete] = useState(false);
+
+  // Load Customers from Backend API
+  const loadCustomers = useCallback(async (signal) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = {
+        page,
+        page_size: 20,
+        search: debouncedSearch || undefined,
+        status: statusFilter !== 'ALL' ? statusFilter : undefined
+      };
+      const res = await customerApi.getCustomers(params, { signal });
+      const list = extractList(res);
+      setCustomers(list);
+
+      const pagMeta = res.data?.pagination || res.pagination;
+      const total = pagMeta?.total || pagMeta?.total_items || list.length;
+      const totalP = pagMeta?.total_pages || Math.ceil(total / 20) || 1;
+
+      setTotalItems(total);
+      setTotalPages(totalP);
+    } catch (err) {
+      if (err?.name === 'CanceledError' || err?.name === 'AbortError' || err?.code === 'ERR_CANCELED') {
+        return;
       }
+      console.error('Error fetching customers:', err);
+      setError('Failed to load customer records from database.');
+    } finally {
+      setLoading(false);
     }
-    return breakdown;
+  }, [page, debouncedSearch, statusFilter]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    loadCustomers(controller.signal);
+    return () => {
+      controller.abort();
+    };
+  }, [loadCustomers]);
+
+  // Handlers for search & filters
+  const handleSearchChange = (val) => {
+    setSearch(val);
+    setPage(1);
+  };
+
+  const handleStatusFilterChange = (val) => {
+    setStatusFilter(val);
+    setPage(1);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      phone: '',
+      email: '',
+      address: '',
+      city: 'Mumbai',
+      pincode: '',
+      notes: '',
+    });
+    setEditingCustomer(null);
+  };
+
+  const handleOpenAddModal = () => {
+    resetForm();
+    setIsFormOpen(true);
+  };
+
+  const handleOpenEditModal = (cust) => {
+    setEditingCustomer(cust);
+    setFormData({
+      name: cust.name || '',
+      phone: cust.phone || '',
+      email: cust.email || '',
+      address: cust.address || '',
+      city: cust.city || 'Mumbai',
+      pincode: cust.pincode || '',
+      notes: cust.notes || '',
+    });
+    setIsFormOpen(true);
+  };
+
+  // Save Customer (Create or Update)
+  const handleSaveCustomer = async (e) => {
+    e.preventDefault();
+    if (!formData.name.trim() || !formData.phone.trim()) {
+      showToast('Name and Phone number are required', 'error');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      if (editingCustomer) {
+        await customerApi.updateCustomer(editingCustomer.id, formData);
+        showToast(`Customer "${formData.name}" updated successfully`, 'success');
+      } else {
+        await customerApi.createCustomer(formData);
+        showToast(`Customer "${formData.name}" created successfully`, 'success');
+      }
+      setIsFormOpen(false);
+      resetForm();
+      loadCustomers();
+    } catch (err) {
+      const errMsg = err.response?.data?.detail || err.response?.data?.message || 'Failed to save customer record';
+      showToast(errMsg, 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Toggle Block Status
+  const handleToggleBlock = async (cust) => {
+    try {
+      await customerApi.toggleCustomerBlock(cust.id);
+      const action = cust.status === 'BLOCKED' ? 'unblocked' : 'blocked';
+      showToast(`Customer "${cust.name}" ${action} successfully`, 'success');
+      loadCustomers();
+    } catch (err) {
+      showToast('Failed to change customer status', 'error');
+    }
+  };
+
+  // Delete Customer
+  const handleDeleteCustomer = async () => {
+    if (!deletingCustomer) return;
+    setSubmittingDelete(true);
+    try {
+      await customerApi.deleteCustomer(deletingCustomer.id);
+      showToast(`Customer "${deletingCustomer.name}" deleted successfully`, 'success');
+      setDeletingCustomer(null);
+      loadCustomers();
+    } catch (err) {
+      const errMsg = err.response?.data?.detail || err.response?.data?.message || 'Failed to delete customer';
+      showToast(errMsg, 'error');
+    } finally {
+      setSubmittingDelete(false);
+    }
+  };
+
+  // View Customer Profile & Purchase History
+  const handleOpenProfile = async (cust) => {
+    setSelectedCustomer(cust);
+    setLoadingHistory(true);
+    setHistoryData({ orders: [], stats: null, total_orders: 0 });
+    try {
+      const res = await customerApi.getCustomerHistory(cust.id, { page: 1, limit: 10 });
+      const data = res.data?.data || res.data || {};
+      setHistoryData({
+        orders: data.orders || [],
+        stats: data.stats || null,
+        total_orders: data.total_orders || 0
+      });
+    } catch (err) {
+      console.error('Error fetching purchase history:', err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  // Khata Payment Modal Handlers
+  const handleOpenKhata = (cust) => {
+    setKhataCustomer(cust);
+    const dueAmount = cust.outstanding_balance || cust.pending_payments || 0;
+    setKhataForm({
+      amount: dueAmount > 0 ? String(dueAmount) : '',
+      cash_tendered: '',
+      payment_method: 'CASH',
+      notes: 'Khata Payment',
+      order_id: null,
+    });
+    setKhataNoteCounts({ 500: '', 200: '', 100: '', 50: '', 20: '', 10: '', 5: '', 1: '' });
+    setIsKhataOpen(true);
   };
 
   const getDenomBreakdownText = (counts) => {
@@ -103,477 +283,494 @@ export const CustomerList = () => {
     setKhataForm(prev => ({
       ...prev,
       cash_tendered: newTotal > 0 ? String(newTotal) : prev.cash_tendered,
+      amount: prev.amount || (newTotal > 0 ? String(newTotal) : prev.amount),
       notes: noteText ? `Khata Payment (Notes: ${noteText})` : prev.notes
     }));
   };
 
-  // Add customer state
-  const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    email: '',
-    address: '',
-    city: 'Mumbai',
-    pincode: '',
-    notes: '',
-  });
-
-  useEffect(() => {
-    const controller = new AbortController();
-    loadCustomers(controller.signal);
-    return () => {
-      controller.abort();
-    };
-  }, [debouncedSearch, statusFilter]);
-
-  const loadCustomers = async (signal) => {
-    try {
-      setLoading(true);
-      const res = await customersApi.getCustomers(
-        {
-          search: debouncedSearch,
-          status: statusFilter || undefined
-        },
-        { signal }
-      );
-      setCustomers(extractList(res));
-    } catch (err) {
-      if (err.name !== 'CanceledError' && err.name !== 'AbortError') {
-        console.error(err);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOpenProfile = async (c) => {
-    setSelectedCustomer(c);
-    try {
-      setLoadingHistory(true);
-      const res = await customersApi.getCustomerHistory(c.id);
-      const orders = extractList(res.data?.data?.orders || res.data?.orders || res.data?.data || res.data);
-      setCustomerOrders(orders);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoadingHistory(false);
-    }
-  };
-
-  const handleOpenKhataModal = (customer, order = null) => {
-    const initialAmt = order ? order.total_amount : (customer.pending_payments || 0);
-    const amtStr = initialAmt ? String(initialAmt) : '';
-    setKhataCustomer(customer);
-    setKhataForm({
-      amount: amtStr,
-      cash_tendered: amtStr,
-      payment_method: 'CASH',
-      notes: order ? `Payment for Bill #${order.order_number}` : 'Khata Balance Payment',
-      order_id: order ? order.id : null,
-    });
-    setKhataNoteCounts({ 500: '', 200: '', 100: '', 50: '', 20: '', 10: '', 5: '', 1: '' });
-    setIsKhataModalOpen(true);
-  };
-
-  const handleRecordKhataPayment = async (e) => {
-    if (e) e.preventDefault();
-    const amtVal = parseFloat(khataForm.amount);
-    if (!khataForm.amount || isNaN(amtVal) || amtVal <= 0) {
+  const handleRecordKhata = async (e) => {
+    e.preventDefault();
+    const amountNum = parseFloat(khataForm.amount);
+    if (!amountNum || amountNum <= 0) {
       showToast('Please enter a valid payment amount', 'error');
       return;
     }
 
-    const tenderedVal = khataForm.payment_method === 'CASH'
-      ? (parseFloat(khataForm.cash_tendered) || amtVal)
-      : amtVal;
-
-    if (khataForm.payment_method === 'CASH' && tenderedVal < amtVal) {
-      showToast(`Tendered cash (₹${tenderedVal}) is less than payment amount (₹${amtVal})`, 'warning');
-      return;
-    }
-
-    const changeVal = khataForm.payment_method === 'CASH' ? Math.max(0, tenderedVal - amtVal) : 0;
-    const changeNotesObj = changeVal > 0 ? autoCalculateDenominations(changeVal) : null;
-
+    setSubmittingKhata(true);
     try {
-      setSubmittingKhata(true);
-      const res = await customersApi.recordKhataPayment(khataCustomer.id, {
-        amount: amtVal,
-        cash_tendered: khataForm.payment_method === 'CASH' ? tenderedVal : null,
-        change_returned: changeVal,
+      const res = await customerApi.recordKhataPayment(khataCustomer.id, {
+        amount: amountNum,
         payment_method: khataForm.payment_method,
         notes: khataForm.notes,
-        denomination_counts: khataForm.payment_method === 'CASH' ? khataNoteCounts : undefined,
-        change_notes: changeNotesObj,
-        order_id: khataForm.order_id || undefined,
+        order_id: khataForm.order_id || null
       });
-
-      const newPending = res.data?.data?.new_pending_payments ?? res.data?.new_pending_payments ?? 0;
-      showToast(res.data?.message || res.data?.data?.message || 'Khata payment recorded successfully!', 'success');
-      setIsKhataModalOpen(false);
+      showToast(res.data?.message || `Recorded payment of ₹${amountNum.toFixed(2)} for ${khataCustomer.name}`, 'success');
+      setIsKhataOpen(false);
+      setKhataCustomer(null);
       loadCustomers();
-
-      // If customer profile is currently open, refresh their ledger
-      if (selectedCustomer && selectedCustomer.id === khataCustomer.id) {
-        const historyRes = await customersApi.getCustomerHistory(khataCustomer.id);
-        const orders = extractList(historyRes.data?.data?.orders || historyRes.data?.orders || historyRes.data?.data || historyRes.data);
-        setCustomerOrders(orders);
-        setSelectedCustomer({
-          ...selectedCustomer,
-          pending_payments: newPending
-        });
-      }
     } catch (err) {
-      showToast(err.response?.data?.error || 'Failed to record khata payment', 'error');
+      showToast('Failed to record Khata payment', 'error');
     } finally {
       setSubmittingKhata(false);
     }
   };
 
-  const handleToggleBillStatus = async (customer, order, targetStatus) => {
-    try {
-      const res = await customersApi.toggleBillPaymentStatus(customer.id, {
-        order_id: order.id,
-        target_status: targetStatus
-      });
-      const newPending = res.data?.data?.new_pending_payments ?? res.data?.new_pending_payments ?? customer.pending_payments;
-      showToast(res.data?.message || res.data?.data?.message || `Bill status updated to ${targetStatus}!`, 'success');
-      
-      // Refresh customer history and main customer list
-      const historyRes = await customersApi.getCustomerHistory(customer.id);
-      const orders = extractList(historyRes.data?.data?.orders || historyRes.data?.orders || historyRes.data?.data || historyRes.data);
-      setCustomerOrders(orders);
-      
-      if (selectedCustomer && selectedCustomer.id === customer.id) {
-        setSelectedCustomer({
-          ...selectedCustomer,
-          pending_payments: newPending
-        });
-      }
-      loadCustomers();
-    } catch (err) {
-      console.error(err);
-      showToast(err.response?.data?.error || 'Failed to change bill payment status', 'error');
-    }
+  const formatCurrency = (val) => {
+    const num = Number(val) || 0;
+    return `₹${num.toFixed(2)}`;
   };
 
-  const handleToggleBlock = async (c) => {
-    try {
-      await customersApi.toggleCustomerBlock(c.id);
-      showToast(`Customer status updated to ${c.status === 'ACTIVE' ? 'BLOCKED' : 'ACTIVE'}`, 'info');
-      loadCustomers();
-      if (selectedCustomer && selectedCustomer.id === c.id) {
-        setSelectedCustomer({ ...selectedCustomer, status: c.status === 'ACTIVE' ? 'BLOCKED' : 'ACTIVE' });
-      }
-    } catch (err) {
-      showToast('Failed to update status', 'error');
-    }
-  };
-
-  const handleCreateCustomer = async (e) => {
-    e.preventDefault();
-    try {
-      setSubmittingForm(true);
-      await customersApi.createCustomer(formData);
-      showToast('New customer added successfully!', 'success');
-      setIsFormOpen(false);
-      setFormData({ name: '', phone: '', email: '', address: '', city: 'Mumbai', pincode: '', notes: '' });
-      loadCustomers();
-    } catch (err) {
-      showToast(err.response?.data?.phone?.[0] || 'Failed to create customer', 'error');
-    } finally {
-      setSubmittingForm(false);
-    }
-  };
+  const totalKhataDue = customers.reduce((acc, c) => acc + (Number(c.outstanding_balance || c.pending_payments) || 0), 0);
 
   return (
-    <div className="space-y-6 font-sans">
-      {/* 🌟 Tulsi Mart Top Header Banner - Full Width Edge-to-Edge Background */}
-      <div className="-mx-3 -mt-3 sm:-mx-5 sm:-mt-5 lg:-mx-8 lg:-mt-8 mb-4 bg-gradient-to-r from-teal-50/90 via-emerald-50/60 to-teal-50/90 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 text-slate-800 dark:text-white p-3.5 sm:p-5 lg:px-8 border-b border-teal-200/70 dark:border-slate-800 relative overflow-hidden shadow-2xs">
-        {/* Subtle Decorative Background Glow */}
+    <div className="space-y-6 font-sans text-slate-800 dark:text-slate-100 selection:bg-[#80cbc4] selection:text-[#004d40]">
+      {/* 🌟 Top Header Banner - Edge-to-Edge matching Bill Management Page */}
+      <div className="-mx-3 -mt-3 sm:-mx-5 sm:-mt-5 lg:-mx-8 lg:-mt-8 mb-6 bg-gradient-to-r from-teal-50/90 via-emerald-50/60 to-teal-50/90 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 text-slate-800 dark:text-white p-3.5 sm:p-5 lg:px-8 border-b border-teal-200/70 dark:border-slate-800 relative overflow-hidden shadow-2xs">
         <div className="absolute -top-12 -left-12 w-40 h-40 bg-teal-300/20 dark:bg-teal-900/10 rounded-full blur-2xl pointer-events-none" />
 
-        {/* Banner Grid Layout */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 relative z-10">
-          {/* Left: Icon & Title with Status Badge */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
           <div className="flex items-center gap-3 sm:gap-4 min-w-0">
             <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-[#00796b] to-[#004d40] text-white p-2.5 sm:p-3 border border-[#004d40]/20 flex items-center justify-center shrink-0 shadow-md shadow-teal-900/10">
               <Users className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
             </div>
 
             <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white font-heading">
-                  Customer <span className="text-[#00796b] dark:text-[#80cbc4]">(Khata)</span>
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight font-heading">
+                  Customer Directory
                 </h1>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-teal-100/90 text-[#00695c] dark:bg-teal-950/80 dark:text-teal-300 border border-teal-200 dark:border-teal-800/50 shadow-2xs">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Live Directory
-                </span>
+                <Badge variant="teal" size="sm" className="font-extrabold uppercase tracking-wide">
+                  Real DB Connected
+                </Badge>
               </div>
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                Manage customer accounts, track Khata credit dues, receive payments, and view ledger history
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-0.5 font-medium truncate">
+                Manage grocery customer profiles, khata balance statements & purchase histories
               </p>
             </div>
           </div>
 
-          {/* Right Action Buttons */}
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => setIsFormOpen(true)}
-              className="px-4 py-2 text-xs sm:text-sm font-bold rounded-xl bg-[#00796b] hover:bg-[#004d40] text-white flex items-center justify-center gap-2 shadow-2xs hover:shadow-xs transition-all cursor-pointer"
+          <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/70 dark:bg-slate-800/80 border border-teal-200/60 dark:border-slate-700 shadow-2xs text-xs font-bold">
+              <UserCheck className="w-4 h-4 text-[#00796b] dark:text-[#80cbc4]" />
+              <span className="text-slate-600 dark:text-slate-400">Total Records:</span>
+              <span className="text-slate-900 dark:text-white font-extrabold">{totalItems}</span>
+            </div>
+
+            <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/70 dark:bg-slate-800/80 border border-teal-200/60 dark:border-slate-700 shadow-2xs text-xs font-bold">
+              <Wallet className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              <span className="text-slate-600 dark:text-slate-400">Total Khata Due:</span>
+              <span className="text-amber-700 dark:text-amber-400 font-extrabold">{formatCurrency(totalKhataDue)}</span>
+            </div>
+
+            <Button
+              variant="teal"
+              onClick={handleOpenAddModal}
+              className="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer bg-[#00796b] hover:bg-[#004d40] text-white"
             >
               <Plus className="w-4 h-4" />
-              <span>Add New Customer</span>
-            </button>
+              <span>New Customer</span>
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* Search & Status Filter */}
-      <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="w-full sm:w-80">
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder="Search customers by name, phone..."
+      {/* 🔍 Controls & Search Bar Container matching OrderList */}
+      <Card variant="default" className="p-4 sm:p-5 border-teal-200/80 dark:border-slate-800 shadow-2xs">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4">
+          
+          {/* Search Input */}
+          <div className="flex-1 min-w-0">
+            <SearchInput
+              value={search}
+              onChange={handleSearchChange}
+              placeholder="Search Customer Name, Phone Number, Email, City..."
+              className="w-full"
+            />
+          </div>
+
+          {/* Status Tabs & Controls matching Bill Page */}
+          <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 flex-wrap">
+            
+            {/* Status Tabs */}
+            <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-teal-200/60 dark:border-slate-700">
+              <button
+                onClick={() => handleStatusFilterChange('ALL')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  statusFilter === 'ALL'
+                    ? 'bg-[#00796b] text-white shadow-2xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                }`}
+              >
+                All Customers
+              </button>
+              <button
+                onClick={() => handleStatusFilterChange('ACTIVE')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  statusFilter === 'ACTIVE'
+                    ? 'bg-[#00796b] text-white shadow-2xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                }`}
+              >
+                Active
+              </button>
+              <button
+                onClick={() => handleStatusFilterChange('BLOCKED')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  statusFilter === 'BLOCKED'
+                    ? 'bg-rose-600 text-white shadow-2xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                }`}
+              >
+                Blocked
+              </button>
+            </div>
+
+            {/* View Mode Toggle (Grid vs Table) */}
+            <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-teal-200/60 dark:border-slate-700">
+              <button
+                onClick={() => setViewMode('grid')}
+                title="Grid View (Image matching Bill Page)"
+                className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  viewMode === 'grid'
+                    ? 'bg-[#00796b] text-white shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
+                }`}
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('table')}
+                title="Table View"
+                className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  viewMode === 'table'
+                    ? 'bg-[#00796b] text-white shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
+                }`}
+              >
+                <List className="w-4 h-4" />
+              </button>
+            </div>
+
+            <button
+              onClick={() => loadCustomers()}
+              title="Refresh Customer Data"
+              className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-teal-200/80 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-teal-50 dark:hover:bg-slate-700 hover:text-[#00796b] dark:hover:text-[#80cbc4] transition-all cursor-pointer"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-[#00796b]' : ''}`} />
+            </button>
+          </div>
+
+        </div>
+      </Card>
+
+      {/* ⚠️ API Error Alert */}
+      {error && (
+        <Card variant="danger" className="p-4 border-rose-200 dark:border-rose-900/50 bg-rose-50/70 dark:bg-rose-950/20 text-rose-800 dark:text-rose-300 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+            <span className="text-xs sm:text-sm font-semibold">{error}</span>
+          </div>
+          <Button variant="danger" size="xs" onClick={() => loadCustomers()}>
+            Retry
+          </Button>
+        </Card>
+      )}
+
+      {/* 📊 Customer List Section */}
+      {loading && customers.length === 0 ? (
+        <div className="p-12 text-center text-slate-400">
+          <div className="w-8 h-8 rounded-full border-2 border-[#00796b] border-t-transparent animate-spin mx-auto mb-2" />
+          <p className="text-xs font-bold text-slate-600 dark:text-slate-400">Loading Customer Records...</p>
+        </div>
+      ) : customers.length === 0 ? (
+        <Card variant="default" className="p-8 border-teal-200/80 dark:border-slate-800">
+          <EmptyState
+            icon={Users}
+            title={search ? 'No matching customers' : 'No customers registered'}
+            description={search ? `No customer records match "${search}".` : 'Start adding customers to manage their profiles, order histories, and Khata statements.'}
+            actionLabel={search ? 'Clear Search' : 'Add First Customer'}
+            onAction={search ? () => setSearch('') : handleOpenAddModal}
+            actionIcon={search ? RefreshCw : Plus}
           />
-        </div>
-
-        <div className="flex items-center gap-1.5 text-xs w-full sm:w-auto overflow-x-auto no-scrollbar touch-pan pb-0.5">
-          <button
-            onClick={() => setStatusFilter('')}
-            className={`px-3.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer shrink-0 ${
-              statusFilter === '' 
-                ? 'bg-[#00796b] text-white shadow-2xs' 
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
-            }`}
-          >
-            All ({customers.length})
-          </button>
-          <button
-            onClick={() => setStatusFilter('ACTIVE')}
-            className={`px-3.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer shrink-0 ${
-              statusFilter === 'ACTIVE' 
-                ? 'bg-[#00796b] text-white shadow-2xs' 
-                : 'bg-slate-100 dark:bg-slate-800 text-[#00695c] dark:text-[#80cbc4] hover:bg-teal-50 dark:hover:bg-slate-700'
-            }`}
-          >
-            Active
-          </button>
-          <button
-            onClick={() => setStatusFilter('BLOCKED')}
-            className={`px-3.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer shrink-0 ${
-              statusFilter === 'BLOCKED' 
-                ? 'bg-rose-600 text-white shadow-2xs' 
-                : 'bg-slate-100 dark:bg-slate-800 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40'
-            }`}
-          >
-            Blocked
-          </button>
-        </div>
-
-        {/* View Switcher: Grid vs Table */}
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700 shrink-0">
-          <button
-            onClick={() => setViewMode('grid')}
-            title="Grid View (Cards)"
-            className={`p-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              viewMode === 'grid'
-                ? 'bg-white dark:bg-slate-700 text-[#00796b] dark:text-[#80cbc4] shadow-xs font-bold'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-            }`}
-          >
-            <LayoutGrid className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setViewMode('table')}
-            title="Table View (List)"
-            className={`p-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              viewMode === 'table'
-                ? 'bg-white dark:bg-slate-700 text-[#00796b] dark:text-[#80cbc4] shadow-xs font-bold'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-            }`}
-          >
-            <List className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Customer Cards Grid */}
-      {customers.length === 0 ? (
-        <EmptyState
-          icon={Users}
-          title="No Customers Found"
-          description={
-            search || statusFilter !== ''
-              ? 'No customers match your search query or status filter. Try clearing filters.'
-              : 'Your customer directory is empty. Customers will be auto-saved during POS checkout, or you can add them manually.'
-          }
-          variant="card"
-          actionLabel="Add Customer"
-          onAction={() => setIsFormOpen(true)}
-          actionIcon={Plus}
-          secondaryActionLabel={search || statusFilter !== '' ? 'Reset Filters' : undefined}
-          onSecondaryAction={() => {
-            setSearch('');
-            setStatusFilter('');
-          }}
-        />
+        </Card>
       ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+        /* 🌟 Card Grid View - Exact match to Bill Management UI & User Screenshot */
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-4">
           {customers.map((c) => {
-            const hasKhataDue = Number(c.pending_payments || 0) > 0;
+            const pendingBal = Number(c.outstanding_balance || c.pending_payments) || 0;
+            const initials = c.name ? c.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'CU';
+            const isBlocked = c.status === 'BLOCKED';
 
             return (
               <div
                 key={c.id}
-                className={`bg-white dark:bg-slate-900 rounded-3xl border p-5 hover:shadow-lg transition-all duration-200 flex flex-col justify-between ${
-                  hasKhataDue 
-                    ? 'border-rose-300 dark:border-rose-900/60 shadow-xs' 
-                    : 'border-slate-200/80 dark:border-slate-800'
-                }`}
+                className="bg-white dark:bg-slate-900 rounded-2xl border border-teal-200/80 dark:border-slate-800 p-4 space-y-3 shadow-2xs hover:shadow-md hover:border-[#00796b] dark:hover:border-[#80cbc4] transition-all flex flex-col justify-between"
               >
-                <div>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-2xl bg-[#00695C]/10 dark:bg-[#4DB6AC]/20 text-[#00695C] dark:text-[#4DB6AC] flex items-center justify-center font-bold text-sm">
-                        {c.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-bold text-[#263238] dark:text-slate-100 leading-tight">{c.name}</h3>
-                        <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">{c.phone}</span>
-                      </div>
-                    </div>
-
-                    <Badge variant={c.status === 'ACTIVE' ? 'success' : 'danger'} size="xs">
-                      {c.status}
-                    </Badge>
-                  </div>
-
-                  {/* Address / Location */}
-                  {c.address && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-3 flex items-start gap-1.5 line-clamp-2">
-                      <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
-                      {c.address}, {c.city}
-                    </p>
-                  )}
-
-                  {/* Financial & Khata Metrics */}
-                  <div className="grid grid-cols-3 gap-1.5 mt-4 p-3 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-100 dark:border-slate-700 text-xs">
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase">Orders</p>
-                      <p className="text-xs font-black text-[#263238] dark:text-slate-100">{c.total_orders || 0}</p>
+                {/* Top Header: Customer Avatar, Name, ID & Status Badge */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-sm shrink-0 border shadow-2xs ${
+                      isBlocked
+                        ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border-rose-200'
+                        : 'bg-teal-100/90 text-[#00796b] dark:bg-teal-950/90 dark:text-[#80cbc4] border-teal-200/80'
+                    }`}>
+                      {initials}
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase">Spent</p>
-                      <p className="text-xs font-black text-emerald-700 dark:text-emerald-400">₹{Number(c.total_spent || 0).toFixed(0)}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase">Khata Due</p>
-                      <p className={`text-xs font-black ${hasKhataDue ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400 dark:text-slate-500'}`}>
-                        ₹{Number(c.pending_payments || 0).toFixed(0)}
+                      <h3 className="font-black text-base text-slate-900 dark:text-slate-100 tracking-tight leading-snug">
+                        {c.name}
+                      </h3>
+                      <p className="font-mono text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                        ID: <span className="font-semibold">#{c.id}</span>
                       </p>
                     </div>
                   </div>
+
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-2xs border ${
+                    isBlocked
+                      ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300 border-rose-200'
+                      : 'bg-teal-50 text-[#00796b] dark:bg-teal-950/80 dark:text-teal-300 border-teal-200/80'
+                  }`}>
+                    {c.status || 'ACTIVE'}
+                  </span>
                 </div>
 
-                {/* Actions */}
-                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                {/* Middle Body: Contact Details Container */}
+                <div className="bg-slate-50/80 dark:bg-slate-850 p-3 rounded-xl border border-teal-100/60 dark:border-slate-800 space-y-1.5 text-xs">
+                  <div className="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-200">
+                    <Phone className="w-3.5 h-3.5 text-[#00796b] dark:text-[#80cbc4] shrink-0" />
+                    <span className="font-mono">{c.phone}</span>
+                  </div>
+                  {c.email && (
+                    <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate">
+                      <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="truncate">{c.email}</span>
+                    </div>
+                  )}
+                  {c.address && (
+                    <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate">
+                      <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="truncate">{c.address}, {c.city || 'Mumbai'}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Metrics Row: Total Spent & Khata Due (Matching Bill Page Typography) */}
+                <div className="flex items-center justify-between text-xs py-2 border-t border-b border-teal-100/60 dark:border-slate-800">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
+                      TOTAL SPENT
+                    </span>
+                    <span className="text-base font-black text-slate-900 dark:text-slate-100 font-heading block">
+                      {formatCurrency(c.total_spent)}
+                    </span>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
+                      KHATA DUE
+                    </span>
+                    <span className={`text-base font-black font-heading block ${
+                      pendingBal > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-[#00796b] dark:text-[#80cbc4]'
+                    }`}>
+                      {formatCurrency(pendingBal)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Bottom Footer: Action Buttons (Exact Match to Screenshot & OrderList) */}
+                <div className="flex items-center justify-between pt-1 text-xs gap-2">
+                  {/* History / Details Button */}
                   <button
-                    onClick={() => handleToggleBlock(c)}
-                    className={`text-xs font-semibold flex items-center gap-1 cursor-pointer ${
-                      c.status === 'ACTIVE' ? 'text-slate-400 hover:text-rose-600' : 'text-emerald-600 hover:text-emerald-700'
-                    }`}
+                    onClick={() => handleOpenProfile(c)}
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-black bg-teal-50 text-[#00796b] dark:bg-slate-800 dark:text-[#80cbc4] border border-teal-200/70 dark:border-slate-700 hover:bg-teal-100 dark:hover:bg-slate-700 transition-all cursor-pointer flex items-center gap-1.5"
                   >
-                    <Ban className="w-3.5 h-3.5" /> {c.status === 'ACTIVE' ? 'Block' : 'Unblock'}
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>History</span>
                   </button>
 
-                  <div className="flex items-center gap-1.5">
-                    {hasKhataDue && (
-                      <Button 
-                        variant="primary" 
-                        size="sm" 
-                        icon={Wallet} 
-                        onClick={() => handleOpenKhataModal(c)}
-                        className="!bg-[#00695C] hover:!bg-[#004D40] !text-white text-xs py-1 px-2.5"
-                      >
-                        Pay Khata
-                      </Button>
-                    )}
-                    <Button variant="light" size="sm" icon={Eye} onClick={() => handleOpenProfile(c)}>
-                      Profile
-                    </Button>
-                  </div>
+                  {/* Pay / Khata Button */}
+                  <button
+                    onClick={() => handleOpenKhata(c)}
+                    className="px-4 py-1.5 rounded-xl text-xs font-black bg-[#00796b] text-white hover:bg-[#004d40] shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center gap-1.5 flex-1 justify-center"
+                  >
+                    <Wallet className="w-3.5 h-3.5" />
+                    <span>Pay</span>
+                  </button>
+
+                  {/* Edit Icon Button */}
+                  <button
+                    onClick={() => handleOpenEditModal(c)}
+                    title="Edit Customer"
+                    className="p-1.5 rounded-xl border border-teal-200/80 dark:border-slate-700 text-slate-600 hover:bg-teal-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+
+                  {/* Delete Icon Button */}
+                  <button
+                    onClick={() => setDeletingCustomer(c)}
+                    title="Delete Customer"
+                    className="p-1.5 rounded-xl border border-rose-200 dark:border-rose-900/50 text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             );
           })}
         </div>
       ) : (
-        /* TABLE VIEW */
-        <Card className="p-0 overflow-hidden">
-          <div className="overflow-x-auto max-h-[640px] overflow-y-auto custom-scrollbar touch-pan">
-            <table className="w-full min-w-[750px] text-left text-xs border-collapse">
-              <thead className="sticky top-0 z-10 bg-teal-50/80 dark:bg-slate-800 shadow-xs">
-                <tr className="bg-teal-50/80 dark:bg-slate-800 border-b border-teal-200/80 dark:border-slate-800 text-[#00695c] dark:text-teal-300 font-extrabold uppercase tracking-wider text-[11px] whitespace-nowrap">
-                  <th className="py-3.5 px-4">Customer Details</th>
-                  <th className="py-3.5 px-4">Address / City</th>
-                  <th className="py-3.5 px-4 text-center">Orders</th>
-                  <th className="py-3.5 px-4 text-right">Total Spent</th>
-                  <th className="py-3.5 px-4 text-right">Khata Credit Due</th>
-                  <th className="py-3.5 px-4 text-center">Status</th>
+        /* Table View */
+        <Card className="p-0 overflow-hidden border border-teal-200/80 dark:border-slate-800 rounded-2xl shadow-sm bg-white dark:bg-slate-900">
+          <div className="overflow-x-auto touch-pan">
+            <table className="w-full min-w-[840px] text-left text-xs border-collapse">
+              <thead className="bg-slate-100/90 dark:bg-slate-800/90 backdrop-blur-xs shadow-2xs">
+                <tr className="border-b border-teal-100 dark:border-slate-700/80 text-[#00796b] dark:text-[#80cbc4] font-black uppercase tracking-wider text-[11px] whitespace-nowrap">
+                  <th className="py-3.5 px-4">Customer</th>
+                  <th className="py-3.5 px-4">Contact Info</th>
+                  <th className="py-3.5 px-4">Address</th>
+                  <th className="py-3.5 px-4">Orders & Spent</th>
+                  <th className="py-3.5 px-4">Khata Balance</th>
+                  <th className="py-3.5 px-4">Status</th>
                   <th className="py-3.5 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+              <tbody className="divide-y divide-teal-50 dark:divide-slate-800/80 font-medium">
                 {customers.map((c) => {
-                  const hasKhataDue = Number(c.pending_payments || 0) > 0;
+                  const pendingBal = Number(c.outstanding_balance || c.pending_payments) || 0;
+                  const initials = c.name ? c.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'CU';
+                  const isBlocked = c.status === 'BLOCKED';
+
                   return (
-                    <tr key={c.id} className="hover:bg-teal-50/40 dark:hover:bg-slate-800/60 transition-colors whitespace-nowrap">
-                      <td className="py-3 px-4">
+                    <tr key={c.id} className="hover:bg-teal-50/40 dark:hover:bg-slate-800/60 transition-colors">
+                      <td className="py-3.5 px-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-[#00695C]/10 text-[#00695C] dark:text-[#4DB6AC] flex items-center justify-center font-bold text-xs shrink-0">
-                            {c.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                          <div className={`w-9 h-9 rounded-2xl flex items-center justify-center font-black text-xs shrink-0 shadow-2xs border ${
+                            isBlocked
+                              ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border-rose-200'
+                              : 'bg-teal-100/90 text-[#00796b] dark:bg-teal-950/90 dark:text-[#80cbc4] border-teal-200/80'
+                          }`}>
+                            {initials}
                           </div>
                           <div>
-                            <p className="font-bold text-slate-900 dark:text-slate-100">{c.name}</p>
-                            <p className="text-[11px] text-slate-500 font-mono">{c.phone}</p>
+                            <p className="font-extrabold text-slate-900 dark:text-slate-100 text-sm">{c.name}</p>
+                            <p className="text-[11px] text-slate-400 font-mono">ID: #{c.id}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-slate-600 dark:text-slate-300">
-                        {c.address ? `${c.address}, ${c.city}` : c.city || 'Mumbai'}
+
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200">
+                            <Phone className="w-3.5 h-3.5 text-[#00796b] shrink-0" />
+                            <span className="font-mono">{c.phone}</span>
+                          </div>
+                          {c.email && (
+                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium truncate max-w-[160px]">
+                              <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span className="truncate">{c.email}</span>
+                            </div>
+                          )}
+                        </div>
                       </td>
-                      <td className="py-3 px-4 text-center font-bold text-slate-900 dark:text-slate-100">
-                        {c.total_orders || 0}
+
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <div className="text-xs text-slate-700 dark:text-slate-300 truncate max-w-[180px]">
+                          {c.address || '—'}
+                        </div>
+                        <div className="text-[11px] text-slate-400 font-medium">
+                          {c.city || 'Mumbai'} {c.pincode ? `- ${c.pincode}` : ''}
+                        </div>
                       </td>
-                      <td className="py-3 px-4 text-right font-black text-emerald-600 dark:text-emerald-400 font-mono">
-                        ₹{Number(c.total_spent || 0).toFixed(2)}
+
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <div className="space-y-0.5">
+                          <div className="font-black text-slate-900 dark:text-white">
+                            {formatCurrency(c.total_spent)}
+                          </div>
+                          <div className="text-[11px] text-slate-500 flex items-center gap-1">
+                            <ShoppingBag className="w-3 h-3 text-slate-400" />
+                            <span>{c.total_orders || 0} Orders</span>
+                          </div>
+                        </div>
                       </td>
-                      <td className="py-3 px-4 text-right font-black font-mono">
-                        <span className={hasKhataDue ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400'}>
-                          ₹{Number(c.pending_payments || 0).toFixed(2)}
+
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        {pendingBal > 0 ? (
+                          <div className="inline-flex flex-col">
+                            <Badge variant="warning" size="xs" className="font-bold">
+                              Due: {formatCurrency(pendingBal)}
+                            </Badge>
+                            <button
+                              onClick={() => handleOpenKhata(c)}
+                              className="text-[10px] text-amber-700 dark:text-amber-400 hover:underline font-bold mt-1 text-left cursor-pointer"
+                            >
+                              Clear Balance
+                            </button>
+                          </div>
+                        ) : (
+                          <Badge variant="success" size="xs" className="font-semibold">
+                            Clear (₹0.00)
+                          </Badge>
+                        )}
+                      </td>
+
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                          isBlocked
+                            ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border border-rose-200'
+                            : 'bg-teal-100 text-[#00695c] dark:bg-teal-950 dark:text-teal-300 border border-teal-200'
+                        }`}>
+                          {c.status || 'ACTIVE'}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-center">
-                        <Badge variant={c.status === 'ACTIVE' ? 'success' : 'danger'} size="xs">
-                          {c.status}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4 text-right">
+
+                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
-                          {hasKhataDue && (
-                            <button
-                              onClick={() => handleOpenKhataModal(c)}
-                              className="px-2.5 py-1 text-xs font-bold text-white bg-[#00796b] hover:bg-[#004d40] rounded-lg shadow-2xs transition-colors cursor-pointer"
-                            >
-                              Pay Khata
-                            </button>
-                          )}
-                          <Button variant="light" size="xs" icon={Eye} onClick={() => handleOpenProfile(c)}>
-                            Profile
-                          </Button>
+                          <button
+                            onClick={() => handleOpenProfile(c)}
+                            title="View Purchase History"
+                            className="p-1.5 rounded-lg bg-teal-50 dark:bg-slate-800 text-[#00796b] dark:text-[#80cbc4] hover:bg-teal-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+
+                          <button
+                            onClick={() => handleOpenKhata(c)}
+                            title="Record Khata Payment"
+                            className="p-1.5 rounded-lg bg-amber-50 dark:bg-slate-800 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                          >
+                            <Wallet className="w-4 h-4" />
+                          </button>
+
+                          <button
+                            onClick={() => handleOpenEditModal(c)}
+                            title="Edit Customer"
+                            className="p-1.5 rounded-lg border border-teal-200/80 dark:border-slate-700 text-slate-600 hover:bg-teal-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+
+                          <button
+                            onClick={() => handleToggleBlock(c)}
+                            title={isBlocked ? 'Unblock Customer' : 'Block Customer'}
+                            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                              isBlocked
+                                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                : 'bg-rose-50 text-rose-700 hover:bg-rose-100'
+                            }`}
+                          >
+                            <ShieldAlert className="w-4 h-4" />
+                          </button>
+
+                          <button
+                            onClick={() => setDeletingCustomer(c)}
+                            title="Delete Customer"
+                            className="p-1.5 rounded-lg bg-rose-50 dark:bg-slate-800 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -585,551 +782,361 @@ export const CustomerList = () => {
         </Card>
       )}
 
-      {/* Customer Profile Modal with Purchase & Khata History */}
-      {selectedCustomer && (
-        <Modal
-          isOpen={!!selectedCustomer}
-          onClose={() => setSelectedCustomer(null)}
-          title={`Customer Profile — ${selectedCustomer.name}`}
-          subtitle="Purchase ledger, Khata credit dues, and verified store feedback"
-          maxWidth="max-w-3xl"
-          footer={
-            <div className="flex items-center justify-between w-full">
-              <button
-                onClick={() => handleToggleBlock(selectedCustomer)}
-                className="text-xs font-bold text-rose-600 hover:text-rose-700 hover:underline cursor-pointer"
-              >
-                {selectedCustomer.status === 'ACTIVE' ? '⚠️ Block Customer Account' : '✓ Unblock Customer Account'}
-              </button>
-              <Button variant="outline" size="sm" onClick={() => setSelectedCustomer(null)} className="font-bold">
-                Close
-              </Button>
-            </div>
-          }
-        >
-          <div className="space-y-4 text-xs font-sans">
-            {/* Khata Due Banner if pending balance exists */}
-            {Number(selectedCustomer.pending_payments || 0) > 0 ? (
-              <div className="p-4 bg-gradient-to-r from-rose-50 via-red-50 to-rose-50 dark:from-rose-950/50 dark:via-rose-900/40 dark:to-rose-950/50 border border-rose-200 dark:border-rose-800/70 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-rose-500 text-white flex items-center justify-center font-bold shrink-0 shadow-xs">
-                    <Wallet className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-extrabold uppercase tracking-wider text-rose-800 dark:text-rose-300 font-heading">
-                      Pending Khata (Credit) Due
-                    </p>
-                    <p className="text-xl font-black text-rose-700 dark:text-rose-300 font-heading tracking-tight">
-                      ₹{Number(selectedCustomer.pending_payments || 0).toFixed(2)}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleOpenKhataModal(selectedCustomer)}
-                  className="px-4 py-2 text-xs font-extrabold rounded-xl bg-[#00796b] hover:bg-[#004d40] text-white flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer self-start sm:self-auto"
-                >
-                  <Wallet className="w-3.5 h-3.5" />
-                  <span>Pay Khata Balance</span>
-                </button>
-              </div>
-            ) : (
-              <div className="p-3.5 bg-gradient-to-r from-teal-50/80 via-emerald-50/60 to-teal-50/80 dark:from-slate-850 dark:via-teal-950/40 dark:to-slate-850 border border-teal-200/80 dark:border-teal-800/50 rounded-2xl flex items-center justify-between gap-3 text-slate-800 dark:text-teal-200 shadow-2xs">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-500 text-white flex items-center justify-center shrink-0">
-                    <CheckCheck className="w-4 h-4 text-white" />
-                  </div>
-                  <span className="font-extrabold text-xs text-[#00695c] dark:text-teal-300">
-                    Khata Account Clear — No pending credit dues.
-                  </span>
-                </div>
-                <button
-                  onClick={() => handleOpenKhataModal(selectedCustomer)}
-                  className="px-3 py-1.5 text-xs font-bold rounded-xl border border-teal-200 dark:border-teal-700 bg-white/80 dark:bg-slate-800 text-[#00695c] dark:text-teal-300 hover:bg-teal-50 transition-colors cursor-pointer"
-                >
-                  Record Advance
-                </button>
-              </div>
-            )}
-
-            {/* Overview Card */}
-            <div className="p-4 bg-slate-50/80 dark:bg-slate-850 rounded-2xl border border-slate-200/80 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-4 shadow-2xs">
-              <div className="space-y-1">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider font-heading">Contact Information</p>
-                <p className="text-sm font-extrabold text-slate-900 dark:text-slate-100">{selectedCustomer.name}</p>
-                <p className="text-xs font-bold text-slate-600 dark:text-slate-300 font-mono">{selectedCustomer.phone}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{selectedCustomer.email || 'No email provided'}</p>
-              </div>
-
-              <div className="space-y-1">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider font-heading">Delivery Address</p>
-                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">{selectedCustomer.address || 'In-store customer'}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{selectedCustomer.city} {selectedCustomer.pincode}</p>
-              </div>
-
-              <div className="space-y-1">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider font-heading">Customer Loyalty Stats</p>
-                <p className="text-base font-black text-[#00796b] dark:text-[#80cbc4] font-heading">
-                  ₹{Number(selectedCustomer.total_spent || 0).toFixed(2)}
-                </p>
-                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{selectedCustomer.total_orders || 0} lifetime orders</p>
-              </div>
-            </div>
-
-            {/* Customer Feedbacks */}
-            {selectedCustomer.recent_feedbacks?.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5 font-heading">
-                  <MessageSquareQuote className="w-3.5 h-3.5 text-[#00796b]" /> Verified Customer Feedback
-                </p>
-                <div className="space-y-2">
-                  {selectedCustomer.recent_feedbacks.map((f) => (
-                    <div key={f.id} className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
-                      <div className="flex items-center gap-1 text-amber-500">
-                        {Array.from({ length: f.rating }).map((_, i) => (
-                          <Star key={i} className="w-3 h-3 fill-current" />
-                        ))}
-                      </div>
-                      <p className="text-slate-700 dark:text-slate-200 text-xs mt-1 italic">"{f.comment}"</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Purchase History & Khata Bills Table */}
-            <div className="space-y-2 pt-1">
-              <div className="flex items-center justify-between">
-                <p className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider font-heading">
-                  Purchase & Bill Payment History
-                </p>
-                <span className="text-[10px] text-slate-400 font-semibold">Showing latest orders</span>
-              </div>
-              {loadingHistory ? (
-                <div className="py-8 text-center text-slate-400 font-semibold">Loading purchase ledger...</div>
-              ) : customerOrders.length > 0 ? (
-                <div className="border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-x-auto shadow-2xs">
-                  <table className="w-full min-w-[540px] text-left text-xs">
-                    <thead className="bg-teal-50/70 dark:bg-slate-850 text-[#00695c] dark:text-teal-300 font-extrabold border-b border-teal-100 dark:border-slate-800 uppercase tracking-wider text-[10px]">
-                      <tr>
-                        <th className="py-2.5 px-3.5">Order ID</th>
-                        <th className="py-2.5 px-3.5">Date</th>
-                        <th className="py-2.5 px-3.5">Payment Mode</th>
-                        <th className="py-2.5 px-3.5">Payment Status</th>
-                        <th className="py-2.5 px-3.5 text-right">Amount</th>
-                        <th className="py-2.5 px-3.5 text-right">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
-                      {customerOrders.map((o) => {
-                        const isPending = o.payment_status === 'PENDING';
-                        return (
-                          <tr key={o.id} className={isPending ? 'bg-rose-50/40 dark:bg-rose-950/20' : 'hover:bg-slate-50/50 dark:hover:bg-slate-850/50'}>
-                            <td className="py-2.5 px-3.5 font-mono font-black text-[#00796b] dark:text-[#80cbc4]">{o.order_number}</td>
-                            <td className="py-2.5 px-3.5 text-slate-600 dark:text-slate-300 font-medium">
-                              {new Date(o.created_at).toLocaleDateString('en-IN')}
-                            </td>
-                            <td className="py-2.5 px-3.5 text-slate-700 dark:text-slate-300 font-bold">{o.payment_method}</td>
-                            <td className="py-2.5 px-3.5">
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                                isPending 
-                                  ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-200' 
-                                  : 'bg-teal-100 text-[#00695c] dark:bg-teal-950/80 dark:text-teal-300 border border-teal-200'
-                              }`}>
-                                {o.payment_status}
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-3.5 text-right font-black text-slate-900 dark:text-white font-mono">
-                              ₹{Number(o.total_amount).toFixed(2)}
-                            </td>
-                            <td className="py-2.5 px-3.5 text-right">
-                              <div className="flex items-center justify-end gap-1.5">
-                                {isPending ? (
-                                  <button
-                                    onClick={() => handleOpenKhataModal(selectedCustomer, o)}
-                                    className="px-2.5 py-1 text-[10px] font-bold text-white bg-[#00796b] hover:bg-[#004d40] rounded-lg shadow-2xs transition-colors cursor-pointer"
-                                  >
-                                    Pay Bill
-                                  </button>
-                                ) : (
-                                  <>
-                                    <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-0.5 mr-1">
-                                      <CheckCircle className="w-3 h-3 inline" /> Paid
-                                    </span>
-                                    <button
-                                      onClick={() => handleToggleBillStatus(selectedCustomer, o, 'UNPAID')}
-                                      className="text-[10px] font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/40 cursor-pointer bg-rose-50 dark:bg-rose-950/50 px-2 py-1 rounded-md border border-rose-200 dark:border-rose-900 transition-colors"
-                                      title="Change Paid Bill to Unpaid (Khata Credit)"
-                                    >
-                                      Make Unpaid
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="py-8 text-center text-xs text-slate-400 font-medium">
-                  No previous orders found for this customer.
-                </div>
-              )}
-            </div>
-          </div>
-        </Modal>
+      {/* 📄 Pagination Controls matching OrderList */}
+      {totalPages > 1 && (
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={20}
+          onPageChange={(newPage) => setPage(newPage)}
+        />
       )}
 
-      {/* Khata Bill Payment Modal */}
-      {isKhataModalOpen && khataCustomer && (
-        <Modal
-          isOpen={isKhataModalOpen}
-          onClose={() => setIsKhataModalOpen(false)}
-          title={`Khata Bill Payment — ${khataCustomer.name}`}
-          subtitle="Record customer payment with tender cash & change calculator"
-          maxWidth="max-w-md"
-          footer={
-            <div className="flex items-center justify-end gap-2">
-              <Button variant="outline" size="md" onClick={() => setIsKhataModalOpen(false)}>
-                Cancel
-              </Button>
-              <Button 
-                variant="primary" 
-                size="md" 
-                icon={CheckCircle}
-                onClick={handleRecordKhataPayment} 
-                loading={submittingKhata}
-                className="!bg-[#00695C] hover:!bg-[#004D40] !text-white"
-              >
-                Confirm Payment Receipt
-              </Button>
-            </div>
-          }
-        >
-          {(() => {
-            const amtNum = parseFloat(khataForm.amount) || 0;
-            const tenderedNum = parseFloat(khataForm.cash_tendered) || 0;
-            const changeToReturn = Math.max(0, tenderedNum - amtNum);
-            const changeNotesObj = changeToReturn > 0 ? autoCalculateDenominations(changeToReturn) : {};
-            const changeBreakdownStr = getDenomBreakdownText(changeNotesObj);
-
-            return (
-            <form onSubmit={handleRecordKhataPayment} className="space-y-4 text-xs">
-              {/* Customer Summary Info */}
-              <div className="p-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">Customer Account</p>
-                  <p className="text-sm font-bold text-[#263238] dark:text-slate-100">{khataCustomer.name}</p>
-                  <p className="text-[11px] text-slate-500 font-mono">{khataCustomer.phone}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">Current Khata Due</p>
-                  <p className="text-base font-black text-rose-600 dark:text-rose-400 font-heading">
-                    ₹{Number(khataCustomer.pending_payments || 0).toFixed(2)}
-                  </p>
-                </div>
-              </div>
-
-              {/* Payment Method Selector */}
-              <div>
-                <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">
-                  Payment Method *
-                </label>
-                <select
-                  value={khataForm.payment_method}
-                  onChange={(e) => setKhataForm({ ...khataForm, payment_method: e.target.value })}
-                  className="w-full px-3 py-2 text-sm font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[#263238] dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:border-[#009688] outline-hidden"
-                >
-                  <option value="CASH">💵 Cash Counter</option>
-                  <option value="UPI">📱 UPI / QR (Google Pay / PhonePe / Paytm)</option>
-                  <option value="CARD">💳 Debit / Credit Card</option>
-                  <option value="NET_BANKING">🏦 Bank Transfer / NEFT</option>
-                </select>
-              </div>
-
-              {/* Payment Settlement Amount Input */}
-              <div>
-                <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">
-                  Khata Payment Amount (₹) *
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="1"
-                  required
-                  value={khataForm.amount}
-                  onChange={(e) => setKhataForm({ ...khataForm, amount: e.target.value })}
-                  placeholder="0.00"
-                  className="w-full px-3.5 py-2.5 text-base font-extrabold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-[#009688] outline-hidden text-[#263238] dark:text-slate-100 font-heading"
-                />
-
-                {/* Quick Amount Suggestion Chips */}
-                <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                  {Number(khataCustomer.pending_payments || 0) > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setKhataForm({ ...khataForm, amount: Number(khataCustomer.pending_payments).toFixed(2), cash_tendered: Number(khataCustomer.pending_payments).toFixed(2) })}
-                      className="text-[10px] font-bold bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 px-2 py-1 rounded-lg hover:bg-rose-100 cursor-pointer"
-                    >
-                      Full Due: ₹{Number(khataCustomer.pending_payments).toFixed(0)}
-                    </button>
-                  )}
-                  {[100, 200, 500, 1000, 2000].map((amt) => (
-                    <button
-                      key={amt}
-                      type="button"
-                      onClick={() => setKhataForm({ ...khataForm, amount: amt.toString(), cash_tendered: amt.toString() })}
-                      className="text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-2 py-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
-                    >
-                      ₹{amt}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Cash Tendered & Change Return System (CASH ONLY) */}
-              {khataForm.payment_method === 'CASH' && (
-                <div className="space-y-3 pt-1">
-                  {/* Cash Tendered Input */}
-                  <div>
-                    <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">
-                      Cash Given by Customer (₹)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={khataForm.cash_tendered}
-                      onChange={(e) => setKhataForm({ ...khataForm, cash_tendered: e.target.value })}
-                      placeholder="e.g. 500"
-                      className="w-full px-3.5 py-2 text-base font-black bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-700 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-emerald-500 outline-hidden text-emerald-900 dark:text-emerald-300 font-heading"
-                    />
-
-                    {/* Quick Tender Suggestions */}
-                    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                      <span className="text-[10px] font-bold text-slate-400">Quick Tender:</span>
-                      {amtNum > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setKhataForm({ ...khataForm, cash_tendered: String(amtNum) })}
-                          className="text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded-md hover:bg-emerald-200 cursor-pointer"
-                        >
-                          Exact ₹{amtNum}
-                        </button>
-                      )}
-                      {[500, 1000, 2000].filter(a => a >= amtNum).map((amt) => (
-                        <button
-                          key={amt}
-                          type="button"
-                          onClick={() => setKhataForm({ ...khataForm, cash_tendered: String(amt) })}
-                          className="text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
-                        >
-                          ₹{amt} Note
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Change Return Box */}
-                  <div className={`p-3.5 rounded-2xl border flex flex-col gap-1 transition-all ${
-                    changeToReturn > 0
-                      ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200'
-                      : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
-                  }`}>
-                    <div className="flex items-center justify-between">
-                      <span className="font-extrabold text-xs uppercase tracking-wider">
-                        Change to Return
-                      </span>
-                      <span className={`text-base font-black font-heading ${changeToReturn > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-slate-400'}`}>
-                        ₹{changeToReturn.toFixed(2)}
-                      </span>
-                    </div>
-
-                    {changeToReturn > 0 && changeBreakdownStr && (
-                      <p className="text-[11px] font-bold text-amber-800 dark:text-amber-300 mt-1 pt-1 border-t border-amber-200/80 dark:border-amber-800">
-                        Suggested Change Notes: {changeBreakdownStr}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Note Counter System for Cash Payments */}
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/70 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-extrabold text-[#263238] dark:text-[#4DB6AC] flex items-center gap-1.5">
-                        <Calculator className="w-3.5 h-3.5 text-[#009688]" />
-                        Received Cash Note Breakdown
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setKhataNoteCounts({ 500: '', 200: '', 100: '', 50: '', 20: '', 10: '', 5: '', 1: '' });
-                          setKhataForm(prev => ({ ...prev, cash_tendered: prev.amount }));
-                        }}
-                        className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline cursor-pointer"
-                      >
-                        Clear Notes
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 pt-1">
-                      {[
-                        { denom: 500, label: '₹500 Note' },
-                        { denom: 200, label: '₹200 Note' },
-                        { denom: 100, label: '₹100 Note' },
-                        { denom: 50, label: '₹50 Note' },
-                        { denom: 20, label: '₹20 Note' },
-                        { denom: 10, label: '₹10 Note' },
-                        { denom: 5, label: '₹5 Note' },
-                        { denom: 1, label: 'Coins (₹)' }
-                      ].map(({ denom, label }) => {
-                        const cnt = khataNoteCounts[denom] || '';
-                        const sub = (denom === 1 ? parseFloat(cnt) || 0 : (parseInt(cnt, 10) || 0) * denom);
-                        return (
-                          <div key={denom} className="flex items-center justify-between gap-1 p-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px]">
-                            <span className="font-bold font-mono text-slate-600 dark:text-slate-300 truncate">{label}:</span>
-                            <div className="flex items-center gap-1 shrink-0">
-                              <input
-                                type="text"
-                                inputMode="numeric"
-                                placeholder="0"
-                                value={cnt}
-                                onChange={(e) => handleKhataNoteChange(denom, e.target.value)}
-                                className="w-12 px-1 py-0.5 text-center font-black font-mono bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs"
-                              />
-                              <span className="w-10 text-right font-mono font-bold text-[10px] text-emerald-600 dark:text-emerald-400">
-                                ₹{sub}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Non-Cash Information Badge */}
-              {khataForm.payment_method !== 'CASH' && (
-                <div className="p-3 bg-[#E0F2F1] dark:bg-teal-950/40 border border-[#B2DFDB] dark:border-teal-800/40 rounded-2xl text-[#00695C] dark:text-[#4DB6AC] text-xs flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-[#009688] shrink-0" />
-                  <span>
-                    Direct digital payment will be recorded into account ledger via <strong>{khataForm.payment_method}</strong>. No physical cash change required.
-                  </span>
-                </div>
-              )}
-
-              {/* Notes / Reference */}
-              <div>
-                <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">
-                  Receipt Note / Reference
-                </label>
-                <input
-                  type="text"
-                  value={khataForm.notes}
-                  onChange={(e) => setKhataForm({ ...khataForm, notes: e.target.value })}
-                  placeholder="e.g. Received at shop counter / UPI Ref 12345"
-                  className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[#384959] dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:border-[#88BDF2] outline-hidden"
-                />
-              </div>
-            </form>
-          );
-        })()}
-      </Modal>
-    )}
-
-      {/* Add Customer Modal */}
+      {/* 📝 Add / Edit Customer Modal */}
       <Modal
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
-        title="Add New Customer Profile"
-        subtitle="Register customer in Tulsi Mart CRM for instant billing and loyalty"
-        maxWidth="max-w-lg"
-        footer={
-          <div className="flex items-center justify-end gap-2">
-            <Button variant="outline" size="md" onClick={() => setIsFormOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" size="md" onClick={handleCreateCustomer} loading={submittingForm}>
-              Save Customer
-            </Button>
-          </div>
-        }
+        title={editingCustomer ? `Edit Customer: ${editingCustomer.name}` : 'Create New Customer'}
+        size="md"
       >
-        <form onSubmit={handleCreateCustomer} className="space-y-3 text-xs">
-          <div>
-            <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">Full Name *</label>
-            <input
-              type="text"
-              required
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="e.g. Ramesh Patel"
-              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-[#009688] outline-hidden text-[#263238] dark:text-slate-100"
-            />
+        <form onSubmit={handleSaveCustomer} className="space-y-4 font-sans text-slate-800 dark:text-slate-100">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Full Name <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Enter customer full name"
+                className="w-full px-3.5 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[#00796b] outline-hidden transition-all font-bold"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Phone Number <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="tel"
+                required
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="10-digit mobile number"
+                className="w-full px-3.5 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[#00796b] outline-hidden transition-all font-mono font-bold"
+              />
+            </div>
           </div>
 
           <div>
-            <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">Phone Number *</label>
-            <input
-              type="tel"
-              required
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              placeholder="+91 98XXX XXXXX"
-              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-[#263238] dark:text-slate-100"
-            />
-          </div>
-
-          <div>
-            <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">Email Address</label>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+              Email Address
+            </label>
             <input
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              placeholder="customer@email.com"
-              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[#263238] dark:text-slate-100"
+              placeholder="customer@example.com"
+              className="w-full px-3.5 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[#00796b] outline-hidden transition-all"
             />
           </div>
 
           <div>
-            <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">Delivery Address</label>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+              Street Address
+            </label>
             <textarea
               rows={2}
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              placeholder="Flat / Building, Street, Landmark..."
-              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[#263238] dark:text-slate-100"
+              placeholder="Flat/House No, Building, Street"
+              className="w-full px-3.5 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[#00796b] outline-hidden transition-all"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">City</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                City
+              </label>
               <input
                 type="text"
                 value={formData.city}
                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[#263238] dark:text-slate-100"
+                placeholder="Mumbai"
+                className="w-full px-3.5 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[#00796b] outline-hidden transition-all"
               />
             </div>
+
             <div>
-              <label className="block font-bold text-[#263238] dark:text-slate-200 uppercase tracking-wider mb-1">Pincode</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Pincode
+              </label>
               <input
                 type="text"
                 value={formData.pincode}
                 onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
                 placeholder="400001"
-                className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-[#263238] dark:text-slate-100"
+                className="w-full px-3.5 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[#00796b] outline-hidden transition-all font-mono"
               />
             </div>
           </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+              Internal Notes / Preferences
+            </label>
+            <input
+              type="text"
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              placeholder="Special instructions or credit limit notes"
+              className="w-full px-3.5 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[#00796b] outline-hidden transition-all"
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsFormOpen(false)}
+              disabled={submitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="teal"
+              disabled={submitting}
+              className="min-w-[100px] bg-[#00796b] text-white hover:bg-[#004d40]"
+            >
+              {submitting ? 'Saving...' : editingCustomer ? 'Update Customer' : 'Save Customer'}
+            </Button>
+          </div>
         </form>
       </Modal>
+
+      {/* 💰 Khata Payment Modal */}
+      {isKhataOpen && khataCustomer && (
+        <Modal
+          isOpen={isKhataOpen}
+          onClose={() => setIsKhataOpen(false)}
+          title={`Record Khata Payment: ${khataCustomer.name}`}
+          size="md"
+        >
+          <form onSubmit={handleRecordKhata} className="space-y-4 font-sans text-slate-800 dark:text-slate-100">
+            <div className="p-3 bg-amber-50 dark:bg-slate-800 rounded-2xl border border-amber-200 dark:border-slate-700 flex items-center justify-between">
+              <div>
+                <span className="text-xs text-amber-800 dark:text-amber-300 font-bold block">Current Pending Khata Balance:</span>
+                <span className="text-xs text-slate-500">Customer ID: #{khataCustomer.id}</span>
+              </div>
+              <span className="text-lg font-black text-amber-700 dark:text-amber-400">
+                {formatCurrency(khataCustomer.outstanding_balance || khataCustomer.pending_payments || 0)}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Payment Amount (₹) <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  required
+                  value={khataForm.amount}
+                  onChange={(e) => setKhataForm({ ...khataForm, amount: e.target.value })}
+                  placeholder="0.00"
+                  className="w-full px-3.5 py-2 text-sm font-bold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[#00796b] outline-hidden font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Payment Method
+                </label>
+                <select
+                  value={khataForm.payment_method}
+                  onChange={(e) => setKhataForm({ ...khataForm, payment_method: e.target.value })}
+                  className="w-full px-3.5 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[#00796b] outline-hidden font-bold"
+                >
+                  <option value="CASH">CASH</option>
+                  <option value="UPI">UPI / GPay / PhonePe</option>
+                  <option value="CARD">Debit / Credit Card</option>
+                  <option value="NET_BANKING">Net Banking</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Quick Currency Denomination Counter */}
+            {khataForm.payment_method === 'CASH' && (
+              <div className="p-3 bg-slate-50 dark:bg-slate-850 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
+                  <span className="flex items-center gap-1.5">
+                    <Calculator className="w-3.5 h-3.5 text-[#00796b]" />
+                    Quick Cash Denomination Counter
+                  </span>
+                  {khataForm.cash_tendered && (
+                    <span className="text-[#00796b] dark:text-[#80cbc4] font-mono">Tendered: ₹{khataForm.cash_tendered}</span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+                  {[500, 200, 100, 50, 20, 10, 5, 1].map((denom) => (
+                    <div key={denom} className="text-center">
+                      <span className="block text-[10px] font-bold text-slate-500">₹{denom}</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={khataNoteCounts[denom]}
+                        onChange={(e) => handleKhataNoteChange(denom, e.target.value)}
+                        placeholder="0"
+                        className="w-full text-center px-1 py-1 text-xs font-mono bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-1 focus:ring-[#00796b]"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Payment Note / Reference
+              </label>
+              <input
+                type="text"
+                value={khataForm.notes}
+                onChange={(e) => setKhataForm({ ...khataForm, notes: e.target.value })}
+                placeholder="Transaction reference or receipt note"
+                className="w-full px-3.5 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[#00796b] outline-hidden"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+              <Button type="button" variant="outline" onClick={() => setIsKhataOpen(false)} disabled={submittingKhata}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="warning" disabled={submittingKhata} className="min-w-[120px] font-bold">
+                {submittingKhata ? 'Recording...' : 'Confirm Payment'}
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* 👁️ View Customer Profile & Purchase History Modal */}
+      {selectedCustomer && (
+        <Modal
+          isOpen={Boolean(selectedCustomer)}
+          onClose={() => setSelectedCustomer(null)}
+          title={`Customer Profile & History: ${selectedCustomer.name}`}
+          size="lg"
+        >
+          <div className="space-y-5 font-sans text-slate-800 dark:text-slate-100">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="p-3.5 bg-teal-50 dark:bg-slate-800/80 rounded-2xl border border-teal-200/70 dark:border-slate-700">
+                <span className="text-[11px] font-bold text-[#00796b] dark:text-[#80cbc4] uppercase block">Total Spent</span>
+                <span className="text-lg font-black text-slate-900 dark:text-white">
+                  {formatCurrency(selectedCustomer.total_spent)}
+                </span>
+              </div>
+
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700">
+                <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase block">Total Orders</span>
+                <span className="text-lg font-black text-slate-900 dark:text-slate-100">
+                  {selectedCustomer.total_orders || historyData.total_orders || 0}
+                </span>
+              </div>
+
+              <div className="p-3.5 bg-amber-50 dark:bg-slate-800/80 rounded-2xl border border-amber-200/70 dark:border-slate-700">
+                <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300 uppercase block">Pending Khata</span>
+                <span className="text-lg font-black text-amber-700 dark:text-amber-400">
+                  {formatCurrency(selectedCustomer.outstanding_balance || selectedCustomer.pending_payments || 0)}
+                </span>
+              </div>
+            </div>
+
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs space-y-1">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <span className="font-bold">Phone: <span className="font-mono">{selectedCustomer.phone}</span></span>
+                {selectedCustomer.email && <span>Email: {selectedCustomer.email}</span>}
+                <span>Status: <Badge variant={selectedCustomer.status === 'BLOCKED' ? 'danger' : 'success'} size="xs">{selectedCustomer.status}</Badge></span>
+              </div>
+              {selectedCustomer.address && (
+                <div className="text-slate-500">Address: {selectedCustomer.address}, {selectedCustomer.city || 'Mumbai'} {selectedCustomer.pincode}</div>
+              )}
+            </div>
+
+            <div>
+              <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2.5 flex items-center gap-2">
+                <Receipt className="w-4 h-4 text-[#00796b]" />
+                Recent Purchase Orders & Bills
+              </h4>
+
+              {loadingHistory ? (
+                <div className="py-8 text-center text-xs text-slate-500">Loading order history...</div>
+              ) : historyData.orders.length === 0 ? (
+                <div className="py-8 text-center text-xs text-slate-500 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-dashed border-slate-200">
+                  No previous orders found for this customer.
+                </div>
+              ) : (
+                <div className="overflow-x-auto max-h-64 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-100 dark:bg-slate-800 text-[11px] font-bold text-slate-500 uppercase sticky top-0">
+                      <tr>
+                        <th className="py-2.5 px-3">Order #</th>
+                        <th className="py-2.5 px-3">Date</th>
+                        <th className="py-2.5 px-3">Amount</th>
+                        <th className="py-2.5 px-3">Method</th>
+                        <th className="py-2.5 px-3">Payment</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                      {historyData.orders.map((o) => (
+                        <tr key={o.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                          <td className="py-2.5 px-3 font-bold text-[#00796b] dark:text-[#80cbc4] font-mono">#{o.order_number || o.id}</td>
+                          <td className="py-2.5 px-3 text-slate-500">{o.created_at ? new Date(o.created_at).toLocaleDateString('en-IN') : '—'}</td>
+                          <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white">{formatCurrency(o.total_amount)}</td>
+                          <td className="py-2.5 px-3 text-slate-600">{o.payment_method || 'CASH'}</td>
+                          <td className="py-2.5 px-3">
+                            <Badge variant={o.payment_status === 'PAID' ? 'success' : 'warning'} size="xs">
+                              {o.payment_status || 'PENDING'}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-3 border-t border-slate-200 dark:border-slate-800">
+              <Button variant="outline" onClick={() => setSelectedCustomer(null)}>
+                Close Profile
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* 🗑️ Confirm Delete Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(deletingCustomer)}
+        onClose={() => setDeletingCustomer(null)}
+        onConfirm={handleDeleteCustomer}
+        title={`Delete Customer: ${deletingCustomer?.name}`}
+        message={`Are you sure you want to delete "${deletingCustomer?.name}" (${deletingCustomer?.phone})? This record will be permanently removed.`}
+        confirmText="Delete Customer"
+        cancelText="Cancel"
+        isDanger={true}
+        loading={submittingDelete}
+      />
     </div>
   );
 };
 
 export default CustomerList;
-

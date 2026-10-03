@@ -24,19 +24,8 @@ def safe_iso(val):
 
 
 def serialize_customer_fast(c, stats: Optional[dict] = None) -> dict:
-    if stats is None:
+    if not stats:
         stats = {"total_orders": 0, "total_spent": 0.0, "pending_payments": 0.0}
-        orders = getattr(c, "orders", None)
-        if orders is not None and len(orders) > 0:
-            for o in orders:
-                amt = float(getattr(o, "total_amount", 0) or 0)
-                p_status = getattr(o, "payment_status", None)
-                o_status = getattr(o, "status", None)
-                if p_status == "PAID" or o_status == "COMPLETED":
-                    stats["total_spent"] += amt
-                elif p_status == "PENDING" and o_status != "CANCELLED":
-                    stats["pending_payments"] += amt
-            stats["total_orders"] = len(orders)
 
     return {
         "id": c.id,
@@ -60,6 +49,7 @@ def serialize_customer_fast(c, stats: Optional[dict] = None) -> dict:
 
 
 @router.get("/customers/customers/")
+@router.get("/customers/")
 def list_customers(
     status: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
@@ -68,7 +58,7 @@ def list_customers(
     page_size: Optional[int] = Query(None),
     db: Session = Depends(get_db)
 ):
-    eff_limit = limit or page_size or 50
+    eff_limit = page_size or limit or 20
     if eff_limit > 500:
         eff_limit = 500
     service = CustomerService(db)
@@ -79,6 +69,7 @@ def list_customers(
 
 
 @router.get("/customers/customers/{customer_id}/")
+@router.get("/customers/{customer_id}/")
 def get_customer(customer_id: int, db: Session = Depends(get_db)):
     service = CustomerService(db)
     customer = service.get_customer(customer_id)
@@ -88,6 +79,7 @@ def get_customer(customer_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/customers/customers/")
+@router.post("/customers/")
 def create_customer(
     data: CustomerCreate,
     db: Session = Depends(get_db),
@@ -100,6 +92,7 @@ def create_customer(
 
 
 @router.put("/customers/customers/{customer_id}/")
+@router.put("/customers/{customer_id}/")
 def update_customer(
     customer_id: int,
     data: CustomerUpdate,
@@ -110,6 +103,18 @@ def update_customer(
     customer = service.update_customer(customer_id, data)
     stats = service.get_customer_stats(customer.id)
     return success_response(data=serialize_customer_fast(customer, stats), message="Customer updated")
+
+
+@router.delete("/customers/customers/{customer_id}/")
+@router.delete("/customers/{customer_id}/")
+def delete_customer(
+    customer_id: int,
+    db: Session = Depends(get_db),
+    current_user: LoginAccount = Depends(get_current_user)
+):
+    service = CustomerService(db)
+    service.delete_customer(customer_id)
+    return success_response(data={"id": customer_id}, message="Customer deleted successfully")
 
 
 @router.post("/customers/customers/{customer_id}/toggle_block/")

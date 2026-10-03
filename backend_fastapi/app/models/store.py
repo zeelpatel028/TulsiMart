@@ -74,7 +74,7 @@ class CashRegisterEntry(Base):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     entry_type: Mapped[str] = mapped_column("transaction_type", String(30), nullable=False)
     amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
-    date: Mapped[date] = mapped_column("transaction_date", Date, default=date.today, server_default=func.current_date(), nullable=False)
+    date: Mapped[date] = mapped_column("transaction_date", Date, default=date.today, nullable=False)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     denomination_counts: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, default=dict, nullable=True)
     reference_id: Mapped[Optional[str]] = mapped_column("reference_number", String(100), nullable=True)
@@ -91,7 +91,7 @@ class BankTransaction(Base):
     reference_number: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     bank_name: Mapped[Optional[str]] = mapped_column(String(100), default="HDFC Store Primary Bank")
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    date: Mapped[date] = mapped_column("transaction_date", Date, default=date.today, server_default=func.current_date(), nullable=False)
+    date: Mapped[date] = mapped_column("transaction_date", Date, default=date.today, nullable=False)
     created_by_name: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now, server_default=func.now(), index=True)
 

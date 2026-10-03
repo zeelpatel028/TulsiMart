@@ -107,7 +107,7 @@ class GoodsReceiptNote(Base):
     grn_number: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
     purchase_order_id: Mapped[int] = mapped_column(ForeignKey("purchase_orders.id", ondelete="CASCADE"), nullable=False)
     supplier_id: Mapped[int] = mapped_column(ForeignKey("suppliers.id", ondelete="CASCADE"), nullable=False)
-    received_date: Mapped[date] = mapped_column(Date, default=date.today, server_default=func.current_date(), nullable=False)
+    received_date: Mapped[date] = mapped_column(Date, default=date.today, nullable=False)
     received_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     total_valuation: Mapped[float] = mapped_column(Numeric(12, 2), default=0.00)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

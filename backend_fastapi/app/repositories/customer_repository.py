@@ -134,6 +134,14 @@ class CustomerRepository:
         self.db.refresh(customer)
         return customer
 
+    def delete_customer(self, customer_id: int) -> bool:
+        customer = self.get_by_id(customer_id)
+        if customer:
+            self.db.delete(customer)
+            self.db.commit()
+            return True
+        return False
+
     def add_feedback(self, feedback: CustomerFeedback) -> CustomerFeedback:
         self.db.add(feedback)
         self.db.commit()

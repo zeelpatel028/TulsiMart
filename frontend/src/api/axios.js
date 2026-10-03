@@ -5,26 +5,41 @@ let API_BASE_URL;
 
 if (import.meta.env.PROD) {
   // In production, strictly use configured environment variable or deployed Render backend URL
-  const prodUrl = (rawApiUrl && !rawApiUrl.includes('localhost') && !rawApiUrl.includes('127.0.0.1'))
+  let prodUrl = (rawApiUrl && !rawApiUrl.includes('localhost') && !rawApiUrl.includes('127.0.0.1'))
     ? rawApiUrl.trim().replace(/\/+$/, '')
     : 'https://tulsimart.onrender.com/api';
+
+  // Prevent mixed-content errors when frontend is served over HTTPS
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:' && prodUrl.startsWith('http:')) {
+    prodUrl = prodUrl.replace(/^http:/, 'https:');
+  }
+
   API_BASE_URL = prodUrl.endsWith('/api') ? prodUrl : `${prodUrl}/api`;
 } else {
-  // Local development mode
+  // Local development mode - automatically match host (localhost vs 127.0.0.1)
   if (rawApiUrl) {
-    const cleanUrl = rawApiUrl.trim().replace(/\/+$/, '');
+    let cleanUrl = rawApiUrl.trim().replace(/\/+$/, '');
+    if (typeof window !== 'undefined' && window.location.hostname) {
+      if (cleanUrl.includes('localhost')) {
+        cleanUrl = cleanUrl.replace('localhost', window.location.hostname);
+      } else if (cleanUrl.includes('127.0.0.1')) {
+        cleanUrl = cleanUrl.replace('127.0.0.1', window.location.hostname);
+      }
+    }
     API_BASE_URL = cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
   } else {
-    API_BASE_URL = 'http://127.0.0.1:8000/api';
+    const host = (typeof window !== 'undefined' && window.location.hostname) || '127.0.0.1';
+    API_BASE_URL = `http://${host}:8000/api`;
   }
 }
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
-  timeout: 45000, // 45 seconds timeout to accommodate backend cold starts & heavy queries
+  timeout: 30000, // 30 seconds timeout
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   },
 });
 
@@ -112,6 +127,10 @@ apiClient.interceptors.response.use(
     return response;
   },
   async (error) => {
+    if (axios.isCancel(error) || error?.name === 'CanceledError' || error?.name === 'AbortError' || error?.code === 'ERR_CANCELED') {
+      return Promise.reject(error);
+    }
+
     const originalRequest = error.config;
     if (!originalRequest) return Promise.reject(error);
 
@@ -170,13 +189,14 @@ apiClient.interceptors.response.use(
 
     // 2. Cold-start network retry logic ONLY for safe GET requests
     const isTimeout = error.code === 'ECONNABORTED' || (error.message && error.message.toLowerCase().includes('timeout'));
-    const isNetworkOrColdStart = !error.response || isTimeout || [502, 503, 504, 524].includes(error.response?.status);
+    const isNetworkErr = error.code === 'ERR_NETWORK' || !error.response || (error.message && error.message.toLowerCase().includes('network error'));
+    const isNetworkOrColdStart = isNetworkErr || isTimeout || [502, 503, 504, 524].includes(error.response?.status);
     const isGetMethod = (originalRequest.method || 'get').toLowerCase() === 'get';
 
     if (isNetworkOrColdStart && isGetMethod) {
       originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
       if (originalRequest._retryCount <= 2) {
-        const retryDelay = originalRequest._retryCount * 1000;
+        const retryDelay = originalRequest._retryCount * 1200;
         await new Promise((resolve) => setTimeout(resolve, retryDelay));
         return apiClient(originalRequest);
       }

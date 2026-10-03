@@ -62,6 +62,12 @@ class CustomerService:
         self.db.flush()
         return customer
 
+    def delete_customer(self, customer_id: int) -> bool:
+        success = self.repo.delete_customer(customer_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Customer not found")
+        return True
+
     def get_customer_history(self, customer_id: int, page: int = 1, limit: int = 20):
         customer = self.get_customer(customer_id)
         orders, total = self.order_repo.list_orders(customer_id=customer_id, page=page, limit=limit)
