@@ -421,8 +421,8 @@ export const AddProductPage = () => {
       <div
         className={`lg:hidden sticky top-0 z-30 transform-gpu will-change-[padding,background-color,box-shadow] transition-all duration-300 ease-out text-white ${
           scrolled
-            ? 'bg-[#004D40]/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-[#00695C] dark:border-slate-800 shadow-md py-2.5 px-4'
-            : 'bg-gradient-to-r from-[#004D40] via-[#00695C] to-[#004D40] dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 px-4 pt-4 pb-6 rounded-b-[2rem] shadow-lg'
+            ? 'bg-[#00695C]/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-[#004D40] dark:border-slate-800 shadow-md py-2.5 px-4'
+            : 'bg-[#00695C] dark:bg-slate-900 px-4 pt-4 pb-6 rounded-b-[2rem] shadow-lg'
         }`}
       >
         <div className="max-w-3xl mx-auto flex items-center justify-between">
