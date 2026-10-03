@@ -16,7 +16,6 @@ import {
   Layers,
   Plus,
   Save,
-  RotateCcw,
   Sparkles,
   Info,
   ChevronDown,
@@ -45,7 +44,6 @@ export const AddProductPage = () => {
 
   // Submission state
   const [submitting, setSubmitting] = useState(false);
-  const [saveAndAddAnother, setSaveAndAddAnother] = useState(false);
 
   // Image Upload state
   const [imagePreview, setImagePreview] = useState(null);
@@ -251,7 +249,7 @@ export const AddProductPage = () => {
   };
 
   // Submit Handler
-  const handleSubmit = async (e, addAnother = false) => {
+  const handleSubmit = async (e) => {
     if (e) e.preventDefault();
     if (!validateForm()) {
       showToast('Please fix validation errors before saving.', 'error');
@@ -260,7 +258,6 @@ export const AddProductPage = () => {
 
     try {
       setSubmitting(true);
-      setSaveAndAddAnother(addAnother);
 
       const payload = {
         name: formData.name.trim(),
@@ -296,39 +293,7 @@ export const AddProductPage = () => {
 
       await inventoryApi.createProduct(payload);
       showToast(`Product "${formData.name}" saved successfully!`, 'success');
-
-      if (addAnother) {
-        const nextIdRes = await inventoryApi.getNextProductId();
-        if (nextIdRes.data?.next_product_id) {
-          setNextProductId(nextIdRes.data.next_product_id);
-        }
-        setFormData({
-          name: '',
-          category: categories[0]?.id || '',
-          brand: '',
-          unit: units[0]?.id || '',
-          selling_unit: units[0]?.id || '',
-          supplier: suppliers[0]?.id || '',
-          purchase_tax: '18',
-          purchase_non_tax_price: '',
-          selling_tax: '18',
-          selling_non_tax_price: '',
-          mrp: '',
-          selling_price: '',
-          stock_quantity: '25',
-          barcode: '',
-          low_stock_alert: '10',
-          manufacturing_date: '',
-          expiry_date: '',
-          short_description: '',
-        });
-        setImagePreview(null);
-        setImageFile(null);
-        setErrors({});
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else {
-        navigate('/inventory');
-      }
+      navigate('/inventory');
     } catch (err) {
       console.error('Failed to save product:', err);
       const backendErr = err.response?.data;
@@ -342,7 +307,6 @@ export const AddProductPage = () => {
       showToast(err.response?.data?.detail || 'Failed to save product. Check inputs.', 'error');
     } finally {
       setSubmitting(false);
-      setSaveAndAddAnother(false);
     }
   };
 
@@ -455,7 +419,7 @@ export const AddProductPage = () => {
       </div>
 
       {/* 📄 Form Container */}
-      <form onSubmit={(e) => handleSubmit(e, false)} className="max-w-3xl mx-auto px-4 mt-2 space-y-4">
+      <form onSubmit={handleSubmit} className="max-w-3xl mx-auto px-4 mt-2 space-y-4">
         
         {/* CARD 0: Product Images */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-5 shadow-xs border border-teal-100/60 dark:border-slate-800 space-y-3">
@@ -513,49 +477,43 @@ export const AddProductPage = () => {
 
         {/* CARD 1: Basic Information */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-5 shadow-xs border border-teal-100/60 dark:border-slate-800 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="inline-flex items-center gap-2 bg-[#DDF3ED] dark:bg-teal-950/80 text-[#00695C] dark:text-teal-300 px-3 py-1.5 rounded-xl text-xs font-bold">
-              <ClipboardList className="w-4 h-4" />
-              <span>1. Basic Information</span>
-            </div>
-            <span className="text-xs font-bold text-[#00695C] dark:text-teal-300 bg-teal-50 dark:bg-teal-950 px-2.5 py-1 rounded-full border border-teal-200 dark:border-teal-800 font-mono">
-              Auto ID: {nextProductId}
-            </span>
+          <div className="inline-flex items-center gap-2 bg-[#DDF3ED] dark:bg-teal-950/80 text-[#00695C] dark:text-teal-300 px-3 py-1.5 rounded-xl text-xs font-bold">
+            <ClipboardList className="w-4 h-4" />
+            <span>Basic Information</span>
           </div>
 
           <div className="space-y-3.5">
-            {/* Row 1: Product ID & Name */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Product ID (System Generated)</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    readOnly
-                    value={nextProductId}
-                    className="w-full px-3.5 py-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono font-bold text-slate-600 dark:text-slate-300 cursor-not-allowed"
-                  />
-                  <span className="absolute right-3 top-2.5 text-[10px] font-extrabold bg-[#00695C] text-white px-2 py-0.5 rounded-md uppercase tracking-wider">
-                    AUTO
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                  Product Name <span className="text-rose-500">*</span>
-                </label>
+            {/* Product ID (System Generated) */}
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Product ID (System Generated)</label>
+              <div className="relative">
                 <input
                   type="text"
-                  placeholder="Enter product name (e.g. Tata Sampann Arhar Dal)"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  className={`w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-[#00695C] focus:outline-none ${
-                    errors.name ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
-                  }`}
+                  readOnly
+                  value={nextProductId}
+                  className="w-full px-3.5 py-2.5 bg-slate-100/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono font-bold text-slate-600 dark:text-slate-300 cursor-not-allowed"
                 />
-                {errors.name && <p className="text-[11px] text-rose-500 font-medium">{errors.name}</p>}
+                <span className="absolute right-3 top-2.5 text-[10px] font-extrabold bg-[#00695C] text-white px-2 py-0.5 rounded-md uppercase tracking-wider">
+                  AUTO
+                </span>
               </div>
+            </div>
+
+            {/* Product Name */}
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                Product Name <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                placeholder="Enter product name (e.g. Tata Sampann Arhar Dal)"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                className={`w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-[#00695C] focus:outline-none ${
+                  errors.name ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
+                }`}
+              />
+              {errors.name && <p className="text-[11px] text-rose-500 font-medium">{errors.name}</p>}
             </div>
 
             {/* Category Dropdown */}
@@ -610,67 +568,64 @@ export const AddProductPage = () => {
                   placeholder="Enter product code"
                   value={nextProductId}
                   readOnly
-                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono text-slate-700 dark:text-slate-300"
+                  className="w-full px-3.5 py-2.5 bg-slate-100/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono text-slate-700 dark:text-slate-300"
                 />
               </div>
             </div>
 
-            {/* Units: Product Unit & Selling Unit */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Product Unit */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                    Product Unit (Stock) <span className="text-rose-500">*</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setIsUnitModalOpen(true)}
-                    className="text-[11px] font-bold text-[#00695C] dark:text-teal-300 hover:underline flex items-center gap-0.5 cursor-pointer"
-                  >
-                    <Plus className="w-3 h-3" /> Add Unit
-                  </button>
-                </div>
-                <div className="relative">
-                  <select
-                    value={formData.unit}
-                    onChange={(e) => setFormData(prev => ({ ...prev, unit: e.target.value }))}
-                    className={`w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm text-slate-900 dark:text-white appearance-none focus:ring-2 focus:ring-[#00695C] focus:outline-none pr-9 ${
-                      errors.unit ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
-                    }`}
-                  >
-                    <option value="">Select Product Unit</option>
-                    {units.map(u => (
-                      <option key={u.id} value={u.id}>{u.name} ({u.short_name})</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
-                </div>
-                {errors.unit && <p className="text-[11px] text-rose-500 font-medium">{errors.unit}</p>}
-              </div>
-
-              {/* Selling Unit */}
-              <div className="space-y-1">
+            {/* Product Unit (Stock) */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                  Selling Unit (POS Billing) <span className="text-rose-500">*</span>
+                  Product Unit (Stock) <span className="text-rose-500">*</span>
                 </label>
-                <div className="relative">
-                  <select
-                    value={formData.selling_unit}
-                    onChange={(e) => setFormData(prev => ({ ...prev, selling_unit: e.target.value }))}
-                    className={`w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm text-slate-900 dark:text-white appearance-none focus:ring-2 focus:ring-[#00695C] focus:outline-none pr-9 ${
-                      errors.selling_unit ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
-                    }`}
-                  >
-                    <option value="">Select Selling Unit</option>
-                    {units.map(u => (
-                      <option key={u.id} value={u.id}>{u.name} ({u.short_name})</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
-                </div>
-                {errors.selling_unit && <p className="text-[11px] text-rose-500 font-medium">{errors.selling_unit}</p>}
+                <button
+                  type="button"
+                  onClick={() => setIsUnitModalOpen(true)}
+                  className="text-[11px] font-bold text-[#00695C] dark:text-teal-300 hover:underline flex items-center gap-0.5 cursor-pointer"
+                >
+                  <Plus className="w-3 h-3" /> Add Unit
+                </button>
               </div>
+              <div className="relative">
+                <select
+                  value={formData.unit}
+                  onChange={(e) => setFormData(prev => ({ ...prev, unit: e.target.value }))}
+                  className={`w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm text-slate-900 dark:text-white appearance-none focus:ring-2 focus:ring-[#00695C] focus:outline-none pr-9 ${
+                    errors.unit ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  <option value="">Select Product Unit</option>
+                  {units.map(u => (
+                    <option key={u.id} value={u.id}>{u.name} ({u.short_name})</option>
+                  ))}
+                </select>
+                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+              </div>
+              {errors.unit && <p className="text-[11px] text-rose-500 font-medium">{errors.unit}</p>}
+            </div>
+
+            {/* Selling Unit (POS Billing) */}
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                Selling Unit (POS Billing) <span className="text-rose-500">*</span>
+              </label>
+              <div className="relative">
+                <select
+                  value={formData.selling_unit}
+                  onChange={(e) => setFormData(prev => ({ ...prev, selling_unit: e.target.value }))}
+                  className={`w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm text-slate-900 dark:text-white appearance-none focus:ring-2 focus:ring-[#00695C] focus:outline-none pr-9 ${
+                    errors.selling_unit ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  <option value="">Select Selling Unit</option>
+                  {units.map(u => (
+                    <option key={u.id} value={u.id}>{u.name} ({u.short_name})</option>
+                  ))}
+                </select>
+                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+              </div>
+              {errors.selling_unit && <p className="text-[11px] text-rose-500 font-medium">{errors.selling_unit}</p>}
             </div>
 
             {/* Conversion Ratio Preview Box */}
@@ -1021,35 +976,23 @@ export const AddProductPage = () => {
 
         {/* 🟢 Sticky Bottom Action Footer */}
         <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-3 sm:p-4 z-40 shadow-xl">
-          <div className="max-w-3xl mx-auto flex items-center justify-between gap-2.5">
+          <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="px-4 py-2.5 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs sm:text-sm transition-colors cursor-pointer text-center"
+              className="w-1/2 sm:w-auto px-6 py-3 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl font-bold text-sm transition-colors cursor-pointer text-center"
             >
               Cancel
             </button>
             
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={(e) => handleSubmit(e, true)}
-                disabled={submitting}
-                className="px-3.5 py-2.5 text-xs font-bold rounded-xl bg-teal-50 dark:bg-teal-950/80 text-[#00695C] dark:text-teal-300 border border-teal-200 dark:border-teal-800 hover:bg-teal-100 cursor-pointer flex items-center gap-1"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>{submitting && saveAndAddAnother ? 'Saving...' : 'Save & Add Another'}</span>
-              </button>
-
-              <button
-                type="submit"
-                disabled={submitting}
-                className="px-5 py-2.5 bg-[#00695C] hover:bg-[#004D40] text-white rounded-xl font-bold text-xs sm:text-sm shadow-md flex items-center justify-center gap-1.5 transition-transform active:scale-98 cursor-pointer"
-              >
-                <Save className="w-4 h-4" />
-                <span>{submitting && !saveAndAddAnother ? 'Saving Product...' : 'Save Product'}</span>
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-1/2 sm:w-auto px-8 py-3 bg-[#00695C] hover:bg-[#004D40] text-white rounded-2xl font-bold text-sm shadow-md flex items-center justify-center gap-2 transition-transform active:scale-98 cursor-pointer"
+            >
+              <Save className="w-4 h-4 stroke-[2.5]" />
+              <span>{submitting ? 'Saving Product...' : 'Save Product'}</span>
+            </button>
           </div>
         </div>
       </form>
