@@ -486,7 +486,7 @@ export const AddProductPage = () => {
             <img
               src="/grocery_bag_header.jpg"
               alt="Grocery Basket"
-              className="w-full h-auto object-contain drop-shadow-md rounded-2xl"
+              className="w-full h-auto object-contain mix-blend-multiply dark:mix-blend-normal rounded-2xl drop-shadow-sm"
               onError={(e) => {
                 e.target.onerror = null;
                 e.target.src = '/grocery_basket.png';
