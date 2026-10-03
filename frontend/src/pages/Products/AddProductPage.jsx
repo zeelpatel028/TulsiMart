@@ -5,6 +5,7 @@ import { extractList } from '../../utils/apiHelpers';
 import { useNotification } from '../../context/NotificationContext';
 import { Modal } from '../../components/common/Modal';
 import { Button } from '../../components/common/Button';
+import { Card } from '../../components/common/Card';
 import { getUnitConversionRatio } from '../../utils/unitConversion';
 import {
   ArrowLeft,
@@ -44,6 +45,7 @@ export const AddProductPage = () => {
 
   // Submission state
   const [submitting, setSubmitting] = useState(false);
+  const [saveAndAddAnother, setSaveAndAddAnother] = useState(false);
 
   // Image Upload state
   const [imagePreview, setImagePreview] = useState(null);
@@ -249,7 +251,7 @@ export const AddProductPage = () => {
   };
 
   // Submit Handler
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e, addAnother = false) => {
     if (e) e.preventDefault();
     if (!validateForm()) {
       showToast('Please fix validation errors before saving.', 'error');
@@ -258,6 +260,7 @@ export const AddProductPage = () => {
 
     try {
       setSubmitting(true);
+      setSaveAndAddAnother(addAnother);
 
       const payload = {
         name: formData.name.trim(),
@@ -293,7 +296,39 @@ export const AddProductPage = () => {
 
       await inventoryApi.createProduct(payload);
       showToast(`Product "${formData.name}" saved successfully!`, 'success');
-      navigate('/inventory');
+
+      if (addAnother) {
+        const nextIdRes = await inventoryApi.getNextProductId();
+        if (nextIdRes.data?.next_product_id) {
+          setNextProductId(nextIdRes.data.next_product_id);
+        }
+        setFormData({
+          name: '',
+          category: categories[0]?.id || '',
+          brand: '',
+          unit: units[0]?.id || '',
+          selling_unit: units[0]?.id || '',
+          supplier: suppliers[0]?.id || '',
+          purchase_tax: '18',
+          purchase_non_tax_price: '',
+          selling_tax: '18',
+          selling_non_tax_price: '',
+          mrp: '',
+          selling_price: '',
+          stock_quantity: '25',
+          barcode: '',
+          low_stock_alert: '10',
+          manufacturing_date: '',
+          expiry_date: '',
+          short_description: '',
+        });
+        setImagePreview(null);
+        setImageFile(null);
+        setErrors({});
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        navigate('/inventory');
+      }
     } catch (err) {
       console.error('Failed to save product:', err);
       const backendErr = err.response?.data;
@@ -307,6 +342,7 @@ export const AddProductPage = () => {
       showToast(err.response?.data?.detail || 'Failed to save product. Check inputs.', 'error');
     } finally {
       setSubmitting(false);
+      setSaveAndAddAnother(false);
     }
   };
 
@@ -377,12 +413,65 @@ export const AddProductPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#ECF7F5] dark:bg-slate-950 font-sans pb-32">
-      {/* 🔴 Top Header Banner */}
-      <div className="bg-gradient-to-b from-[#C4ECE2] via-[#DBF3ED] to-[#ECF7F5] dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 px-4 pt-4 pb-6 rounded-b-[2rem] relative overflow-hidden shadow-xs">
+    <div className="space-y-6 font-sans">
+      
+      {/* 💻 DESKTOP TOP HEADER BANNER (Shown on Desktop lg: screens) */}
+      <div className="hidden lg:block -mx-8 -mt-8 mb-6 bg-gradient-to-r from-teal-50/90 via-emerald-50/60 to-teal-50/90 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 text-slate-800 dark:text-white p-5 px-8 border-b border-teal-200/70 dark:border-slate-800 relative overflow-hidden shadow-2xs">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 relative z-10 max-w-7xl mx-auto">
+          {/* Left: Icon & Title with Status Badge */}
+          <div className="flex items-center gap-4 min-w-0">
+            <Link
+              to="/inventory"
+              className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#00796b] to-[#004d40] text-white p-3 border border-[#004d40]/20 flex items-center justify-center shrink-0 shadow-md shadow-teal-900/10 hover:scale-105 transition-all"
+              title="Back to Stock & Inventory"
+            >
+              <Package className="w-7 h-7 text-white" />
+            </Link>
+
+            <div className="min-w-0">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white font-heading">
+                  Add <span className="text-[#00796b] dark:text-[#80cbc4]">Product</span>
+                </h1>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-100/90 text-[#00695c] dark:bg-teal-950/80 dark:text-teal-300 border border-teal-200 dark:border-teal-800/50 font-mono">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  {nextProductId}
+                </span>
+              </div>
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                Create a new grocery item with supplier details, tax structure, and billing unit conversions.
+              </p>
+            </div>
+          </div>
+
+          {/* Right Desktop Action Buttons */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={(e) => handleSubmit(e, true)}
+              disabled={submitting}
+              className="px-4 py-2.5 text-xs font-bold rounded-xl bg-teal-50/90 dark:bg-teal-950/80 text-[#00695C] dark:text-teal-300 border border-teal-200 dark:border-teal-800 hover:bg-teal-100 dark:hover:bg-teal-900/60 shadow-2xs transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              <Plus className="w-3.5 h-3.5 text-[#00695C] dark:text-teal-300" />
+              <span>{submitting && saveAndAddAnother ? 'Saving...' : 'Save & Add Another'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={(e) => handleSubmit(e, false)}
+              disabled={submitting}
+              className="px-5 py-2.5 text-sm font-bold rounded-xl bg-[#00695C] hover:bg-[#004D40] text-white shadow-md shadow-teal-900/20 transition-all cursor-pointer flex items-center gap-2"
+            >
+              <Save className="w-4 h-4" />
+              <span>{submitting && !saveAndAddAnother ? 'Saving Product...' : 'Save Product'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 📱 MOBILE / TABLET TOP HEADER BANNER (Shown on Mobile < lg screens) */}
+      <div className="lg:hidden bg-gradient-to-b from-[#C4ECE2] via-[#DBF3ED] to-[#ECF7F5] dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 px-4 pt-4 pb-6 rounded-b-[2rem] relative overflow-hidden shadow-xs">
         <div className="max-w-3xl mx-auto flex items-start justify-between">
           <div className="space-y-3 z-10">
-            {/* Red Circle Back Button */}
             <button
               type="button"
               onClick={() => navigate(-1)}
@@ -392,7 +481,6 @@ export const AddProductPage = () => {
               <ArrowLeft className="w-5 h-5 stroke-[2.5]" />
             </button>
 
-            {/* Title & Subtitle */}
             <div>
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight font-heading">
                 Add Product
@@ -403,7 +491,6 @@ export const AddProductPage = () => {
             </div>
           </div>
 
-          {/* Grocery Illustration Top Right */}
           <div className="w-28 sm:w-36 shrink-0 relative -mr-2 -mt-2 pointer-events-none">
             <img
               src="/grocery_bag_header.jpg"
@@ -419,18 +506,17 @@ export const AddProductPage = () => {
       </div>
 
       {/* 📄 Form Container */}
-      <form onSubmit={handleSubmit} className="max-w-3xl mx-auto px-4 mt-2 space-y-4">
+      <form onSubmit={(e) => handleSubmit(e, false)} className="max-w-3xl lg:max-w-7xl mx-auto px-4 lg:px-0 mt-2 lg:mt-0 space-y-6 pb-28 lg:pb-12">
         
         {/* CARD 0: Product Images */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-5 shadow-xs border border-teal-100/60 dark:border-slate-800 space-y-3">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-xs border border-teal-100/60 dark:border-slate-800 space-y-3">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-teal-100 dark:bg-teal-950 flex items-center justify-center text-[#00695C] dark:text-teal-300">
+            <div className="w-8 h-8 rounded-xl bg-teal-100 dark:bg-teal-950 flex items-center justify-center text-[#00695C] dark:text-teal-300">
               <Camera className="w-4 h-4" />
             </div>
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white">Product Images</h2>
+            <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Product Images</h2>
           </div>
 
-          {/* Upload Area */}
           <label className="block cursor-pointer">
             <input
               type="file"
@@ -476,48 +562,56 @@ export const AddProductPage = () => {
         </div>
 
         {/* CARD 1: Basic Information */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-5 shadow-xs border border-teal-100/60 dark:border-slate-800 space-y-4">
-          <div className="inline-flex items-center gap-2 bg-[#DDF3ED] dark:bg-teal-950/80 text-[#00695C] dark:text-teal-300 px-3 py-1.5 rounded-xl text-xs font-bold">
-            <ClipboardList className="w-4 h-4" />
-            <span>Basic Information</span>
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-xs border border-teal-100/60 dark:border-slate-800 space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="inline-flex items-center gap-2 bg-[#DDF3ED] dark:bg-teal-950/80 text-[#00695C] dark:text-teal-300 px-3.5 py-1.5 rounded-xl text-xs font-bold">
+              <ClipboardList className="w-4 h-4" />
+              <span>1. Basic Information</span>
+            </div>
+            
+            {/* Show Auto ID badge on Desktop */}
+            <span className="hidden lg:inline-flex items-center gap-1.5 text-xs font-bold text-[#00695C] dark:text-teal-300 bg-teal-50 dark:bg-teal-950 px-3 py-1 rounded-full border border-teal-200 dark:border-teal-800 font-mono">
+              Auto ID: {nextProductId}
+            </span>
           </div>
 
-          <div className="space-y-3.5">
-            {/* Product ID (System Generated) */}
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Product ID (System Generated)</label>
-              <div className="relative">
+          <div className="space-y-4">
+            {/* Product ID & Name */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Product ID (System Generated)</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    readOnly
+                    value={nextProductId}
+                    className="w-full px-3.5 py-2.5 bg-slate-100/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono font-bold text-slate-600 dark:text-slate-300 cursor-not-allowed"
+                  />
+                  <span className="absolute right-3 top-2.5 text-[10px] font-extrabold bg-[#00695C] text-white px-2 py-0.5 rounded-md uppercase tracking-wider">
+                    AUTO
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  Product Name <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="text"
-                  readOnly
-                  value={nextProductId}
-                  className="w-full px-3.5 py-2.5 bg-slate-100/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono font-bold text-slate-600 dark:text-slate-300 cursor-not-allowed"
+                  placeholder="Enter product name (e.g. Tata Sampann Arhar Dal)"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  className={`w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-[#00695C] focus:outline-none ${
+                    errors.name ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
+                  }`}
                 />
-                <span className="absolute right-3 top-2.5 text-[10px] font-extrabold bg-[#00695C] text-white px-2 py-0.5 rounded-md uppercase tracking-wider">
-                  AUTO
-                </span>
+                {errors.name && <p className="text-[11px] text-rose-500 font-medium">{errors.name}</p>}
               </div>
             </div>
 
-            {/* Product Name */}
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                Product Name <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                placeholder="Enter product name (e.g. Tata Sampann Arhar Dal)"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className={`w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-[#00695C] focus:outline-none ${
-                  errors.name ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
-                }`}
-              />
-              {errors.name && <p className="text-[11px] text-rose-500 font-medium">{errors.name}</p>}
-            </div>
-
             {/* Category Dropdown */}
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
                   Category <span className="text-rose-500">*</span>
@@ -525,9 +619,9 @@ export const AddProductPage = () => {
                 <button
                   type="button"
                   onClick={() => setIsCategoryModalOpen(true)}
-                  className="text-[11px] font-bold text-[#00695C] dark:text-teal-300 hover:underline flex items-center gap-0.5 cursor-pointer"
+                  className="text-xs font-bold text-[#00695C] dark:text-teal-300 hover:underline flex items-center gap-1 cursor-pointer"
                 >
-                  <Plus className="w-3 h-3" /> Add New Category
+                  <Plus className="w-3.5 h-3.5" /> Add New Category
                 </button>
               </div>
               <div className="relative">
@@ -549,8 +643,8 @@ export const AddProductPage = () => {
             </div>
 
             {/* Brand & SKU */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Brand</label>
                 <input
                   type="text"
@@ -561,7 +655,7 @@ export const AddProductPage = () => {
                 />
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-800 dark:text-slate-200">SKU / Product Code</label>
                 <input
                   type="text"
@@ -573,64 +667,65 @@ export const AddProductPage = () => {
               </div>
             </div>
 
-            {/* Product Unit (Stock) */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                  Product Unit (Stock) <span className="text-rose-500">*</span>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setIsUnitModalOpen(true)}
-                  className="text-[11px] font-bold text-[#00695C] dark:text-teal-300 hover:underline flex items-center gap-0.5 cursor-pointer"
-                >
-                  <Plus className="w-3 h-3" /> Add Unit
-                </button>
+            {/* Units: Product Unit & Selling Unit */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    Product Unit (Stock) <span className="text-rose-500">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsUnitModalOpen(true)}
+                    className="text-xs font-bold text-[#00695C] dark:text-teal-300 hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Unit
+                  </button>
+                </div>
+                <div className="relative">
+                  <select
+                    value={formData.unit}
+                    onChange={(e) => setFormData(prev => ({ ...prev, unit: e.target.value }))}
+                    className={`w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm text-slate-900 dark:text-white appearance-none focus:ring-2 focus:ring-[#00695C] focus:outline-none pr-9 ${
+                      errors.unit ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
+                    }`}
+                  >
+                    <option value="">Select Product Unit</option>
+                    {units.map(u => (
+                      <option key={u.id} value={u.id}>{u.name} ({u.short_name})</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+                </div>
+                {errors.unit && <p className="text-[11px] text-rose-500 font-medium">{errors.unit}</p>}
               </div>
-              <div className="relative">
-                <select
-                  value={formData.unit}
-                  onChange={(e) => setFormData(prev => ({ ...prev, unit: e.target.value }))}
-                  className={`w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm text-slate-900 dark:text-white appearance-none focus:ring-2 focus:ring-[#00695C] focus:outline-none pr-9 ${
-                    errors.unit ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
-                  }`}
-                >
-                  <option value="">Select Product Unit</option>
-                  {units.map(u => (
-                    <option key={u.id} value={u.id}>{u.name} ({u.short_name})</option>
-                  ))}
-                </select>
-                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
-              </div>
-              {errors.unit && <p className="text-[11px] text-rose-500 font-medium">{errors.unit}</p>}
-            </div>
 
-            {/* Selling Unit (POS Billing) */}
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                Selling Unit (POS Billing) <span className="text-rose-500">*</span>
-              </label>
-              <div className="relative">
-                <select
-                  value={formData.selling_unit}
-                  onChange={(e) => setFormData(prev => ({ ...prev, selling_unit: e.target.value }))}
-                  className={`w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm text-slate-900 dark:text-white appearance-none focus:ring-2 focus:ring-[#00695C] focus:outline-none pr-9 ${
-                    errors.selling_unit ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
-                  }`}
-                >
-                  <option value="">Select Selling Unit</option>
-                  {units.map(u => (
-                    <option key={u.id} value={u.id}>{u.name} ({u.short_name})</option>
-                  ))}
-                </select>
-                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  Selling Unit (POS Billing) <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <select
+                    value={formData.selling_unit}
+                    onChange={(e) => setFormData(prev => ({ ...prev, selling_unit: e.target.value }))}
+                    className={`w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm text-slate-900 dark:text-white appearance-none focus:ring-2 focus:ring-[#00695C] focus:outline-none pr-9 ${
+                      errors.selling_unit ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
+                    }`}
+                  >
+                    <option value="">Select Selling Unit</option>
+                    {units.map(u => (
+                      <option key={u.id} value={u.id}>{u.name} ({u.short_name})</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+                </div>
+                {errors.selling_unit && <p className="text-[11px] text-rose-500 font-medium">{errors.selling_unit}</p>}
               </div>
-              {errors.selling_unit && <p className="text-[11px] text-rose-500 font-medium">{errors.selling_unit}</p>}
             </div>
 
             {/* Conversion Ratio Preview Box */}
             {prodUnitObj && sellUnitObj && (
-              <div className="p-3 rounded-2xl bg-teal-50/80 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800/80 flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300">
+              <div className="p-3.5 rounded-2xl bg-teal-50/80 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800/80 flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300">
                 <Info className="w-4 h-4 text-[#00695C] dark:text-teal-300 shrink-0 mt-0.5" />
                 <div>
                   <span className="font-bold text-[#00695C] dark:text-teal-300">Unit Ratio: </span>
@@ -647,15 +742,14 @@ export const AddProductPage = () => {
         </div>
 
         {/* CARD 2: Supplier Information */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-5 shadow-xs border border-teal-100/60 dark:border-slate-800 space-y-4">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-xs border border-teal-100/60 dark:border-slate-800 space-y-4">
           <div className="inline-flex items-center gap-2 bg-[#DDF3ED] dark:bg-teal-950/80 text-[#00695C] dark:text-teal-300 px-3 py-1.5 rounded-xl text-xs font-bold">
             <Truck className="w-4 h-4" />
             <span>2. Supplier Information</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            {/* Supplier Select */}
-            <div className="space-y-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
                   Supplier Name <span className="text-rose-500">*</span>
@@ -663,9 +757,9 @@ export const AddProductPage = () => {
                 <button
                   type="button"
                   onClick={() => setIsSupplierModalOpen(true)}
-                  className="text-[11px] font-bold text-[#00695C] dark:text-teal-300 hover:underline flex items-center gap-0.5 cursor-pointer"
+                  className="text-xs font-bold text-[#00695C] dark:text-teal-300 hover:underline flex items-center gap-1 cursor-pointer"
                 >
-                  <Plus className="w-3 h-3" /> Add Supplier
+                  <Plus className="w-3.5 h-3.5" /> Add Supplier
                 </button>
               </div>
               <div className="relative">
@@ -688,8 +782,7 @@ export const AddProductPage = () => {
               {errors.supplier && <p className="text-[11px] text-rose-500 font-medium">{errors.supplier}</p>}
             </div>
 
-            {/* Supplier Purchase Tax GST% */}
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Supplier Purchase Tax (GST)</label>
               <div className="relative">
                 <select
@@ -710,15 +803,14 @@ export const AddProductPage = () => {
         </div>
 
         {/* CARD 3: Purchase Price */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-5 shadow-xs border border-teal-100/60 dark:border-slate-800 space-y-4">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-xs border border-teal-100/60 dark:border-slate-800 space-y-4">
           <div className="inline-flex items-center gap-2 bg-[#DDF3ED] dark:bg-teal-950/80 text-[#00695C] dark:text-teal-300 px-3 py-1.5 rounded-xl text-xs font-bold">
             <DollarSign className="w-4 h-4" />
             <span>3. Purchase Price</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-            {/* Non-Tax Purchase Price */}
-            <div className="space-y-1">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
                 Non-Tax Purchase Price (₹) <span className="text-rose-500">*</span>
               </label>
@@ -739,8 +831,7 @@ export const AddProductPage = () => {
               {errors.purchase_non_tax_price && <p className="text-[11px] text-rose-500 font-medium">{errors.purchase_non_tax_price}</p>}
             </div>
 
-            {/* Calculated Tax Amount */}
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
                 Tax Amount (GST {purchaseTaxRate}%)
               </label>
@@ -755,8 +846,7 @@ export const AddProductPage = () => {
               </div>
             </div>
 
-            {/* Final Purchase Price */}
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <label className="text-xs font-bold text-[#00695C] dark:text-teal-300">
                 Final Purchase Price
               </label>
@@ -774,15 +864,14 @@ export const AddProductPage = () => {
         </div>
 
         {/* CARD 4: Selling Price & MRP */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-5 shadow-xs border border-teal-100/60 dark:border-slate-800 space-y-4">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-xs border border-teal-100/60 dark:border-slate-800 space-y-4">
           <div className="inline-flex items-center gap-2 bg-[#DDF3ED] dark:bg-teal-950/80 text-[#00695C] dark:text-teal-300 px-3 py-1.5 rounded-xl text-xs font-bold">
             <Tag className="w-4 h-4" />
             <span>4. Selling Price & MRP</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-            {/* Selling Tax GST Rate */}
-            <div className="space-y-1">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Selling GST Rate</label>
               <div className="relative">
                 <select
@@ -800,8 +889,7 @@ export const AddProductPage = () => {
               </div>
             </div>
 
-            {/* Non-Tax Selling Price */}
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Non-Tax Selling Price (₹)</label>
               <div className="relative">
                 <span className="absolute left-3.5 top-2.5 text-slate-400 font-bold">₹</span>
@@ -817,8 +905,7 @@ export const AddProductPage = () => {
               </div>
             </div>
 
-            {/* MRP */}
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
                 MRP (Max Retail Price) <span className="text-rose-500">*</span>
               </label>
@@ -839,8 +926,7 @@ export const AddProductPage = () => {
               {errors.mrp && <p className="text-[11px] text-rose-500 font-medium">{errors.mrp}</p>}
             </div>
 
-            {/* Final POS Selling Price (Full Width Span) */}
-            <div className="space-y-1 sm:col-span-3">
+            <div className="space-y-1.5 sm:col-span-3">
               <label className="text-xs font-bold text-[#00695C] dark:text-teal-300 flex items-center justify-between">
                 <span>Final POS Counter Selling Price (₹) <span className="text-rose-500">*</span></span>
                 <span className="text-[11px] font-medium text-slate-400">Used at billing counter</span>
@@ -865,15 +951,14 @@ export const AddProductPage = () => {
         </div>
 
         {/* CARD 5: Stock & Expiry Information */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-5 shadow-xs border border-teal-100/60 dark:border-slate-800 space-y-4">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-xs border border-teal-100/60 dark:border-slate-800 space-y-4">
           <div className="inline-flex items-center gap-2 bg-[#DDF3ED] dark:bg-teal-950/80 text-[#00695C] dark:text-teal-300 px-3 py-1.5 rounded-xl text-xs font-bold">
             <Layers className="w-4 h-4" />
             <span>5. Stock & Expiry Information</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-            {/* Stock Quantity */}
-            <div className="space-y-1">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
                 Stock Quantity <span className="text-rose-500">*</span>
               </label>
@@ -891,8 +976,7 @@ export const AddProductPage = () => {
               {errors.stock_quantity && <p className="text-[11px] text-rose-500 font-medium">{errors.stock_quantity}</p>}
             </div>
 
-            {/* Low Stock Alert */}
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Low Stock Alert Limit</label>
               <input
                 type="number"
@@ -905,16 +989,15 @@ export const AddProductPage = () => {
               />
             </div>
 
-            {/* Barcode Number */}
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Barcode (EAN/UPC)</label>
                 <button
                   type="button"
                   onClick={handleGenerateBarcode}
-                  className="text-[11px] font-bold text-[#00695C] dark:text-teal-300 hover:underline flex items-center gap-0.5 cursor-pointer"
+                  className="text-xs font-bold text-[#00695C] dark:text-teal-300 hover:underline flex items-center gap-1 cursor-pointer"
                 >
-                  <Sparkles className="w-3 h-3" /> Generate
+                  <Sparkles className="w-3.5 h-3.5" /> Generate
                 </button>
               </div>
               <div className="relative">
@@ -929,8 +1012,7 @@ export const AddProductPage = () => {
               </div>
             </div>
 
-            {/* Manufacturing Date */}
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Manufacturing Date</label>
               <input
                 type="date"
@@ -940,8 +1022,7 @@ export const AddProductPage = () => {
               />
             </div>
 
-            {/* Expiry Date */}
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Expiry Date</label>
               <input
                 type="date"
@@ -954,8 +1035,7 @@ export const AddProductPage = () => {
               {errors.expiry_date && <p className="text-[11px] text-rose-500 font-medium">{errors.expiry_date}</p>}
             </div>
 
-            {/* Short Description (Full Width) */}
-            <div className="space-y-1 sm:col-span-3">
+            <div className="space-y-1.5 sm:col-span-3">
               <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Short Description / Note (Optional)</label>
               <div className="relative border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden focus-within:ring-2 focus-within:ring-[#00695C]">
                 <textarea
@@ -974,8 +1054,37 @@ export const AddProductPage = () => {
           </div>
         </div>
 
-        {/* 🟢 Sticky Bottom Action Footer */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-3 sm:p-4 z-40 shadow-xl">
+        {/* 💻 DESKTOP BOTTOM ACTION BUTTONS (Shown on Desktop lg: screens) */}
+        <div className="hidden lg:flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate('/inventory')}
+            className="border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 font-bold px-6"
+          >
+            Cancel
+          </Button>
+          <button
+            type="button"
+            onClick={(e) => handleSubmit(e, true)}
+            disabled={submitting}
+            className="px-4 py-2.5 text-xs font-bold rounded-xl bg-teal-50/90 dark:bg-teal-950/80 text-[#00695C] dark:text-teal-300 border border-teal-200 dark:border-teal-800 hover:bg-teal-100 dark:hover:bg-teal-900/60 transition-all cursor-pointer flex items-center gap-1.5"
+          >
+            <Plus className="w-3.5 h-3.5 text-[#00695C] dark:text-teal-300" />
+            <span>{submitting && saveAndAddAnother ? 'Saving Product...' : 'Save & Add Another'}</span>
+          </button>
+          <Button
+            type="submit"
+            disabled={submitting}
+            className="bg-[#00695C] hover:bg-[#004D40] text-white font-bold px-8 shadow-lg shadow-[#00695C]/30 flex items-center gap-2 cursor-pointer"
+          >
+            <Save className="w-4 h-4" />
+            <span>{submitting && !saveAndAddAnother ? 'Saving Product...' : 'Save Product'}</span>
+          </Button>
+        </div>
+
+        {/* 📱 MOBILE / TABLET STICKY BOTTOM ACTION FOOTER (Shown on Mobile < lg screens) */}
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-3 sm:p-4 z-40 shadow-xl">
           <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
             <button
               type="button"
