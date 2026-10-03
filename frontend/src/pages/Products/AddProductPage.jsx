@@ -447,7 +447,7 @@ export const AddProductPage = () => {
               }`}
             >
               <h1 className="text-lg font-black text-slate-900 dark:text-white tracking-tight font-heading truncate">
-                Add Product
+                Add <span className="text-[#00796b] dark:text-[#80cbc4]">Product</span>
               </h1>
             </div>
 
@@ -456,12 +456,18 @@ export const AddProductPage = () => {
               className={`transform-gpu will-change-[max-height,opacity,transform] transition-all duration-300 ease-out overflow-hidden ${
                 scrolled
                   ? 'max-h-0 opacity-0 -translate-y-2 pointer-events-none'
-                  : 'max-h-24 opacity-100 translate-y-0'
+                  : 'max-h-28 opacity-100 translate-y-0'
               }`}
             >
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight font-heading leading-tight">
-                Add Product
-              </h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight font-heading leading-tight">
+                  Add <span className="text-[#00796b] dark:text-[#80cbc4]">Product</span>
+                </h1>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-teal-100/90 text-[#00695c] dark:bg-teal-950/80 dark:text-teal-300 border border-teal-200 dark:border-teal-800/50 font-mono">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  {nextProductId}
+                </span>
+              </div>
               <p className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 mt-0.5 truncate">
                 Add a new product to Tulsi Mart catalog
               </p>
