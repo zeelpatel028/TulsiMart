@@ -419,10 +419,10 @@ export const AddProductPage = () => {
 
       {/* 📱 MOBILE / TABLET ANIMATED COLLAPSIBLE STICKY TOP HEADER */}
       <div
-        className={`lg:hidden sticky top-0 z-30 transform-gpu will-change-[padding,background-color,box-shadow] transition-all duration-300 ease-out ${
+        className={`lg:hidden sticky top-0 z-30 transform-gpu will-change-[padding,background-color,box-shadow] transition-all duration-300 ease-out text-white ${
           scrolled
-            ? 'bg-[#C4ECE2]/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-teal-200/80 dark:border-slate-800 shadow-sm py-2.5 px-4'
-            : 'bg-gradient-to-b from-[#C4ECE2] via-[#DBF3ED] to-[#ECF7F5] dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 px-4 pt-3.5 pb-4 rounded-b-[2rem]'
+            ? 'bg-[#004D40]/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-[#00695C] dark:border-slate-800 shadow-md py-2.5 px-4'
+            : 'bg-gradient-to-r from-[#004D40] via-[#00695C] to-[#004D40] dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 px-4 pt-4 pb-6 rounded-b-[2rem] shadow-lg'
         }`}
       >
         <div className="max-w-3xl mx-auto flex items-center justify-between">
@@ -432,7 +432,7 @@ export const AddProductPage = () => {
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="w-10 h-10 rounded-full bg-[#FF3B30] hover:bg-[#E03126] text-white flex items-center justify-center shadow-md transition-transform active:scale-95 cursor-pointer shrink-0 z-10"
+              className="w-10 h-10 rounded-full bg-[#FF3B30] hover:bg-[#E03126] text-white flex items-center justify-center shadow-lg transition-transform active:scale-95 cursor-pointer shrink-0 z-10 border border-white/20"
               aria-label="Go Back"
             >
               <ArrowLeft className="w-5 h-5 stroke-[2.5]" />
@@ -446,8 +446,8 @@ export const AddProductPage = () => {
                   : 'opacity-0 -translate-x-3 pointer-events-none absolute left-12'
               }`}
             >
-              <h1 className="text-lg font-black text-slate-900 dark:text-white tracking-tight font-heading truncate">
-                Add <span className="text-[#00796b] dark:text-[#80cbc4]">Product</span>
+              <h1 className="text-lg font-black text-white tracking-tight font-heading truncate">
+                Add <span className="text-[#80cbc4]">Product</span>
               </h1>
             </div>
 
@@ -460,15 +460,15 @@ export const AddProductPage = () => {
               }`}
             >
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight font-heading leading-tight">
-                  Add <span className="text-[#00796b] dark:text-[#80cbc4]">Product</span>
+                <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight font-heading leading-tight">
+                  Add <span className="text-[#80cbc4]">Product</span>
                 </h1>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-teal-100/90 text-[#00695c] dark:bg-teal-950/80 dark:text-teal-300 border border-teal-200 dark:border-teal-800/50 font-mono">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-white/15 text-teal-100 border border-white/25 font-mono backdrop-blur-xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   {nextProductId}
                 </span>
               </div>
-              <p className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 mt-0.5 truncate">
+              <p className="text-xs sm:text-sm font-semibold text-teal-100/90 dark:text-slate-300 mt-0.5 truncate">
                 Add a new product to Tulsi Mart catalog
               </p>
             </div>
@@ -486,7 +486,7 @@ export const AddProductPage = () => {
             <img
               src="/grocery_bag_header.jpg"
               alt="Grocery Basket"
-              className="w-full h-auto object-contain mix-blend-multiply dark:mix-blend-normal rounded-2xl drop-shadow-sm"
+              className="w-full h-auto object-contain rounded-2xl drop-shadow-md"
               onError={(e) => {
                 e.target.onerror = null;
                 e.target.src = '/grocery_basket.png';
