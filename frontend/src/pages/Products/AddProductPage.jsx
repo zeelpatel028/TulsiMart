@@ -456,18 +456,12 @@ export const AddProductPage = () => {
               className={`transform-gpu will-change-[max-height,opacity,transform] transition-all duration-300 ease-out overflow-hidden ${
                 scrolled
                   ? 'max-h-0 opacity-0 -translate-y-2 pointer-events-none'
-                  : 'max-h-28 opacity-100 translate-y-0'
+                  : 'max-h-24 opacity-100 translate-y-0'
               }`}
             >
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight font-heading leading-tight">
-                  Add <span className="text-[#80cbc4]">Product</span>
-                </h1>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-white/15 text-teal-100 border border-white/25 font-mono backdrop-blur-xs">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  {nextProductId}
-                </span>
-              </div>
+              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight font-heading leading-tight">
+                Add <span className="text-[#80cbc4]">Product</span>
+              </h1>
               <p className="text-xs sm:text-sm font-semibold text-teal-100/90 dark:text-slate-300 mt-0.5 truncate">
                 Add a new product to Tulsi Mart catalog
               </p>
@@ -475,7 +469,7 @@ export const AddProductPage = () => {
 
           </div>
 
-          {/* Grocery Bag Illustration Image (Smooth scale down & fade out) */}
+          {/* Grocery Bag Illustration Image (Seamlessly matches #00695C background) */}
           <div
             className={`w-20 sm:w-28 shrink-0 relative -mr-1 pointer-events-none transform-gpu will-change-[max-height,opacity,transform] transition-all duration-300 ease-out ${
               scrolled
@@ -486,7 +480,7 @@ export const AddProductPage = () => {
             <img
               src="/grocery_bag_header.jpg"
               alt="Grocery Basket"
-              className="w-full h-auto object-contain rounded-2xl drop-shadow-md"
+              className="w-full h-auto object-contain"
               onError={(e) => {
                 e.target.onerror = null;
                 e.target.src = '/grocery_basket.png';
@@ -1013,12 +1007,12 @@ export const AddProductPage = () => {
         </div>
 
         {/* 📱 MOBILE / TABLET STICKY BOTTOM ACTION FOOTER (Shown on Mobile < lg screens) */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-3 sm:p-4 z-40 shadow-xl">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800 p-3 sm:p-4 z-40 shadow-2xl">
           <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="w-1/2 sm:w-auto px-6 py-3 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl font-bold text-sm transition-colors cursor-pointer text-center"
+              className="flex-1 py-3.5 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-sm transition-all active:scale-98 cursor-pointer text-center flex items-center justify-center"
             >
               Cancel
             </button>
@@ -1026,7 +1020,7 @@ export const AddProductPage = () => {
             <button
               type="submit"
               disabled={submitting}
-              className="w-1/2 sm:w-auto px-8 py-3 bg-[#00695C] hover:bg-[#004D40] text-white rounded-2xl font-bold text-sm shadow-md flex items-center justify-center gap-2 transition-transform active:scale-98 cursor-pointer"
+              className="flex-[1.4] py-3.5 px-6 bg-[#00695C] hover:bg-[#004D40] text-white rounded-2xl font-bold text-sm shadow-lg shadow-[#00695C]/30 flex items-center justify-center gap-2 transition-all active:scale-98 cursor-pointer border border-teal-500/20"
             >
               <Save className="w-4 h-4 stroke-[2.5]" />
               <span>{submitting ? 'Saving Product...' : 'Save Product'}</span>
