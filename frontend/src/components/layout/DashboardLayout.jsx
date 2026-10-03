@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 import MobileHeader from './MobileHeader';
@@ -15,6 +15,9 @@ export const DashboardLayout = () => {
   const [lastCreatedOrder, setLastCreatedOrder] = useState(null);
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
   const { storeSettings } = useAuth();
+  const location = useLocation();
+
+  const isHideMobileNav = location.pathname === '/products/add';
 
   const handleOrderCreated = (order) => {
     setLastCreatedOrder(order);
@@ -42,21 +45,28 @@ export const DashboardLayout = () => {
         </div>
 
         {/* Mobile App Sticky Top Header */}
-        <div className="lg:hidden">
-          <MobileHeader
-            onMenuClick={() => setIsMobileOpen(true)}
-            onOpenSearch={() => setIsQuickOrderOpen(true)}
-          />
-        </div>
+        {!isHideMobileNav && (
+          <div className="lg:hidden">
+            <MobileHeader
+              onMenuClick={() => setIsMobileOpen(true)}
+              onOpenSearch={() => setIsQuickOrderOpen(true)}
+            />
+          </div>
+        )}
 
         {/* Page Content Container - includes safe padding for Mobile Header & Mobile Bottom Navigation */}
-        <main className="flex-1 p-3 sm:p-5 lg:p-8 max-w-7xl w-full mx-auto animate-in fade-in duration-300 pt-24 lg:pt-8 pb-32 lg:pb-8">
+        <main
+          className={`flex-1 w-full mx-auto animate-in fade-in duration-300 ${
+            isHideMobileNav
+              ? 'p-0 lg:p-8 max-w-full lg:max-w-7xl pt-0 lg:pt-8 pb-0 lg:pb-8'
+              : 'p-3 sm:p-5 lg:p-8 max-w-7xl pt-24 lg:pt-8 pb-32 lg:pb-8'
+          }`}
+        >
           <Outlet context={{ openQuickOrder: () => setIsQuickOrderOpen(true) }} />
         </main>
 
-
         {/* Mobile Fixed App Bottom Navigation Bar */}
-        <MobileBottomNav />
+        {!isHideMobileNav && <MobileBottomNav />}
       </div>
 
       {/* POS Quick Order Modal */}
