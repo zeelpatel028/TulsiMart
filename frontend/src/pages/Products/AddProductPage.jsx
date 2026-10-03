@@ -80,13 +80,17 @@ export const AddProductPage = () => {
   // Validation errors
   const [errors, setErrors] = useState({});
 
-  // Scroll listener for sticky collapsing header animation
+  // Scroll listener with requestAnimationFrame throttling for ultra-smooth 60fps performance
   useEffect(() => {
+    let ticking = false;
+
     const handleScroll = () => {
-      if (window.scrollY > 40) {
-        setScrolled(true);
-      } else {
-        setScrolled(false);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setScrolled(window.scrollY > 30);
+          ticking = false;
+        });
+        ticking = true;
       }
     };
 
@@ -415,61 +419,74 @@ export const AddProductPage = () => {
 
       {/* 📱 MOBILE / TABLET ANIMATED COLLAPSIBLE STICKY TOP HEADER */}
       <div
-        className={`lg:hidden sticky top-0 z-30 transition-all duration-300 ${
+        className={`lg:hidden sticky top-0 z-30 transform-gpu will-change-[padding,background-color,box-shadow] transition-all duration-300 ease-out ${
           scrolled
             ? 'bg-[#C4ECE2]/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-teal-200/80 dark:border-slate-800 shadow-sm py-2.5 px-4'
-            : 'bg-gradient-to-b from-[#C4ECE2] via-[#DBF3ED] to-[#ECF7F5] dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 px-4 pt-4 pb-6 rounded-b-[2rem]'
+            : 'bg-gradient-to-b from-[#C4ECE2] via-[#DBF3ED] to-[#ECF7F5] dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 px-4 pt-3.5 pb-4 rounded-b-[2rem]'
         }`}
       >
-        <div className="max-w-3xl mx-auto flex items-center justify-between transition-all duration-300">
-          <div className={`transition-all duration-300 ${scrolled ? 'flex items-center gap-3' : 'space-y-3'}`}>
+        <div className="max-w-3xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0 flex-1 relative">
             
-            {/* Red Circle Arrow Back Button (Always Sticky) */}
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => navigate(-1)}
-                className="w-10 h-10 rounded-full bg-[#FF3B30] hover:bg-[#E03126] text-white flex items-center justify-center shadow-md transition-transform active:scale-95 cursor-pointer shrink-0"
-                aria-label="Go Back"
-              >
-                <ArrowLeft className="w-5 h-5 stroke-[2.5]" />
-              </button>
+            {/* Red Circle Arrow Back Button (Always Fixed & Sticky) */}
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="w-10 h-10 rounded-full bg-[#FF3B30] hover:bg-[#E03126] text-white flex items-center justify-center shadow-md transition-transform active:scale-95 cursor-pointer shrink-0 z-10"
+              aria-label="Go Back"
+            >
+              <ArrowLeft className="w-5 h-5 stroke-[2.5]" />
+            </button>
 
-              {/* Collapsed Sticky Navbar Title (Transitions inline with red arrow button on scroll) */}
-              {scrolled && (
-                <h1 className="text-lg font-black text-slate-900 dark:text-white tracking-tight font-heading animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  Add Product
-                </h1>
-              )}
+            {/* Collapsed Sticky Title (Fade & Slide in smoothly next to red button) */}
+            <div
+              className={`transform-gpu will-change-[transform,opacity] transition-all duration-300 ease-out ${
+                scrolled
+                  ? 'opacity-100 translate-x-0 pointer-events-auto relative'
+                  : 'opacity-0 -translate-x-3 pointer-events-none absolute left-12'
+              }`}
+            >
+              <h1 className="text-lg font-black text-slate-900 dark:text-white tracking-tight font-heading truncate">
+                Add Product
+              </h1>
             </div>
 
-            {/* Uncollapsed Full Title & Subtitle */}
-            {!scrolled && (
-              <div className="transition-all duration-300">
-                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight font-heading">
-                  Add Product
-                </h1>
-                <p className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 mt-0.5">
-                  Add a new product to Tulsi Mart catalog
-                </p>
-              </div>
-            )}
+            {/* Uncollapsed Full Title & Subtitle (Collapses & Fades out smoothly) */}
+            <div
+              className={`transform-gpu will-change-[max-height,opacity,transform] transition-all duration-300 ease-out overflow-hidden ${
+                scrolled
+                  ? 'max-h-0 opacity-0 -translate-y-2 pointer-events-none'
+                  : 'max-h-24 opacity-100 translate-y-0'
+              }`}
+            >
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight font-heading leading-tight">
+                Add Product
+              </h1>
+              <p className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 mt-0.5 truncate">
+                Add a new product to Tulsi Mart catalog
+              </p>
+            </div>
+
           </div>
 
-          {/* Grocery Bag Illustration Image (Scrolls away cleanly) */}
-          {!scrolled && (
-            <div className="w-24 sm:w-32 shrink-0 relative -mr-1 -mt-1 pointer-events-none transition-all duration-300">
-              <img
-                src="/grocery_bag_header.jpg"
-                alt="Grocery Basket"
-                className="w-full h-auto object-contain drop-shadow-md rounded-2xl"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = '/grocery_basket.png';
-                }}
-              />
-            </div>
-          )}
+          {/* Grocery Bag Illustration Image (Smooth scale down & fade out) */}
+          <div
+            className={`w-20 sm:w-28 shrink-0 relative -mr-1 pointer-events-none transform-gpu will-change-[max-height,opacity,transform] transition-all duration-300 ease-out ${
+              scrolled
+                ? 'max-h-0 opacity-0 scale-75 overflow-hidden'
+                : 'max-h-24 opacity-100 scale-100'
+            }`}
+          >
+            <img
+              src="/grocery_bag_header.jpg"
+              alt="Grocery Basket"
+              className="w-full h-auto object-contain drop-shadow-md rounded-2xl"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = '/grocery_basket.png';
+              }}
+            />
+          </div>
         </div>
       </div>
 
