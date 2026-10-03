@@ -5,11 +5,9 @@ import { extractList } from '../../utils/apiHelpers';
 import { useNotification } from '../../context/NotificationContext';
 import { Modal } from '../../components/common/Modal';
 import { Button } from '../../components/common/Button';
-import { Card } from '../../components/common/Card';
 import { getUnitConversionRatio } from '../../utils/unitConversion';
 import {
   ArrowLeft,
-  Camera,
   Package,
   Truck,
   DollarSign,
@@ -20,14 +18,9 @@ import {
   Sparkles,
   Info,
   ChevronDown,
-  X,
   ClipboardList,
   Barcode as BarcodeIcon,
-  Calendar,
-  AlertTriangle,
-  FileText,
-  Scale,
-  Percent
+  FileText
 } from 'lucide-react';
 
 export const AddProductPage = () => {
@@ -45,11 +38,6 @@ export const AddProductPage = () => {
 
   // Submission state
   const [submitting, setSubmitting] = useState(false);
-  const [saveAndAddAnother, setSaveAndAddAnother] = useState(false);
-
-  // Image Upload state
-  const [imagePreview, setImagePreview] = useState(null);
-  const [imageFile, setImageFile] = useState(null);
 
   // Modal States
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -146,23 +134,6 @@ export const AddProductPage = () => {
     }
   };
 
-  // Image Upload Handler
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        showToast('Image size exceeds 5MB limit', 'error');
-        return;
-      }
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   // Generate random barcode
   const handleGenerateBarcode = () => {
     const randomBarcode = `890${Math.floor(100000000 + Math.random() * 900000000)}`;
@@ -251,7 +222,7 @@ export const AddProductPage = () => {
   };
 
   // Submit Handler
-  const handleSubmit = async (e, addAnother = false) => {
+  const handleSubmit = async (e) => {
     if (e) e.preventDefault();
     if (!validateForm()) {
       showToast('Please fix validation errors before saving.', 'error');
@@ -260,7 +231,6 @@ export const AddProductPage = () => {
 
     try {
       setSubmitting(true);
-      setSaveAndAddAnother(addAnother);
 
       const payload = {
         name: formData.name.trim(),
@@ -296,39 +266,7 @@ export const AddProductPage = () => {
 
       await inventoryApi.createProduct(payload);
       showToast(`Product "${formData.name}" saved successfully!`, 'success');
-
-      if (addAnother) {
-        const nextIdRes = await inventoryApi.getNextProductId();
-        if (nextIdRes.data?.next_product_id) {
-          setNextProductId(nextIdRes.data.next_product_id);
-        }
-        setFormData({
-          name: '',
-          category: categories[0]?.id || '',
-          brand: '',
-          unit: units[0]?.id || '',
-          selling_unit: units[0]?.id || '',
-          supplier: suppliers[0]?.id || '',
-          purchase_tax: '18',
-          purchase_non_tax_price: '',
-          selling_tax: '18',
-          selling_non_tax_price: '',
-          mrp: '',
-          selling_price: '',
-          stock_quantity: '25',
-          barcode: '',
-          low_stock_alert: '10',
-          manufacturing_date: '',
-          expiry_date: '',
-          short_description: '',
-        });
-        setImagePreview(null);
-        setImageFile(null);
-        setErrors({});
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else {
-        navigate('/inventory');
-      }
+      navigate('/inventory');
     } catch (err) {
       console.error('Failed to save product:', err);
       const backendErr = err.response?.data;
@@ -342,7 +280,6 @@ export const AddProductPage = () => {
       showToast(err.response?.data?.detail || 'Failed to save product. Check inputs.', 'error');
     } finally {
       setSubmitting(false);
-      setSaveAndAddAnother(false);
     }
   };
 
@@ -444,25 +381,16 @@ export const AddProductPage = () => {
             </div>
           </div>
 
-          {/* Right Desktop Action Buttons */}
+          {/* Right Desktop Action Button */}
           <div className="flex items-center gap-2.5 shrink-0">
             <button
               type="button"
-              onClick={(e) => handleSubmit(e, true)}
+              onClick={(e) => handleSubmit(e)}
               disabled={submitting}
-              className="px-4 py-2.5 text-xs font-bold rounded-xl bg-teal-50/90 dark:bg-teal-950/80 text-[#00695C] dark:text-teal-300 border border-teal-200 dark:border-teal-800 hover:bg-teal-100 dark:hover:bg-teal-900/60 shadow-2xs transition-all cursor-pointer flex items-center gap-1.5"
-            >
-              <Plus className="w-3.5 h-3.5 text-[#00695C] dark:text-teal-300" />
-              <span>{submitting && saveAndAddAnother ? 'Saving...' : 'Save & Add Another'}</span>
-            </button>
-            <button
-              type="button"
-              onClick={(e) => handleSubmit(e, false)}
-              disabled={submitting}
-              className="px-5 py-2.5 text-sm font-bold rounded-xl bg-[#00695C] hover:bg-[#004D40] text-white shadow-md shadow-teal-900/20 transition-all cursor-pointer flex items-center gap-2"
+              className="px-6 py-2.5 text-sm font-bold rounded-xl bg-[#00695C] hover:bg-[#004D40] text-white shadow-md shadow-teal-900/20 transition-all cursor-pointer flex items-center gap-2"
             >
               <Save className="w-4 h-4" />
-              <span>{submitting && !saveAndAddAnother ? 'Saving Product...' : 'Save Product'}</span>
+              <span>{submitting ? 'Saving Product...' : 'Save Product'}</span>
             </button>
           </div>
         </div>
@@ -506,61 +434,8 @@ export const AddProductPage = () => {
       </div>
 
       {/* 📄 Form Container */}
-      <form onSubmit={(e) => handleSubmit(e, false)} className="max-w-3xl lg:max-w-7xl mx-auto px-4 lg:px-0 mt-2 lg:mt-0 space-y-6 pb-28 lg:pb-12">
+      <form onSubmit={(e) => handleSubmit(e)} className="max-w-3xl lg:max-w-7xl mx-auto px-4 lg:px-0 mt-2 lg:mt-0 space-y-6 pb-28 lg:pb-12">
         
-        {/* CARD 0: Product Images */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-xs border border-teal-100/60 dark:border-slate-800 space-y-3">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-teal-100 dark:bg-teal-950 flex items-center justify-center text-[#00695C] dark:text-teal-300">
-              <Camera className="w-4 h-4" />
-            </div>
-            <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Product Images</h2>
-          </div>
-
-          <label className="block cursor-pointer">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="hidden"
-            />
-            <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-teal-400 bg-[#F4F8FB] dark:bg-slate-800/40 rounded-2xl p-6 text-center transition-colors">
-              {imagePreview ? (
-                <div className="relative inline-block">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="max-h-36 mx-auto rounded-xl object-contain shadow-xs"
-                  />
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setImagePreview(null);
-                      setImageFile(null);
-                    }}
-                    className="absolute -top-2 -right-2 w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-xs"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <div className="w-10 h-10 mx-auto rounded-full border border-slate-300 dark:border-slate-600 flex items-center justify-center text-slate-600 dark:text-slate-300">
-                    <Camera className="w-5 h-5 stroke-[1.5]" />
-                  </div>
-                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                    Upload Product Image
-                  </p>
-                  <p className="text-[11px] text-slate-400">
-                    PNG, JPG, JPEG (Max 5MB)
-                  </p>
-                </div>
-              )}
-            </div>
-          </label>
-        </div>
-
         {/* CARD 1: Basic Information */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-xs border border-teal-100/60 dark:border-slate-800 space-y-4">
           <div className="flex items-center justify-between gap-3">
@@ -1064,22 +939,13 @@ export const AddProductPage = () => {
           >
             Cancel
           </Button>
-          <button
-            type="button"
-            onClick={(e) => handleSubmit(e, true)}
-            disabled={submitting}
-            className="px-4 py-2.5 text-xs font-bold rounded-xl bg-teal-50/90 dark:bg-teal-950/80 text-[#00695C] dark:text-teal-300 border border-teal-200 dark:border-teal-800 hover:bg-teal-100 dark:hover:bg-teal-900/60 transition-all cursor-pointer flex items-center gap-1.5"
-          >
-            <Plus className="w-3.5 h-3.5 text-[#00695C] dark:text-teal-300" />
-            <span>{submitting && saveAndAddAnother ? 'Saving Product...' : 'Save & Add Another'}</span>
-          </button>
           <Button
             type="submit"
             disabled={submitting}
             className="bg-[#00695C] hover:bg-[#004D40] text-white font-bold px-8 shadow-lg shadow-[#00695C]/30 flex items-center gap-2 cursor-pointer"
           >
             <Save className="w-4 h-4" />
-            <span>{submitting && !saveAndAddAnother ? 'Saving Product...' : 'Save Product'}</span>
+            <span>{submitting ? 'Saving Product...' : 'Save Product'}</span>
           </Button>
         </div>
 
