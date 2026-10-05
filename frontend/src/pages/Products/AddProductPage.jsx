@@ -396,11 +396,11 @@ export const AddProductPage = () => {
         </div>
       </div>
 
-      {/* 📱 MOBILE / TABLET REFINED PASTEL MINT HEADER (Exact Match with Reference Image) */}
-      <div className="lg:hidden sticky top-0 z-30 bg-[#E3F6F4] dark:bg-slate-900 text-slate-900 dark:text-white px-4 pt-4 pb-5 sm:px-6 sm:pt-5 sm:pb-6 rounded-b-[24px] shadow-xs border-b border-teal-200/50 dark:border-slate-800 relative overflow-hidden">
+      {/* 📱 MOBILE / TABLET COMPACT PASTEL MINT HEADER */}
+      <div className="lg:hidden sticky top-0 z-30 bg-[#E3F6F4] dark:bg-slate-900 text-slate-900 dark:text-white px-3.5 py-2.5 sm:px-5 sm:py-3.5 rounded-b-[18px] shadow-xs border-b border-teal-200/50 dark:border-slate-800 relative overflow-hidden">
         {/* SVG Decorative Bottom-Left Wave */}
         <svg
-          className="absolute bottom-0 left-0 w-44 sm:w-60 h-auto pointer-events-none text-[#C4EFE9]/70 dark:text-teal-950/40"
+          className="absolute bottom-0 left-0 w-36 sm:w-52 h-auto pointer-events-none text-[#C4EFE9]/70 dark:text-teal-950/40"
           viewBox="0 0 200 80"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
@@ -413,7 +413,7 @@ export const AddProductPage = () => {
 
         {/* SVG Decorative Bottom-Right Mound Curve under Basket */}
         <svg
-          className="absolute bottom-0 right-0 w-36 sm:w-48 h-auto pointer-events-none text-[#B5ECE5]/80 dark:text-teal-900/40"
+          className="absolute bottom-0 right-0 w-28 sm:w-40 h-auto pointer-events-none text-[#B5ECE5]/80 dark:text-teal-900/40"
           viewBox="0 0 160 90"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
@@ -425,12 +425,11 @@ export const AddProductPage = () => {
         </svg>
 
         {/* Decorative Floating Mint Dots/Leaves on Right */}
-        <div className="absolute top-3 right-8 w-2 h-2 rounded-full bg-[#83D9CC] opacity-60 pointer-events-none" />
-        <div className="absolute bottom-6 right-28 w-2.5 h-2.5 rounded-full bg-[#83D9CC] opacity-50 pointer-events-none" />
-        <div className="absolute top-8 right-24 w-1.5 h-1.5 rounded-full bg-[#52C5B4] opacity-40 pointer-events-none" />
+        <div className="absolute top-2 right-6 w-1.5 h-1.5 rounded-full bg-[#83D9CC] opacity-60 pointer-events-none" />
+        <div className="absolute bottom-4 right-20 w-2 h-2 rounded-full bg-[#83D9CC] opacity-50 pointer-events-none" />
 
-        <div className="max-w-3xl mx-auto flex items-center justify-between gap-3 relative z-10">
-          <div className="flex items-center gap-3.5 min-w-0 flex-1">
+        <div className="max-w-3xl mx-auto flex items-center justify-between gap-2.5 relative z-10">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
             
             {/* 1. Pure White Circular Back Button with Dark Teal Arrow */}
             <button
@@ -442,31 +441,31 @@ export const AddProductPage = () => {
                   navigate('/inventory');
                 }
               }}
-              className="w-11 h-11 rounded-full bg-white dark:bg-slate-800 text-[#134E48] dark:text-teal-300 flex items-center justify-center shadow-md shadow-teal-900/10 hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0 border border-teal-100/80 dark:border-slate-700"
+              className="w-9.5 h-9.5 sm:w-10 sm:h-10 rounded-full bg-white dark:bg-slate-800 text-[#134E48] dark:text-teal-300 flex items-center justify-center shadow-md shadow-teal-900/10 hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0 border border-teal-100/80 dark:border-slate-700"
               aria-label="Go Back"
             >
-              <ArrowLeft className="w-5 h-5 stroke-[2.6]" />
+              <ArrowLeft className="w-4.5 h-4.5 stroke-[2.6]" />
             </button>
 
             {/* 2. Title & Subtitle */}
             <div className="min-w-0 flex-1">
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight font-heading leading-tight truncate">
+              <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight font-heading leading-tight truncate">
                 Add <span className="text-[#00695C] dark:text-[#4DB6AC]">Product</span>
               </h1>
 
               {/* Subtitle */}
-              <p className="text-xs sm:text-sm font-semibold text-[#267B70] dark:text-slate-300 truncate mt-0.5">
+              <p className="text-[11px] sm:text-xs font-semibold text-[#267B70] dark:text-slate-300 truncate mt-0.5">
                 Add a new product to Tulsi Mart catalog
               </p>
             </div>
           </div>
 
-          {/* 3. Right-side Grocery Items Cart (Oil, Flour, Cookies, Wafers, Packets) */}
-          <div className="w-24 sm:w-28 shrink-0 relative pointer-events-none -mr-1">
+          {/* 3. Right-side Grocery Items Cart */}
+          <div className="w-18 sm:w-22 shrink-0 relative pointer-events-none -mr-1">
             <img
               src="/grocery_items_cart.jpg"
               alt="Grocery Items Cart"
-              className="w-full h-auto object-contain drop-shadow-md rounded-2xl"
+              className="w-full h-auto object-contain drop-shadow-md rounded-xl"
               onError={(e) => {
                 e.target.onerror = null;
                 e.target.src = '/grocery_bag_transparent.png';
