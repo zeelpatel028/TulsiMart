@@ -102,6 +102,36 @@ html, body {
   color: #64748B !important;
 }
 
+/* Universal Select & Option Premium Styling */
+select {
+  cursor: pointer;
+}
+
+option {
+  padding: 10px 14px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #0f172a;
+  background-color: #ffffff;
+}
+
+.dark option {
+  color: #f8fafc;
+  background-color: #0f172a;
+}
+
+option:checked,
+option:hover {
+  background-color: #e0f2f1 !important;
+  color: #00695c !important;
+}
+
+.dark option:checked,
+.dark option:hover {
+  background-color: #134e48 !important;
+  color: #2dd4bf !important;
+}
+
 .dark input:focus,
 .dark textarea:focus,
 .dark select:focus {
