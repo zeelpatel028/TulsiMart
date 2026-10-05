@@ -610,8 +610,8 @@ export const GullaManagement = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6 text-slate-800 dark:text-slate-100 font-sans pb-12">
-      {/* 📱 Mobile & Tablet Responsive Top Navigation Header (Same as Add Product Header) */}
-      <div className="lg:hidden sticky top-0 z-30 bg-[#E3F6F4] dark:bg-slate-900 text-slate-900 dark:text-white px-3.5 py-2.5 sm:px-5 sm:py-3.5 rounded-b-[18px] shadow-xs border-b border-teal-200/50 dark:border-slate-800 relative overflow-hidden -mx-3 -mt-3 sm:-mx-5 sm:-mt-5 mb-3">
+      {/* 📱 Mobile & Tablet Responsive Top Navigation Header */}
+      <div className="lg:hidden sticky top-0 z-30 bg-[#E3F6F4] dark:bg-slate-900 text-slate-900 dark:text-white px-4 py-3 sm:px-5 sm:py-3.5 rounded-b-2xl sm:rounded-b-3xl shadow-xs border-b border-teal-200/60 dark:border-slate-800 relative overflow-hidden -mx-3 -mt-3 sm:-mx-5 sm:-mt-5 mb-4">
         {/* SVG Decorative Bottom-Left Wave */}
         <svg
           className="absolute bottom-0 left-0 w-36 sm:w-52 h-auto pointer-events-none text-[#C4EFE9]/70 dark:text-teal-950/40"
@@ -642,7 +642,7 @@ export const GullaManagement = () => {
         <div className="absolute top-2 right-6 w-1.5 h-1.5 rounded-full bg-[#83D9CC] opacity-60 pointer-events-none" />
         <div className="absolute bottom-4 right-20 w-2 h-2 rounded-full bg-[#83D9CC] opacity-50 pointer-events-none" />
 
-        <div className="max-w-3xl mx-auto flex items-center justify-between gap-2.5 relative z-10">
+        <div className="max-w-3xl mx-auto flex items-center justify-between gap-3 relative z-10">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             
             {/* Pure White Circular Back Button */}
@@ -673,30 +673,17 @@ export const GullaManagement = () => {
               </p>
             </div>
           </div>
-
-          {/* Right-side Money 3D Cash & Wallet Illustration */}
-          <div className="w-18 sm:w-22 shrink-0 relative pointer-events-none -mr-1">
-            <img
-              src="/gulla_money_3d.jpg"
-              alt="Today's Cash Collection"
-              className="w-full h-auto object-contain drop-shadow-md rounded-xl"
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = '/gulla_money_3d.jpg';
-              }}
-            />
-          </div>
         </div>
       </div>
 
       {/* 📱 Mobile Quick Actions Bar (Mobile & Tablet) */}
-      <div className="flex lg:hidden flex-wrap items-center gap-2 mb-3">
+      <div className="flex lg:hidden flex-wrap items-center gap-2 mt-3.5 mb-4 px-0.5">
         <Button
           variant="outline"
           size="sm"
           onClick={() => fetchGullaData(selectedDate)}
           loading={refreshing}
-          className="flex items-center justify-center gap-1.5 text-xs border-teal-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 flex-1 font-bold shadow-2xs"
+          className="flex items-center justify-center gap-1.5 text-xs border-teal-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 flex-1 font-bold shadow-2xs rounded-xl"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
           <span>Refresh</span>
@@ -706,7 +693,7 @@ export const GullaManagement = () => {
           variant="outline"
           size="sm"
           onClick={() => handleOpenEntryModal('CASH_IN')}
-          className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300 text-xs font-bold flex items-center justify-center gap-1.5 px-3 py-2 flex-1 shadow-2xs"
+          className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300 text-xs font-bold flex items-center justify-center gap-1.5 px-3 py-2 flex-1 shadow-2xs rounded-xl"
         >
           <Plus className="w-3.5 h-3.5 shrink-0" />
           <span>Add Cash</span>
@@ -716,7 +703,7 @@ export const GullaManagement = () => {
           variant="outline"
           size="sm"
           onClick={() => handleOpenEntryModal('CASH_OUT')}
-          className="bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-300 text-xs font-bold flex items-center justify-center gap-1.5 px-3 py-2 flex-1 shadow-2xs"
+          className="bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-300 text-xs font-bold flex items-center justify-center gap-1.5 px-3 py-2 flex-1 shadow-2xs rounded-xl"
         >
           <Minus className="w-3.5 h-3.5 shrink-0" />
           <span>Withdraw</span>
@@ -726,7 +713,7 @@ export const GullaManagement = () => {
           variant="primary"
           size="sm"
           onClick={() => setIsEodModalOpen(true)}
-          className="bg-[#00796b] hover:bg-[#004d40] text-white font-bold text-xs flex items-center justify-center gap-1.5 px-3.5 py-2 shadow-2xs cursor-pointer flex-1"
+          className="bg-[#00796b] hover:bg-[#004d40] text-white font-bold text-xs flex items-center justify-center gap-1.5 px-3.5 py-2 shadow-2xs cursor-pointer flex-1 rounded-xl"
         >
           <Store className="w-3.5 h-3.5 shrink-0" />
           <span>Day-End Sweep</span>
