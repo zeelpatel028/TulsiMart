@@ -350,7 +350,7 @@ export const AddProductPage = () => {
   };
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="space-y-6 font-sans overscroll-y-contain overscroll-contain">
       
       {/* 💻 DESKTOP TOP HEADER BANNER (Shown on Desktop lg: screens) */}
       <div className="hidden lg:block -mx-8 -mt-8 mb-6 bg-gradient-to-r from-teal-50/90 via-emerald-50/60 to-teal-50/90 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 text-slate-800 dark:text-white p-5 px-8 border-b border-teal-200/70 dark:border-slate-800 relative overflow-hidden shadow-2xs">

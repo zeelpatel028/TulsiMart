@@ -74,11 +74,12 @@
   color-scheme: dark;
 }
 
-body {
+html, body {
   font-family: var(--font-sans);
   background-color: var(--tm-bg);
   color: #263238;
   overflow-x: hidden;
+  overscroll-behavior-y: contain;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
