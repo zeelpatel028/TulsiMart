@@ -492,39 +492,38 @@ export const AddProductPage = () => {
             </span>
           </div>
 
-          <div className="space-y-4">
-            {/* Product ID & Name */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Product ID (System Generated)</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    readOnly
-                    value={nextProductId}
-                    className="w-full px-3.5 py-2.5 bg-slate-100/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono font-bold text-slate-600 dark:text-slate-300 cursor-not-allowed"
-                  />
-                  <span className="absolute right-3 top-2.5 text-[10px] font-extrabold bg-[#00695C] text-white px-2 py-0.5 rounded-md uppercase tracking-wider">
-                    AUTO
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                  Product Name <span className="text-rose-500">*</span>
-                </label>
+          <div className="grid grid-cols-1 gap-4">
+            {/* Product ID */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Product ID (System Generated)</label>
+              <div className="relative">
                 <input
                   type="text"
-                  placeholder="Enter product name (e.g. Tata Sampann Arhar Dal)"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  className={`w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-[#00695C] focus:outline-none ${
-                    errors.name ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
-                  }`}
+                  readOnly
+                  value={nextProductId}
+                  className="w-full px-3.5 py-2.5 bg-slate-100/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono font-bold text-slate-600 dark:text-slate-300 cursor-not-allowed"
                 />
-                {errors.name && <p className="text-[11px] text-rose-500 font-medium">{errors.name}</p>}
+                <span className="absolute right-3 top-2.5 text-[10px] font-extrabold bg-[#00695C] text-white px-2 py-0.5 rounded-md uppercase tracking-wider">
+                  AUTO
+                </span>
               </div>
+            </div>
+
+            {/* Product Name */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                Product Name <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                placeholder="Enter product name (e.g. Tata Sampann Arhar Dal)"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                className={`w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-[#00695C] focus:outline-none ${
+                  errors.name ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
+                }`}
+              />
+              {errors.name && <p className="text-[11px] text-rose-500 font-medium">{errors.name}</p>}
             </div>
 
             {/* Category Dropdown */}
@@ -559,85 +558,83 @@ export const AddProductPage = () => {
               {errors.category && <p className="text-[11px] text-rose-500 font-medium">{errors.category}</p>}
             </div>
 
-            {/* Brand & SKU */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Brand</label>
-                <input
-                  type="text"
-                  placeholder="Enter brand"
-                  value={formData.brand}
-                  onChange={(e) => setFormData(prev => ({ ...prev, brand: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-[#00695C] focus:outline-none"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">SKU / Product Code</label>
-                <input
-                  type="text"
-                  placeholder="Enter product code"
-                  value={nextProductId}
-                  readOnly
-                  className="w-full px-3.5 py-2.5 bg-slate-100/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono text-slate-700 dark:text-slate-300"
-                />
-              </div>
+            {/* Brand */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Brand</label>
+              <input
+                type="text"
+                placeholder="Enter brand"
+                value={formData.brand}
+                onChange={(e) => setFormData(prev => ({ ...prev, brand: e.target.value }))}
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-[#00695C] focus:outline-none"
+              />
             </div>
 
-            {/* Units: Product Unit & Selling Unit */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                    Product Unit (Stock) <span className="text-rose-500">*</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setIsUnitModalOpen(true)}
-                    className="text-xs font-bold text-[#00695C] dark:text-teal-300 hover:underline flex items-center gap-1 cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Add Unit
-                  </button>
-                </div>
-                <div className="relative">
-                  <select
-                    value={formData.unit}
-                    onChange={(e) => setFormData(prev => ({ ...prev, unit: e.target.value }))}
-                    className={`w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm text-slate-900 dark:text-white appearance-none focus:ring-2 focus:ring-[#00695C] focus:outline-none pr-9 ${
-                      errors.unit ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
-                    }`}
-                  >
-                    <option value="">Select Product Unit</option>
-                    {units.map(u => (
-                      <option key={u.id} value={u.id}>{u.name} ({u.short_name})</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
-                </div>
-                {errors.unit && <p className="text-[11px] text-rose-500 font-medium">{errors.unit}</p>}
-              </div>
+            {/* SKU / Product Code */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200">SKU / Product Code</label>
+              <input
+                type="text"
+                placeholder="Enter product code"
+                value={nextProductId}
+                readOnly
+                className="w-full px-3.5 py-2.5 bg-slate-100/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono text-slate-700 dark:text-slate-300 cursor-not-allowed"
+              />
+            </div>
 
-              <div className="space-y-1.5">
+            {/* Product Unit */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                  Selling Unit (POS Billing) <span className="text-rose-500">*</span>
+                  Product Unit (Stock) <span className="text-rose-500">*</span>
                 </label>
-                <div className="relative">
-                  <select
-                    value={formData.selling_unit}
-                    onChange={(e) => setFormData(prev => ({ ...prev, selling_unit: e.target.value }))}
-                    className={`w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm text-slate-900 dark:text-white appearance-none focus:ring-2 focus:ring-[#00695C] focus:outline-none pr-9 ${
-                      errors.selling_unit ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
-                    }`}
-                  >
-                    <option value="">Select Selling Unit</option>
-                    {units.map(u => (
-                      <option key={u.id} value={u.id}>{u.name} ({u.short_name})</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
-                </div>
-                {errors.selling_unit && <p className="text-[11px] text-rose-500 font-medium">{errors.selling_unit}</p>}
+                <button
+                  type="button"
+                  onClick={() => setIsUnitModalOpen(true)}
+                  className="text-xs font-bold text-[#00695C] dark:text-teal-300 hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add Unit
+                </button>
               </div>
+              <div className="relative">
+                <select
+                  value={formData.unit}
+                  onChange={(e) => setFormData(prev => ({ ...prev, unit: e.target.value }))}
+                  className={`w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm text-slate-900 dark:text-white appearance-none focus:ring-2 focus:ring-[#00695C] focus:outline-none pr-9 ${
+                    errors.unit ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  <option value="">Select Product Unit</option>
+                  {units.map(u => (
+                    <option key={u.id} value={u.id}>{u.name} ({u.short_name})</option>
+                  ))}
+                </select>
+                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+              </div>
+              {errors.unit && <p className="text-[11px] text-rose-500 font-medium">{errors.unit}</p>}
+            </div>
+
+            {/* Selling Unit */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                Selling Unit (POS Billing) <span className="text-rose-500">*</span>
+              </label>
+              <div className="relative">
+                <select
+                  value={formData.selling_unit}
+                  onChange={(e) => setFormData(prev => ({ ...prev, selling_unit: e.target.value }))}
+                  className={`w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm text-slate-900 dark:text-white appearance-none focus:ring-2 focus:ring-[#00695C] focus:outline-none pr-9 ${
+                    errors.selling_unit ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  <option value="">Select Selling Unit</option>
+                  {units.map(u => (
+                    <option key={u.id} value={u.id}>{u.name} ({u.short_name})</option>
+                  ))}
+                </select>
+                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+              </div>
+              {errors.selling_unit && <p className="text-[11px] text-rose-500 font-medium">{errors.selling_unit}</p>}
             </div>
 
             {/* Conversion Ratio Preview Box */}
@@ -665,7 +662,7 @@ export const AddProductPage = () => {
             <span>2. Supplier Information</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
@@ -726,7 +723,7 @@ export const AddProductPage = () => {
             <span>3. Purchase Price</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
                 Non-Tax Purchase Price (₹) <span className="text-rose-500">*</span>
@@ -787,7 +784,7 @@ export const AddProductPage = () => {
             <span>4. Selling Price & MRP</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Selling GST Rate</label>
               <div className="relative">
@@ -843,7 +840,7 @@ export const AddProductPage = () => {
               {errors.mrp && <p className="text-[11px] text-rose-500 font-medium">{errors.mrp}</p>}
             </div>
 
-            <div className="space-y-1.5 sm:col-span-3">
+            <div className="space-y-1.5">
               <label className="text-xs font-bold text-[#00695C] dark:text-teal-300 flex items-center justify-between">
                 <span>Final POS Counter Selling Price (₹) <span className="text-rose-500">*</span></span>
                 <span className="text-[11px] font-medium text-slate-400">Used at billing counter</span>
@@ -874,7 +871,7 @@ export const AddProductPage = () => {
             <span>5. Stock & Expiry Information</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
                 Stock Quantity <span className="text-rose-500">*</span>
@@ -952,7 +949,7 @@ export const AddProductPage = () => {
               {errors.expiry_date && <p className="text-[11px] text-rose-500 font-medium">{errors.expiry_date}</p>}
             </div>
 
-            <div className="space-y-1.5 sm:col-span-3">
+            <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Short Description / Note (Optional)</label>
               <div className="relative border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden focus-within:ring-2 focus-within:ring-[#00695C]">
                 <textarea
