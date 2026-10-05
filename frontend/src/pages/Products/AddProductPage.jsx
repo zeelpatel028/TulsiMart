@@ -993,25 +993,11 @@ export const AddProductPage = () => {
 
         {/* 📱 MOBILE / TABLET STICKY BOTTOM ACTION FOOTER (Shown on Mobile < lg screens) */}
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800 p-3 sm:p-4 z-40 shadow-2xl">
-          <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                if (window.history.length > 1) {
-                  navigate(-1);
-                } else {
-                  navigate('/inventory');
-                }
-              }}
-              className="flex-1 py-3 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm transition-all active:scale-98 cursor-pointer text-center flex items-center justify-center"
-            >
-              Cancel
-            </button>
-            
+          <div className="max-w-3xl mx-auto">
             <button
               type="submit"
               disabled={submitting}
-              className="flex-[1.4] py-3.5 px-6 bg-[#00695C] hover:bg-[#004D40] text-white rounded-2xl font-bold text-sm shadow-lg shadow-[#00695C]/30 flex items-center justify-center gap-2 transition-all active:scale-98 cursor-pointer border border-teal-500/20"
+              className="w-full py-3.5 px-6 bg-[#00695C] hover:bg-[#004D40] text-white rounded-xl font-bold text-sm shadow-lg shadow-[#00695C]/30 flex items-center justify-center gap-2 transition-all active:scale-98 cursor-pointer border border-teal-500/20"
             >
               <Save className="w-4 h-4 stroke-[2.5]" />
               <span>{submitting ? 'Saving Product...' : 'Save Product'}</span>
