@@ -674,15 +674,15 @@ export const GullaManagement = () => {
             </div>
           </div>
 
-          {/* Right-side Grocery Items Cart Graphic */}
+          {/* Right-side Money 3D Cash & Wallet Illustration */}
           <div className="w-18 sm:w-22 shrink-0 relative pointer-events-none -mr-1">
             <img
-              src="/grocery_items_cart.jpg"
-              alt="Today's Collection"
+              src="/gulla_money_3d.jpg"
+              alt="Today's Cash Collection"
               className="w-full h-auto object-contain drop-shadow-md rounded-xl"
               onError={(e) => {
                 e.target.onerror = null;
-                e.target.src = '/grocery_bag_transparent.png';
+                e.target.src = '/gulla_money_3d.jpg';
               }}
             />
           </div>

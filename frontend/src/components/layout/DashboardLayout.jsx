@@ -17,7 +17,7 @@ export const DashboardLayout = () => {
   const { storeSettings } = useAuth();
   const location = useLocation();
 
-  const isHideMobileNav = location.pathname === '/products/add';
+  const isHideMobileNav = ['/products/add', '/collection', '/gulla'].includes(location.pathname);
 
   const handleOrderCreated = (order) => {
     setLastCreatedOrder(order);
@@ -58,7 +58,7 @@ export const DashboardLayout = () => {
         <main
           className={`flex-1 w-full mx-auto animate-in fade-in duration-300 ${
             isHideMobileNav
-              ? 'p-0 lg:p-8 max-w-full lg:max-w-7xl pt-0 lg:pt-8 pb-0 lg:pb-8'
+              ? 'p-0 lg:p-8 max-w-full lg:max-w-7xl pt-0 lg:pt-8 pb-20 lg:pb-8'
               : 'p-3 sm:p-5 lg:p-8 max-w-7xl pt-24 lg:pt-8 pb-32 lg:pb-8'
           }`}
         >
