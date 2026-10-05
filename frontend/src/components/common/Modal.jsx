@@ -40,6 +40,7 @@ export const Modal = ({
             {subtitle && <p className="text-[11px] sm:text-xs text-[#607D8B] dark:text-slate-400 mt-0.5 line-clamp-1">{subtitle}</p>}
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="text-[#607D8B] hover:text-[#00695C] dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-[#E0F2F1] dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
             title="Close"

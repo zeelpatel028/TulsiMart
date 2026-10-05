@@ -3,6 +3,7 @@ import { Loader2 } from 'lucide-react';
 
 export const Button = ({
   children,
+  type = 'button',
   variant = 'primary', // primary, accent, secondary, light, outline, danger, ghost
   size = 'md', // sm, md, lg
   loading = false,
@@ -32,6 +33,7 @@ export const Button = ({
 
   return (
     <button
+      type={type}
       disabled={disabled || loading}
       className={`${baseStyles} ${sizeStyles[size]} ${variantStyles[variant] || variantStyles.primary} ${className}`}
       {...props}

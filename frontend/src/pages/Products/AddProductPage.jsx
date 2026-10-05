@@ -27,9 +27,6 @@ export const AddProductPage = () => {
   const navigate = useNavigate();
   const { showToast } = useNotification();
 
-  // Scroll state for sticky animated collapsing header
-  const [scrolled, setScrolled] = useState(false);
-
   // Dropdown options state
   const [categories, setCategories] = useState([]);
   const [units, setUnits] = useState([]);
@@ -79,24 +76,6 @@ export const AddProductPage = () => {
 
   // Validation errors
   const [errors, setErrors] = useState({});
-
-  // Scroll listener with requestAnimationFrame throttling for ultra-smooth 60fps performance
-  useEffect(() => {
-    let ticking = false;
-
-    const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          setScrolled(window.scrollY > 30);
-          ticking = false;
-        });
-        ticking = true;
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   // Fetch initial meta dropdowns & next product ID
   useEffect(() => {
@@ -417,73 +396,80 @@ export const AddProductPage = () => {
         </div>
       </div>
 
-      {/* 📱 MOBILE / TABLET ANIMATED COLLAPSIBLE STICKY TOP HEADER */}
-      <div
-        className={`lg:hidden sticky top-0 z-30 transform-gpu will-change-[padding,background-color,box-shadow] transition-all duration-300 ease-out text-white ${
-          scrolled
-            ? 'bg-[#00695C]/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-[#004D40] dark:border-slate-800 shadow-md py-2.5 px-4'
-            : 'bg-[#00695C] dark:bg-slate-900 px-4 pt-4 pb-6 rounded-b-[2rem] shadow-lg'
-        }`}
-      >
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3 min-w-0 flex-1 relative">
+      {/* 📱 MOBILE / TABLET REFINED PASTEL MINT HEADER (Exact Match with Reference Image) */}
+      <div className="lg:hidden sticky top-0 z-30 bg-[#E3F6F4] dark:bg-slate-900 text-slate-900 dark:text-white px-4 pt-4 pb-5 sm:px-6 sm:pt-5 sm:pb-6 rounded-b-[24px] shadow-xs border-b border-teal-200/50 dark:border-slate-800 relative overflow-hidden">
+        {/* SVG Decorative Bottom-Left Wave */}
+        <svg
+          className="absolute bottom-0 left-0 w-44 sm:w-60 h-auto pointer-events-none text-[#C4EFE9]/70 dark:text-teal-950/40"
+          viewBox="0 0 200 80"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M0 40C50 60 120 70 200 45V80H0V40Z"
+            fill="currentColor"
+          />
+        </svg>
+
+        {/* SVG Decorative Bottom-Right Mound Curve under Basket */}
+        <svg
+          className="absolute bottom-0 right-0 w-36 sm:w-48 h-auto pointer-events-none text-[#B5ECE5]/80 dark:text-teal-900/40"
+          viewBox="0 0 160 90"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M20 90C40 40 100 20 160 30V90H20Z"
+            fill="currentColor"
+          />
+        </svg>
+
+        {/* Decorative Floating Mint Dots/Leaves on Right */}
+        <div className="absolute top-3 right-8 w-2 h-2 rounded-full bg-[#83D9CC] opacity-60 pointer-events-none" />
+        <div className="absolute bottom-6 right-28 w-2.5 h-2.5 rounded-full bg-[#83D9CC] opacity-50 pointer-events-none" />
+        <div className="absolute top-8 right-24 w-1.5 h-1.5 rounded-full bg-[#52C5B4] opacity-40 pointer-events-none" />
+
+        <div className="max-w-3xl mx-auto flex items-center justify-between gap-3 relative z-10">
+          <div className="flex items-center gap-3.5 min-w-0 flex-1">
             
-            {/* Red Circle Arrow Back Button (Always Fixed & Sticky) */}
+            {/* 1. Pure White Circular Back Button with Dark Teal Arrow */}
             <button
               type="button"
-              onClick={() => navigate(-1)}
-              className="w-10 h-10 rounded-full bg-[#FF3B30] hover:bg-[#E03126] text-white flex items-center justify-center shadow-lg transition-transform active:scale-95 cursor-pointer shrink-0 z-10 border border-white/20"
+              onClick={() => {
+                if (window.history.length > 1) {
+                  navigate(-1);
+                } else {
+                  navigate('/inventory');
+                }
+              }}
+              className="w-11 h-11 rounded-full bg-white dark:bg-slate-800 text-[#134E48] dark:text-teal-300 flex items-center justify-center shadow-md shadow-teal-900/10 hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0 border border-teal-100/80 dark:border-slate-700"
               aria-label="Go Back"
             >
-              <ArrowLeft className="w-5 h-5 stroke-[2.5]" />
+              <ArrowLeft className="w-5 h-5 stroke-[2.6]" />
             </button>
 
-            {/* Collapsed Sticky Title (Fade & Slide in smoothly next to red button) */}
-            <div
-              className={`transform-gpu will-change-[transform,opacity] transition-all duration-300 ease-out ${
-                scrolled
-                  ? 'opacity-100 translate-x-0 pointer-events-auto relative'
-                  : 'opacity-0 -translate-x-3 pointer-events-none absolute left-12'
-              }`}
-            >
-              <h1 className="text-lg font-black text-white tracking-tight font-heading truncate">
-                Add <span className="text-[#80cbc4]">Product</span>
+            {/* 2. Title & Subtitle */}
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight font-heading leading-tight truncate">
+                Add <span className="text-[#00695C] dark:text-[#4DB6AC]">Product</span>
               </h1>
-            </div>
 
-            {/* Uncollapsed Full Title & Subtitle (Collapses & Fades out smoothly) */}
-            <div
-              className={`transform-gpu will-change-[max-height,opacity,transform] transition-all duration-300 ease-out overflow-hidden ${
-                scrolled
-                  ? 'max-h-0 opacity-0 -translate-y-2 pointer-events-none'
-                  : 'max-h-24 opacity-100 translate-y-0'
-              }`}
-            >
-              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight font-heading leading-tight">
-                Add <span className="text-[#80cbc4]">Product</span>
-              </h1>
-              <p className="text-xs sm:text-sm font-semibold text-teal-100/90 dark:text-slate-300 mt-0.5 truncate">
+              {/* Subtitle */}
+              <p className="text-xs sm:text-sm font-semibold text-[#267B70] dark:text-slate-300 truncate mt-0.5">
                 Add a new product to Tulsi Mart catalog
               </p>
             </div>
-
           </div>
 
-          {/* Grocery Bag Illustration Image (Seamlessly matches #00695C background) */}
-          <div
-            className={`w-20 sm:w-28 shrink-0 relative -mr-1 pointer-events-none transform-gpu will-change-[max-height,opacity,transform] transition-all duration-300 ease-out ${
-              scrolled
-                ? 'max-h-0 opacity-0 scale-75 overflow-hidden'
-                : 'max-h-24 opacity-100 scale-100'
-            }`}
-          >
+          {/* 3. Right-side Grocery Items Cart (Oil, Flour, Cookies, Wafers, Packets) */}
+          <div className="w-24 sm:w-28 shrink-0 relative pointer-events-none -mr-1">
             <img
-              src="/grocery_bag_transparent.png"
-              alt="Grocery Basket"
-              className="w-full h-auto object-contain drop-shadow-md"
+              src="/grocery_items_cart.jpg"
+              alt="Grocery Items Cart"
+              className="w-full h-auto object-contain drop-shadow-md rounded-2xl"
               onError={(e) => {
                 e.target.onerror = null;
-                e.target.src = '/grocery_basket.png';
+                e.target.src = '/grocery_bag_transparent.png';
               }}
             />
           </div>
@@ -491,7 +477,7 @@ export const AddProductPage = () => {
       </div>
 
       {/* 📄 Form Container */}
-      <form onSubmit={(e) => handleSubmit(e)} className="max-w-3xl lg:max-w-7xl mx-auto px-4 lg:px-0 mt-2 lg:mt-0 space-y-6 pb-28 lg:pb-12">
+      <form onSubmit={(e) => handleSubmit(e)} className="max-w-3xl lg:max-w-7xl mx-auto px-4 lg:px-0 mt-3 lg:mt-0 space-y-6 pb-20 lg:pb-12">
         
         {/* CARD 1: Basic Information */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-xs border border-teal-100/60 dark:border-slate-800 space-y-4">
@@ -1011,8 +997,14 @@ export const AddProductPage = () => {
           <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
             <button
               type="button"
-              onClick={() => navigate(-1)}
-              className="flex-1 py-3.5 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-sm transition-all active:scale-98 cursor-pointer text-center flex items-center justify-center"
+              onClick={() => {
+                if (window.history.length > 1) {
+                  navigate(-1);
+                } else {
+                  navigate('/inventory');
+                }
+              }}
+              className="flex-1 py-3 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm transition-all active:scale-98 cursor-pointer text-center flex items-center justify-center"
             >
               Cancel
             </button>
