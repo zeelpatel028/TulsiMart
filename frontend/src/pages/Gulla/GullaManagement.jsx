@@ -609,9 +609,88 @@ export const GullaManagement = () => {
   });
 
   return (
-    <div className="space-y-4 sm:space-y-6 text-slate-800 dark:text-slate-100 font-sans pb-12">
-      {/* 📱 Mobile & Tablet Responsive Top Navigation Header */}
-      <div className="lg:hidden sticky top-0 z-30 bg-[#E3F6F4] dark:bg-slate-900 text-slate-900 dark:text-white px-4 py-3 sm:px-5 sm:py-3.5 rounded-b-2xl sm:rounded-b-3xl shadow-xs border-b border-teal-200/60 dark:border-slate-800 relative overflow-hidden -mx-3 -mt-3 sm:-mx-5 sm:-mt-5 mb-4">
+    <div className="space-y-6 font-sans overscroll-y-contain overscroll-contain">
+      
+      {/* 💻 DESKTOP TOP HEADER BANNER (Shown on Desktop lg: screens) */}
+      <div className="hidden lg:block -mx-8 -mt-8 mb-6 bg-gradient-to-r from-teal-50/90 via-emerald-50/60 to-teal-50/90 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 text-slate-800 dark:text-white p-5 px-8 border-b border-teal-200/70 dark:border-slate-800 relative overflow-hidden shadow-2xs">
+        {/* Subtle Decorative Background Glow */}
+        <div className="absolute -top-12 -left-12 w-40 h-40 bg-teal-300/20 dark:bg-teal-900/10 rounded-full blur-2xl pointer-events-none" />
+
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 relative z-10 max-w-7xl mx-auto">
+          {/* Left: Icon & Title with Status Badge */}
+          <div className="flex items-center gap-4 min-w-0">
+            <button
+              type="button"
+              onClick={() => {
+                if (window.history.length > 1) {
+                  navigate(-1);
+                } else {
+                  navigate('/dashboard');
+                }
+              }}
+              className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#00796b] to-[#004d40] text-white p-3 border border-[#004d40]/20 flex items-center justify-center shrink-0 shadow-md shadow-teal-900/10 hover:scale-105 transition-all cursor-pointer"
+              title="Back to Dashboard"
+            >
+              <Wallet className="w-7 h-7 text-white" />
+            </button>
+
+            <div className="min-w-0">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white font-heading">
+                  Today's <span className="text-[#00796b] dark:text-[#80cbc4]">Collection</span>
+                </h1>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-100/90 text-[#00695c] dark:bg-teal-950/80 dark:text-teal-300 border border-teal-200 dark:border-teal-800/50 font-mono">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Live Register Active
+                </span>
+              </div>
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                Live cash drawer balance, denomination counter & cash float audit
+              </p>
+            </div>
+          </div>
+
+          {/* Right Desktop Action Buttons */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => fetchGullaData(selectedDate)}
+              disabled={refreshing}
+              className="px-4 py-2.5 text-xs font-bold rounded-xl border border-teal-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 hover:bg-slate-100 transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleOpenEntryModal('CASH_IN')}
+              className="px-4 py-2.5 text-xs font-bold rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-800 transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Cash</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleOpenEntryModal('CASH_OUT')}
+              className="px-4 py-2.5 text-xs font-bold rounded-xl bg-rose-50 text-rose-800 border border-rose-300 hover:bg-rose-100 dark:bg-rose-950/80 dark:text-rose-300 dark:border-rose-800 transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+            >
+              <Minus className="w-3.5 h-3.5" />
+              <span>Withdraw</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsEodModalOpen(true)}
+              className="px-6 py-2.5 text-sm font-bold rounded-xl bg-[#00695C] hover:bg-[#004D40] text-white shadow-md shadow-teal-900/20 transition-all cursor-pointer flex items-center gap-2"
+            >
+              <Store className="w-4 h-4" />
+              <span>Day-End Sweep</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 📱 MOBILE / TABLET COMPACT PASTEL MINT HEADER */}
+      <div className="lg:hidden sticky top-0 z-30 bg-[#E3F6F4] dark:bg-slate-900 text-slate-900 dark:text-white px-3.5 py-2.5 sm:px-5 sm:py-3.5 rounded-b-[18px] shadow-xs border-b border-teal-200/50 dark:border-slate-800 relative overflow-hidden min-h-[72px] sm:min-h-[82px] flex items-center">
         {/* SVG Decorative Bottom-Left Wave */}
         <svg
           className="absolute bottom-0 left-0 w-36 sm:w-52 h-auto pointer-events-none text-[#C4EFE9]/70 dark:text-teal-950/40"
@@ -642,10 +721,10 @@ export const GullaManagement = () => {
         <div className="absolute top-2 right-6 w-1.5 h-1.5 rounded-full bg-[#83D9CC] opacity-60 pointer-events-none" />
         <div className="absolute bottom-4 right-20 w-2 h-2 rounded-full bg-[#83D9CC] opacity-50 pointer-events-none" />
 
-        <div className="max-w-3xl mx-auto flex items-center justify-between gap-3 relative z-10">
+        <div className="w-full max-w-3xl mx-auto flex items-center justify-between gap-2.5 relative z-10">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             
-            {/* Pure White Circular Back Button */}
+            {/* 1. Pure White Circular Back Button with Dark Teal Arrow */}
             <button
               type="button"
               onClick={() => {
@@ -661,7 +740,7 @@ export const GullaManagement = () => {
               <ArrowLeft className="w-4.5 h-4.5 stroke-[2.6]" />
             </button>
 
-            {/* Title & Subtitle */}
+            {/* 2. Title & Subtitle */}
             <div className="min-w-0 flex-1">
               <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight font-heading leading-tight truncate">
                 Today's <span className="text-[#00695C] dark:text-[#4DB6AC]">Collection</span>
@@ -676,168 +755,92 @@ export const GullaManagement = () => {
         </div>
       </div>
 
-      {/* 📱 Mobile Quick Actions Bar (Mobile & Tablet) */}
-      <div className="flex lg:hidden flex-wrap items-center gap-2 mt-3.5 mb-4 px-0.5">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => fetchGullaData(selectedDate)}
-          loading={refreshing}
-          className="flex items-center justify-center gap-1.5 text-xs border-teal-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 flex-1 font-bold shadow-2xs rounded-xl"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-          <span>Refresh</span>
-        </Button>
+      {/* 📄 Main Content Container */}
+      <div className="max-w-3xl lg:max-w-7xl mx-auto px-4 lg:px-0 mt-3 lg:mt-0 space-y-6 pb-20 lg:pb-12">
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handleOpenEntryModal('CASH_IN')}
-          className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300 text-xs font-bold flex items-center justify-center gap-1.5 px-3 py-2 flex-1 shadow-2xs rounded-xl"
-        >
-          <Plus className="w-3.5 h-3.5 shrink-0" />
-          <span>Add Cash</span>
-        </Button>
+        {/* 📱 Mobile Quick Actions Bar (Mobile & Tablet) */}
+        <div className="flex lg:hidden flex-wrap items-center gap-2 mb-2">
+          <button
+            type="button"
+            onClick={() => fetchGullaData(selectedDate)}
+            disabled={refreshing}
+            className="flex-1 px-3 py-2.5 text-xs font-bold rounded-xl border border-teal-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 shadow-2xs hover:bg-slate-50 flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handleOpenEntryModal('CASH_OUT')}
-          className="bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-300 text-xs font-bold flex items-center justify-center gap-1.5 px-3 py-2 flex-1 shadow-2xs rounded-xl"
-        >
-          <Minus className="w-3.5 h-3.5 shrink-0" />
-          <span>Withdraw</span>
-        </Button>
+          <button
+            type="button"
+            onClick={() => handleOpenEntryModal('CASH_IN')}
+            className="flex-1 px-3 py-2.5 text-xs font-bold rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-300 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-800 shadow-2xs hover:bg-emerald-100 flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Cash</span>
+          </button>
 
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={() => setIsEodModalOpen(true)}
-          className="bg-[#00796b] hover:bg-[#004d40] text-white font-bold text-xs flex items-center justify-center gap-1.5 px-3.5 py-2 shadow-2xs cursor-pointer flex-1 rounded-xl"
-        >
-          <Store className="w-3.5 h-3.5 shrink-0" />
-          <span>Day-End Sweep</span>
-        </Button>
-      </div>
+          <button
+            type="button"
+            onClick={() => handleOpenEntryModal('CASH_OUT')}
+            className="flex-1 px-3 py-2.5 text-xs font-bold rounded-xl bg-rose-50 text-rose-800 border border-rose-300 dark:bg-rose-950/80 dark:text-rose-300 dark:border-rose-800 shadow-2xs hover:bg-rose-100 flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+          >
+            <Minus className="w-3.5 h-3.5" />
+            <span>Withdraw</span>
+          </button>
 
-      {/* 💻 Desktop Top Header Banner (Desktop Only) */}
-      <div className="hidden lg:block -mx-8 -mt-8 mb-4 bg-gradient-to-r from-teal-50/90 via-emerald-50/60 to-teal-50/90 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 text-slate-800 dark:text-white p-5 lg:px-8 border-b border-teal-200/70 dark:border-slate-800 relative overflow-hidden shadow-2xs">
-        {/* Subtle Decorative Background Glow */}
-        <div className="absolute -top-12 -left-12 w-40 h-40 bg-teal-300/20 dark:bg-teal-900/10 rounded-full blur-2xl pointer-events-none" />
+          <button
+            type="button"
+            onClick={() => setIsEodModalOpen(true)}
+            className="flex-1 px-3.5 py-2.5 text-xs font-bold rounded-xl bg-[#00695C] text-white shadow-md shadow-teal-900/20 hover:bg-[#004D40] flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+          >
+            <Store className="w-3.5 h-3.5" />
+            <span>Sweep</span>
+          </button>
+        </div>
 
-        {/* Banner Grid Layout */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 relative z-10">
-          {/* Left: Icon & Title with Status Badge */}
-          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-[#00796b] to-[#004d40] text-white p-2.5 sm:p-3 border border-[#004d40]/20 flex items-center justify-center shrink-0 shadow-md shadow-teal-900/10">
-              <Wallet className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
-            </div>
-
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white font-heading">
-                  Today's <span className="text-[#00796b] dark:text-[#80cbc4]">Collection</span>
-                </h1>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-teal-100/90 text-[#00695c] dark:bg-teal-950/80 dark:text-teal-300 border border-teal-200 dark:border-teal-800/50 shadow-2xs">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Live Register Active
-                </span>
-              </div>
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                Live cash drawer balance, denomination counter & cash float audit
-              </p>
-            </div>
+        {/* ================= DATE FILTER CARD ================= */}
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-5 shadow-xs border border-teal-100/60 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
+            <Calendar className="w-4 h-4 text-[#00695C] dark:text-teal-400 shrink-0" />
+            <span>Gulla Register Date:</span>
+            <span className="bg-[#00695C] text-white px-3 py-1 rounded-xl text-xs font-bold font-mono shadow-2xs">
+              {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+            </span>
           </div>
 
-          {/* Right Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto shrink-0">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fetchGullaData(selectedDate)}
-              loading={refreshing}
-              className="flex items-center justify-center gap-1.5 text-xs border-teal-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 px-3 py-2 flex-1 sm:flex-initial font-bold"
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              onClick={() => setSelectedDate(getLocalDateString())}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex-1 sm:flex-initial text-center cursor-pointer ${
+                selectedDate === getLocalDateString()
+                  ? 'bg-[#00695C] text-white shadow-xs'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-              <span>Refresh</span>
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleOpenEntryModal('CASH_IN')}
-              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300 text-xs font-bold flex items-center justify-center gap-1.5 px-3 py-2 flex-1 sm:flex-initial"
+              Today
+            </button>
+            <button
+              onClick={() => {
+                const d = new Date();
+                d.setDate(d.getDate() - 1);
+                setSelectedDate(getLocalDateString(d));
+              }}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex-1 sm:flex-initial text-center cursor-pointer ${
+                selectedDate === (() => { const d = new Date(); d.setDate(d.getDate() - 1); return getLocalDateString(d); })()
+                  ? 'bg-[#00695C] text-white shadow-xs'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
             >
-              <Plus className="w-3.5 h-3.5 shrink-0" />
-              <span>Add Cash</span>
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleOpenEntryModal('CASH_OUT')}
-              className="bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-300 text-xs font-bold flex items-center justify-center gap-1.5 px-3 py-2 flex-1 sm:flex-initial"
-            >
-              <Minus className="w-3.5 h-3.5 shrink-0" />
-              <span>Withdraw</span>
-            </Button>
-
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => setIsEodModalOpen(true)}
-              className="bg-[#00796b] hover:bg-[#004d40] text-white font-bold text-xs flex items-center justify-center gap-1.5 px-3.5 py-2 shadow-xs cursor-pointer flex-1 sm:flex-initial"
-            >
-              <Store className="w-3.5 h-3.5 shrink-0" />
-              <span>Day-End Home Sweep</span>
-            </Button>
+              Yesterday
+            </button>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-[#00695C] focus:outline-none flex-1 sm:flex-initial"
+            />
           </div>
         </div>
-      </div>
-
-      {/* ================= DATE FILTER BAR ================= */}
-      <div className="-mx-3 sm:-mx-5 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-2.5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-3 mb-4">
-        <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200">
-          <Calendar className="w-4 h-4 text-[#00796b] dark:text-[#80cbc4] shrink-0" />
-          <span>Gulla Register Date:</span>
-          <span className="bg-[#00796b] text-white px-2.5 py-1 rounded-lg text-xs font-medium">
-            {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
-          </span>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          <button
-            onClick={() => setSelectedDate(getLocalDateString())}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex-1 sm:flex-initial text-center cursor-pointer ${
-              selectedDate === getLocalDateString()
-                ? 'bg-[#00796b] text-white shadow-xs'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-            }`}
-          >
-            Today
-          </button>
-          <button
-            onClick={() => {
-              const d = new Date();
-              d.setDate(d.getDate() - 1);
-              setSelectedDate(getLocalDateString(d));
-            }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex-1 sm:flex-initial text-center cursor-pointer ${
-              selectedDate === (() => { const d = new Date(); d.setDate(d.getDate() - 1); return getLocalDateString(d); })()
-                ? 'bg-[#00796b] text-white shadow-xs'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-            }`}
-          >
-            Yesterday
-          </button>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs focus:ring-2 focus:ring-[#00796b] outline-hidden flex-1 sm:flex-initial font-medium"
-          />
-        </div>
-      </div>
 
       {/* ================= 1. LIVE GULLA CASH CARDS ================= */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -1436,6 +1439,7 @@ export const GullaManagement = () => {
             </div>
           </>
         )}
+      </div>
       </div>
 
       {/* ================= MODAL 1: ADD CASH / WITHDRAWAL / PAYOUT ================= */}
@@ -2118,4 +2122,3 @@ export const GullaManagement = () => {
 };
 
 export default GullaManagement;
-

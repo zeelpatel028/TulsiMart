@@ -17,6 +17,7 @@ export const DashboardLayout = () => {
   const { storeSettings } = useAuth();
   const location = useLocation();
 
+  const isDashboard = location.pathname === '/dashboard' || location.pathname === '/';
   const isHideMobileNav = ['/products/add', '/collection', '/gulla'].includes(location.pathname);
 
   const handleOrderCreated = (order) => {
@@ -36,16 +37,18 @@ export const DashboardLayout = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
-        {/* Desktop / Tablet Top Navbar */}
-        <div className="hidden lg:block">
-          <Navbar
-            onMenuClick={() => setIsCollapsed(prev => !prev)}
-            onOpenQuickOrder={() => setIsQuickOrderOpen(true)}
-          />
-        </div>
+        {/* Desktop / Tablet Top Navbar - Only on Dashboard */}
+        {isDashboard && (
+          <div className="hidden lg:block">
+            <Navbar
+              onMenuClick={() => setIsCollapsed(prev => !prev)}
+              onOpenQuickOrder={() => setIsQuickOrderOpen(true)}
+            />
+          </div>
+        )}
 
-        {/* Mobile App Sticky Top Header */}
-        {!isHideMobileNav && (
+        {/* Mobile App Sticky Top Header - Only on Dashboard */}
+        {isDashboard && !isHideMobileNav && (
           <div className="lg:hidden">
             <MobileHeader
               onMenuClick={() => setIsMobileOpen(true)}
@@ -59,7 +62,9 @@ export const DashboardLayout = () => {
           className={`flex-1 w-full mx-auto animate-in fade-in duration-300 ${
             isHideMobileNav
               ? 'p-0 lg:p-8 max-w-full lg:max-w-7xl pt-0 lg:pt-8 pb-20 lg:pb-8'
-              : 'p-3 sm:p-5 lg:p-8 max-w-7xl pt-24 lg:pt-8 pb-32 lg:pb-8'
+              : isDashboard
+              ? 'p-3 sm:p-5 lg:p-8 max-w-7xl pt-24 lg:pt-8 pb-32 lg:pb-8'
+              : 'p-3 sm:p-5 lg:p-8 max-w-7xl pt-3 sm:pt-5 lg:pt-6 pb-32 lg:pb-8'
           }`}
         >
           <Outlet context={{ openQuickOrder: () => setIsQuickOrderOpen(true) }} />

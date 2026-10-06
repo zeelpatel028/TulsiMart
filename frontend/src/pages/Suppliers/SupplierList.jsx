@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
 import { useNotification } from '../../context/NotificationContext';
@@ -13,7 +14,8 @@ import {
   BarChart3, 
   RefreshCw,
   Wallet,
-  Truck
+  Truck,
+  ArrowLeft
 } from 'lucide-react';
 
 // API
@@ -47,6 +49,7 @@ const SUPPLIER_CATEGORIES = [
 ];
 
 export const SupplierList = () => {
+  const navigate = useNavigate();
   const { showToast } = useNotification();
   const [activeTab, setActiveTab] = useState('suppliers');
   const [suppliers, setSuppliers] = useState([]);
@@ -391,8 +394,71 @@ export const SupplierList = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6 pb-12 animate-fade-in font-sans">
-      {/* 🌟 Tulsi Mart POS Top Header Banner - Full Width Edge-to-Edge Background like Bill Page */}
-      <div className="-mx-3 -mt-3 sm:-mx-5 sm:-mt-5 lg:-mx-8 lg:-mt-8 mb-6 bg-gradient-to-r from-teal-50/90 via-emerald-50/60 to-teal-50/90 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 text-slate-800 dark:text-white p-3.5 sm:p-5 lg:px-8 border-b border-teal-200/70 dark:border-slate-800 relative overflow-hidden shadow-2xs">
+      {/* 📱 MOBILE / TABLET COMPACT PASTEL MINT HEADER */}
+      <div className="lg:hidden sticky top-0 z-30 bg-[#E3F6F4] dark:bg-slate-900 text-slate-900 dark:text-white px-3.5 py-2.5 sm:px-5 sm:py-3.5 rounded-b-[18px] shadow-xs border-b border-teal-200/50 dark:border-slate-800 relative overflow-hidden min-h-[72px] sm:min-h-[82px] flex items-center -mx-3 -mt-3 sm:-mx-5 sm:-mt-5 mb-3">
+        {/* SVG Decorative Bottom-Left Wave */}
+        <svg
+          className="absolute bottom-0 left-0 w-36 sm:w-52 h-auto pointer-events-none text-[#C4EFE9]/70 dark:text-teal-950/40"
+          viewBox="0 0 200 80"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M0 40C50 60 120 70 200 45V80H0V40Z"
+            fill="currentColor"
+          />
+        </svg>
+
+        {/* SVG Decorative Bottom-Right Mound Curve */}
+        <svg
+          className="absolute bottom-0 right-0 w-28 sm:w-40 h-auto pointer-events-none text-[#B5ECE5]/80 dark:text-teal-900/40"
+          viewBox="0 0 160 90"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M20 90C40 40 100 20 160 30V90H20Z"
+            fill="currentColor"
+          />
+        </svg>
+
+        {/* Decorative Floating Mint Dots */}
+        <div className="absolute top-2 right-6 w-1.5 h-1.5 rounded-full bg-[#83D9CC] opacity-60 pointer-events-none" />
+        <div className="absolute bottom-4 right-20 w-2 h-2 rounded-full bg-[#83D9CC] opacity-50 pointer-events-none" />
+
+        <div className="w-full max-w-3xl mx-auto flex items-center justify-between gap-2.5 relative z-10">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            {/* 1. Pure White Circular Back Button */}
+            <button
+              type="button"
+              onClick={() => {
+                if (window.history.length > 1) {
+                  navigate(-1);
+                } else {
+                  navigate('/dashboard');
+                }
+              }}
+              className="w-9.5 h-9.5 sm:w-10 sm:h-10 rounded-full bg-white dark:bg-slate-800 text-[#134E48] dark:text-teal-300 flex items-center justify-center shadow-md shadow-teal-900/10 hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0 border border-teal-100/80 dark:border-slate-700"
+              aria-label="Go Back"
+            >
+              <ArrowLeft className="w-4.5 h-4.5 stroke-[2.6]" />
+            </button>
+
+            {/* 2. Title & Subtitle */}
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight font-heading leading-tight truncate">
+                Supplier & <span className="text-[#00695C] dark:text-[#4DB6AC]">Procurement</span>
+              </h1>
+              <p className="text-[11px] sm:text-xs font-semibold text-[#267B70] dark:text-slate-300 truncate mt-0.5">
+                Vendor directory, purchase orders & GRN ledgers
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 🌟 Tulsi Mart POS Top Header Banner (Desktop Only) */}
+      <div className="hidden lg:block -mx-8 -mt-8 mb-6 bg-gradient-to-r from-teal-50/90 via-emerald-50/60 to-teal-50/90 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 text-slate-800 dark:text-white p-5 lg:px-8 border-b border-teal-200/70 dark:border-slate-800 relative overflow-hidden shadow-2xs">
         {/* Subtle Decorative Background Glow */}
         <div className="absolute -top-12 -left-12 w-40 h-40 bg-teal-300/20 dark:bg-teal-900/10 rounded-full blur-2xl pointer-events-none" />
         
