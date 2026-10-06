@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, Plus, Store, Truck, User } from 'lucide-react';
+import { Home, Users, Store, Truck, User } from 'lucide-react';
 
 export const MobileBottomNav = ({ cartCount = 0 }) => {
   const location = useLocation();
@@ -50,7 +50,8 @@ export const MobileBottomNav = ({ cartCount = 0 }) => {
     };
   }, []);
 
-  if (isKeyboardVisible) return null;
+  const allowedPaths = ['/', '/dashboard', '/customers', '/billing', '/pos', '/suppliers', '/settings'];
+  if (isKeyboardVisible || !allowedPaths.includes(location.pathname)) return null;
 
   const navItems = [
     {
@@ -61,9 +62,9 @@ export const MobileBottomNav = ({ cartCount = 0 }) => {
       inactiveBg: 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400',
     },
     {
-      label: 'Add Product',
-      path: '/products/add',
-      icon: Plus,
+      label: 'Customers',
+      path: '/customers',
+      icon: Users,
       circleBg: 'bg-[#E0F2F1] dark:bg-teal-950/80 text-[#00695C] dark:text-teal-300',
       inactiveBg: 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400',
     },
