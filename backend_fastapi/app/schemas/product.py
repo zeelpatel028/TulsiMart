@@ -1,6 +1,6 @@
 from datetime import datetime, date
-from typing import Optional, List
-from pydantic import BaseModel, Field, ConfigDict
+from typing import Optional, List, Any
+from pydantic import BaseModel, Field, ConfigDict, model_validator
 
 
 class CategoryCreate(BaseModel):
@@ -59,14 +59,23 @@ class UnitResponse(BaseModel):
 
 class ProductCreate(BaseModel):
     name: str
-    sku: str
+    sku: Optional[str] = None
     product_code: Optional[str] = None
     barcode: Optional[str] = None
     category_id: Optional[int] = None
     brand_id: Optional[int] = None
     unit_id: Optional[int] = None
-    selling_unit_id: Optional[int] = None
     supplier_id: Optional[int] = None
+
+    purchase_gst_percent: Optional[float] = 0.00
+    purchase_non_tax_price: Optional[float] = 0.00
+    purchase_tax_amount: Optional[float] = 0.00
+    purchase_final_price: Optional[float] = 0.00
+
+    selling_gst_percent: Optional[float] = 0.00
+    selling_non_tax_price: Optional[float] = 0.00
+    selling_tax_amount: Optional[float] = 0.00
+    selling_tax_price: Optional[float] = 0.00
 
     cost_price: float = 0.00
     mrp: float = 0.00
@@ -86,6 +95,46 @@ class ProductCreate(BaseModel):
     is_featured: bool = False
     is_active: bool = True
 
+    @model_validator(mode="before")
+    @classmethod
+    def clean_payload(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            # Map category -> category_id if missing
+            if "category_id" not in data or data.get("category_id") is None or data.get("category_id") == "":
+                data["category_id"] = data.get("category")
+            # Map unit -> unit_id if missing
+            if "unit_id" not in data or data.get("unit_id") is None or data.get("unit_id") == "":
+                data["unit_id"] = data.get("unit")
+            # Map supplier -> supplier_id if missing
+            if "supplier_id" not in data or data.get("supplier_id") is None or data.get("supplier_id") == "":
+                data["supplier_id"] = data.get("supplier")
+            # Map brand -> brand_id if missing
+            if "brand_id" not in data or data.get("brand_id") is None or data.get("brand_id") == "":
+                data["brand_id"] = data.get("brand")
+
+            # Clean integer ID fields
+            for id_field in ["category_id", "unit_id", "supplier_id", "brand_id"]:
+                val = data.get(id_field)
+                if val == "" or val is None:
+                    data[id_field] = None
+                else:
+                    try:
+                        data[id_field] = int(val)
+                    except (ValueError, TypeError):
+                        data[id_field] = None
+
+            # Clean date fields
+            for date_field in ["manufacturing_date", "expiry_date"]:
+                val = data.get(date_field)
+                if val == "" or val is None:
+                    data[date_field] = None
+
+            # Clean barcode
+            if data.get("barcode") == "":
+                data["barcode"] = None
+
+        return data
+
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
@@ -95,6 +144,17 @@ class ProductUpdate(BaseModel):
     category_id: Optional[int] = None
     brand_id: Optional[int] = None
     unit_id: Optional[int] = None
+    supplier_id: Optional[int] = None
+
+    purchase_gst_percent: Optional[float] = None
+    purchase_non_tax_price: Optional[float] = None
+    purchase_tax_amount: Optional[float] = None
+    purchase_final_price: Optional[float] = None
+
+    selling_gst_percent: Optional[float] = None
+    selling_non_tax_price: Optional[float] = None
+    selling_tax_amount: Optional[float] = None
+    selling_tax_price: Optional[float] = None
 
     cost_price: Optional[float] = None
     mrp: Optional[float] = None
@@ -113,6 +173,39 @@ class ProductUpdate(BaseModel):
     short_description: Optional[str] = None
     is_featured: Optional[bool] = None
     is_active: Optional[bool] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def clean_payload(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            if "category_id" not in data or data.get("category_id") is None or data.get("category_id") == "":
+                data["category_id"] = data.get("category")
+            if "unit_id" not in data or data.get("unit_id") is None or data.get("unit_id") == "":
+                data["unit_id"] = data.get("unit")
+            if "supplier_id" not in data or data.get("supplier_id") is None or data.get("supplier_id") == "":
+                data["supplier_id"] = data.get("supplier")
+            if "brand_id" not in data or data.get("brand_id") is None or data.get("brand_id") == "":
+                data["brand_id"] = data.get("brand")
+
+            for id_field in ["category_id", "unit_id", "supplier_id", "brand_id"]:
+                val = data.get(id_field)
+                if val == "" or val is None:
+                    data[id_field] = None
+                else:
+                    try:
+                        data[id_field] = int(val)
+                    except (ValueError, TypeError):
+                        data[id_field] = None
+
+            for date_field in ["manufacturing_date", "expiry_date"]:
+                val = data.get(date_field)
+                if val == "" or val is None:
+                    data[date_field] = None
+
+            if data.get("barcode") == "":
+                data["barcode"] = None
+
+        return data
 
 
 class ProductResponse(BaseModel):

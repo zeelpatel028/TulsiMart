@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional, Dict, Any, List
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator
 
 
 class LoginRequest(BaseModel):
@@ -39,6 +39,13 @@ class LoginAccountUpdate(BaseModel):
     require_otp: Optional[bool] = None
     password: Optional[str] = None
 
+    @field_validator("email", mode="before")
+    @classmethod
+    def empty_email_to_none(cls, v):
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
+
 
 class LoginAccountResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -60,6 +67,13 @@ class StaffCreate(BaseModel):
     role: str = "CASHIER"
     salary: float = 0.00
 
+    @field_validator("email", mode="before")
+    @classmethod
+    def empty_email_to_none(cls, v):
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
+
 
 class StaffUpdate(BaseModel):
     name: Optional[str] = None
@@ -68,6 +82,13 @@ class StaffUpdate(BaseModel):
     role: Optional[str] = None
     salary: Optional[float] = None
     is_active: Optional[bool] = None
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def empty_email_to_none(cls, v):
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
 
 
 class StaffResponse(BaseModel):

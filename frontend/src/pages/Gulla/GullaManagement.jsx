@@ -621,13 +621,7 @@ export const GullaManagement = () => {
           <div className="flex items-center gap-4 min-w-0">
             <button
               type="button"
-              onClick={() => {
-                if (window.history.length > 1) {
-                  navigate(-1);
-                } else {
-                  navigate('/dashboard');
-                }
-              }}
+              onClick={() => navigate('/dashboard')}
               className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#00796b] to-[#004d40] text-white p-3 border border-[#004d40]/20 flex items-center justify-center shrink-0 shadow-md shadow-teal-900/10 hover:scale-105 transition-all cursor-pointer"
               title="Back to Dashboard"
             >
@@ -727,13 +721,7 @@ export const GullaManagement = () => {
             {/* 1. Pure White Circular Back Button with Dark Teal Arrow */}
             <button
               type="button"
-              onClick={() => {
-                if (window.history.length > 1) {
-                  navigate(-1);
-                } else {
-                  navigate('/dashboard');
-                }
-              }}
+              onClick={() => navigate('/dashboard')}
               className="w-9.5 h-9.5 sm:w-10 sm:h-10 rounded-full bg-white dark:bg-slate-800 text-[#134E48] dark:text-teal-300 flex items-center justify-center shadow-md shadow-teal-900/10 hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0 border border-teal-100/80 dark:border-slate-700"
               aria-label="Go Back"
             >

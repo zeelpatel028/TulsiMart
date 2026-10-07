@@ -251,7 +251,7 @@ export const ReportsPage = () => {
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <button
               type="button"
-              onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/dashboard')}
+              onClick={() => navigate('/dashboard')}
               className="w-9.5 h-9.5 sm:w-10 sm:h-10 rounded-full bg-white dark:bg-slate-800 text-[#134E48] dark:text-teal-300 flex items-center justify-center shadow-md shadow-teal-900/10 hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0 border border-teal-100/80 dark:border-slate-700"
               aria-label="Go Back"
             >

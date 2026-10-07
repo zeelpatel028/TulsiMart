@@ -33,20 +33,30 @@ import { useNotification } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
 import InvoiceModal from '../../components/invoices/InvoiceModal';
 
+// Helper to get today's date string in YYYY-MM-DD format
+const getTodayDateString = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export const OrderList = () => {
   const navigate = useNavigate();
   const { showToast } = useNotification();
   const { openQuickOrder } = useOutletContext() || {};
   const { storeSettings } = useAuth();
 
+  const todayStr = getTodayDateString();
+
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('ALL');
   const [paymentStatusFilter, setPaymentStatusFilter] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' (Image 2 style) or 'table'
+  const [filterDateInput, setFilterDateInput] = useState(todayStr);
+  const [appliedDate, setAppliedDate] = useState(todayStr);
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -60,10 +70,10 @@ export const OrderList = () => {
 
   useEffect(() => {
     loadOrders();
-  }, [page, search, selectedStatus, paymentStatusFilter, dateFrom, dateTo]);
+  }, [page, search, paymentStatusFilter, appliedDate]);
 
   const loadOrders = async () => {
-    const cacheKey = `orders_${page}_${search}_${selectedStatus}_${paymentStatusFilter}_${dateFrom}_${dateTo}`;
+    const cacheKey = `orders_${page}_${search}_${paymentStatusFilter}_${appliedDate}`;
     const cached = getCachedData(cacheKey);
 
     if (cached) {
@@ -79,10 +89,9 @@ export const OrderList = () => {
       const params = {
         page,
         search,
-        status: selectedStatus !== 'ALL' ? selectedStatus : undefined,
         payment_status: paymentStatusFilter || undefined,
-        date_from: dateFrom || undefined,
-        date_to: dateTo || undefined,
+        date_from: appliedDate || undefined,
+        date_to: appliedDate || undefined,
       };
       const res = await ordersApi.getOrders(params);
       const fetchedOrders = extractList(res);
@@ -105,6 +114,24 @@ export const OrderList = () => {
     }
   };
 
+  const handleApplyDateFilter = () => {
+    setAppliedDate(filterDateInput);
+    setPage(1);
+  };
+
+  const handleSelectToday = () => {
+    const today = getTodayDateString();
+    setFilterDateInput(today);
+    setAppliedDate(today);
+    setPage(1);
+  };
+
+  const handleClearDateFilter = () => {
+    setFilterDateInput('');
+    setAppliedDate('');
+    setPage(1);
+  };
+
   const handleStatusUpdate = async (orderId, newStatus, newPayStatus) => {
     try {
       setUpdatingStatus(true);
@@ -121,17 +148,6 @@ export const OrderList = () => {
       setUpdatingStatus(false);
     }
   };
-
-  const statusTabs = [
-    { id: 'ALL', label: 'All Orders' },
-    { id: 'NEW', label: 'New' },
-    { id: 'PROCESSING', label: 'Processing' },
-    { id: 'PACKED', label: 'Packed' },
-    { id: 'OUT_FOR_DELIVERY', label: 'Out for Delivery' },
-    { id: 'DELIVERED', label: 'Delivered' },
-    { id: 'CANCELLED', label: 'Cancelled' },
-    { id: 'RETURNED', label: 'Returned' },
-  ];
 
   return (
     <div className="space-y-6 font-sans text-slate-800 dark:text-slate-100 selection:bg-[#80cbc4] selection:text-[#004d40]">
@@ -172,13 +188,7 @@ export const OrderList = () => {
             {/* 1. Pure White Circular Back Button */}
             <button
               type="button"
-              onClick={() => {
-                if (window.history.length > 1) {
-                  navigate(-1);
-                } else {
-                  navigate('/dashboard');
-                }
-              }}
+              onClick={() => navigate('/dashboard')}
               className="w-9.5 h-9.5 sm:w-10 sm:h-10 rounded-full bg-white dark:bg-slate-800 text-[#134E48] dark:text-teal-300 flex items-center justify-center shadow-md shadow-teal-900/10 hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0 border border-teal-100/80 dark:border-slate-700"
               aria-label="Go Back"
             >
@@ -240,40 +250,41 @@ export const OrderList = () => {
         </div>
       </div>
 
-      {/* Filter and Status Pipeline */}
-      <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs p-3.5 sm:p-4 rounded-2xl border border-teal-100 dark:border-slate-800 shadow-2xs space-y-3 sm:space-y-4">
-        {/* Status Pipeline Tabs & View Mode Switcher */}
-        <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar touch-pan pb-1 text-xs">
-            {statusTabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => { setSelectedStatus(tab.id); setPage(1); }}
-                className={`px-3.5 py-2 rounded-xl font-extrabold shrink-0 transition-all cursor-pointer ${
-                  selectedStatus === tab.id
-                    ? 'bg-[#00796b] text-white shadow-sm shadow-teal-900/20'
-                    : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-teal-50/70 dark:hover:bg-slate-700'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+      {/* Search & Single Date Filter Bar */}
+      <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs p-3 sm:p-4 rounded-2xl border border-teal-100 dark:border-slate-800 shadow-2xs space-y-3">
+        {/* Header Row: Title, Date Badge & View Switcher */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider font-heading">
+              Filter Store Bills
+            </h3>
+            {appliedDate ? (
+              <span className="bg-teal-100 text-[#00695c] dark:bg-teal-950 dark:text-teal-300 text-[10px] sm:text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-teal-200/80">
+                Date: {new Date(appliedDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+              </span>
+            ) : (
+              <span className="bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                All Dates
+              </span>
+            )}
           </div>
 
-          {/* View Mode Switcher: Card Grid vs Table */}
+          {/* View Switcher Pills */}
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl shrink-0">
             <button
+              type="button"
               onClick={() => setViewMode('grid')}
               className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'grid'
                   ? 'bg-[#00796b] text-white shadow-2xs'
                   : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
               }`}
-              title="Card Grid View (Image 2 style)"
+              title="Card Grid View"
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
             <button
+              type="button"
               onClick={() => setViewMode('table')}
               className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'table'
@@ -287,9 +298,10 @@ export const OrderList = () => {
           </div>
         </div>
 
-        {/* Search & Filter Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 sm:gap-3 items-center pt-2.5 border-t border-teal-100/70 dark:border-slate-800">
-          <div className="sm:col-span-4">
+        {/* Filter Inputs Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-center">
+          {/* Search Input */}
+          <div className="md:col-span-5 lg:col-span-5">
             <SearchInput
               value={search}
               onChange={(val) => { setSearch(val); setPage(1); }}
@@ -297,11 +309,12 @@ export const OrderList = () => {
             />
           </div>
 
-          <div className="sm:col-span-3">
+          {/* Payment Status Dropdown */}
+          <div className="md:col-span-3 lg:col-span-3">
             <select
               value={paymentStatusFilter}
               onChange={(e) => { setPaymentStatusFilter(e.target.value); setPage(1); }}
-              className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-teal-200/80 dark:border-slate-700 rounded-xl outline-none focus:border-[#00796b] text-slate-800 dark:text-slate-100 font-bold"
+              className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-teal-200/80 dark:border-slate-700 rounded-xl outline-none focus:border-[#00796b] text-slate-800 dark:text-slate-100 font-bold cursor-pointer h-[38px]"
             >
               <option value="">All Payment Statuses</option>
               <option value="PAID">PAID</option>
@@ -311,22 +324,44 @@ export const OrderList = () => {
             </select>
           </div>
 
-          <div className="sm:col-span-5 flex items-center gap-2">
+          {/* Date Picker + Filter + Today + All Strip */}
+          <div className="md:col-span-4 lg:col-span-4 flex items-center gap-1.5">
             <input
               type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-teal-200/80 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 font-medium focus:outline-none focus:border-[#00796b]"
-              title="From Date"
+              value={filterDateInput}
+              onChange={(e) => setFilterDateInput(e.target.value)}
+              className="flex-1 min-w-[110px] px-2.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-teal-200/80 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 font-bold focus:outline-none focus:border-[#00796b] cursor-pointer h-[38px]"
+              title="Select Bill Date"
             />
-            <span className="text-slate-400 text-xs font-bold shrink-0">to</span>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-teal-200/80 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 font-medium focus:outline-none focus:border-[#00796b]"
-              title="To Date"
-            />
+
+            <button
+              type="button"
+              onClick={handleApplyDateFilter}
+              className="px-3 py-2 bg-[#00796b] hover:bg-[#004d40] text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-2xs hover:shadow-xs flex items-center gap-1 shrink-0 h-[38px]"
+            >
+              <Filter className="w-3.5 h-3.5" />
+              <span>Filter</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSelectToday}
+              className="px-2.5 py-2 bg-teal-50 dark:bg-slate-800 text-[#00796b] dark:text-[#80cbc4] hover:bg-teal-100 dark:hover:bg-slate-700 text-xs font-extrabold rounded-xl transition-colors cursor-pointer shrink-0 border border-teal-200 dark:border-slate-700 h-[38px]"
+              title="Show today's bills"
+            >
+              Today
+            </button>
+
+            {appliedDate && (
+              <button
+                type="button"
+                onClick={handleClearDateFilter}
+                className="px-2.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-rose-100 text-slate-600 hover:text-rose-600 dark:text-slate-300 dark:hover:text-rose-400 text-xs font-bold rounded-xl transition-colors cursor-pointer shrink-0 h-[38px]"
+                title="Show all dates"
+              >
+                All
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -343,16 +378,15 @@ export const OrderList = () => {
           title="No Orders Found"
           description="No grocery orders match your search criteria or date filters."
           secondaryActionLabel={
-            search || selectedStatus !== 'ALL' || paymentStatusFilter || dateFrom || dateTo
+            search || paymentStatusFilter || appliedDate
               ? 'Reset Filters'
               : undefined
           }
           onSecondaryAction={() => {
             setSearch('');
-            setSelectedStatus('ALL');
             setPaymentStatusFilter('');
-            setDateFrom('');
-            setDateTo('');
+            setFilterDateInput('');
+            setAppliedDate('');
             setPage(1);
           }}
         />

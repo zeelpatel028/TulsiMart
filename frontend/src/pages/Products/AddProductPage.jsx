@@ -58,7 +58,6 @@ export const AddProductPage = () => {
     category: '',
     brand: '',
     unit: '', // Product Unit
-    selling_unit: '', // Selling Unit
     supplier: '',
     purchase_tax: '18', // 0, 5, 12, 18, 28
     purchase_non_tax_price: '',
@@ -110,19 +109,18 @@ export const AddProductPage = () => {
         setSuppliers(suppList);
       }
 
-      if (nextIdRes.status === 'fulfilled' && nextIdRes.value.data?.next_product_id) {
-        setNextProductId(nextIdRes.value.data.next_product_id);
+      if (nextIdRes.status === 'fulfilled') {
+        const genId = nextIdRes.value.data?.next_product_id || nextIdRes.value.data?.next_id || nextIdRes.value?.next_id;
+        if (genId) setNextProductId(genId);
       }
 
       // Pre-select defaults if available
       const defaultKg = Array.isArray(unitList) ? (unitList.find(u => u?.short_name && u.short_name.toLowerCase() === 'kg') || unitList[0]) : null;
-      const defaultG = Array.isArray(unitList) ? (unitList.find(u => u?.short_name && u.short_name.toLowerCase() === 'g') || unitList[0]) : null;
       
       setFormData(prev => ({
         ...prev,
         category: catList[0]?.id || '',
         unit: defaultKg?.id || '',
-        selling_unit: defaultG?.id || defaultKg?.id || '',
         supplier: suppList[0]?.id || ''
       }));
 
@@ -175,11 +173,9 @@ export const AddProductPage = () => {
     }));
   };
 
-  // Unit conversion ratio calculation
+  // Unit
   const unitsList = Array.isArray(units) ? units : [];
   const prodUnitObj = unitsList.find(u => u && String(u.id) === String(formData.unit));
-  const sellUnitObj = unitsList.find(u => u && String(u.id) === String(formData.selling_unit));
-  const conversionRatio = getUnitConversionRatio(prodUnitObj, sellUnitObj);
 
   // Field validation
   const validateForm = () => {
@@ -187,7 +183,6 @@ export const AddProductPage = () => {
     if (!formData.name.trim()) newErrors.name = 'Product name is required.';
     if (!formData.category) newErrors.category = 'Category is required.';
     if (!formData.unit) newErrors.unit = 'Product unit is required.';
-    if (!formData.selling_unit) newErrors.selling_unit = 'Selling unit is required.';
     if (!formData.supplier) newErrors.supplier = 'Supplier is required.';
 
     if (!formData.purchase_non_tax_price || parseFloat(formData.purchase_non_tax_price) < 0) {
@@ -237,10 +232,9 @@ export const AddProductPage = () => {
         brand: formData.brand.trim() || undefined,
         sku: nextProductId,
         product_code: nextProductId,
-        category: formData.category,
-        unit: formData.unit,
-        selling_unit: formData.selling_unit,
-        supplier: formData.supplier,
+        category_id: formData.category ? parseInt(formData.category) : null,
+        unit_id: formData.unit ? parseInt(formData.unit) : null,
+        supplier_id: formData.supplier ? parseInt(formData.supplier) : null,
         
         purchase_gst_percent: parseFloat(formData.purchase_tax) || 0,
         purchase_non_tax_price: parseFloat(formData.purchase_non_tax_price) || 0,
@@ -249,6 +243,7 @@ export const AddProductPage = () => {
         cost_price: parseFloat(purchaseFinalPrice.toFixed(2)),
 
         selling_gst_percent: parseFloat(formData.selling_tax) || 0,
+        gst_percent: parseFloat(formData.selling_tax) || 0,
         selling_non_tax_price: parseFloat(formData.selling_non_tax_price) || 0,
         selling_tax_amount: parseFloat(sellingTaxAmount.toFixed(2)),
         selling_tax_price: parseFloat(taxInclusiveSellingPrice.toFixed(2)),
@@ -316,7 +311,7 @@ export const AddProductPage = () => {
       });
       const created = res.data;
       setUnits(prev => [...prev.filter(u => u.id !== created.id), created]);
-      setFormData(prev => ({ ...prev, unit: created.id, selling_unit: created.id }));
+      setFormData(prev => ({ ...prev, unit: created.id }));
       setNewUnitData({ name: '', short_name: '', base_unit: 'g', conversion_factor: '1000' });
       setIsUnitModalOpen(false);
       showToast(`Unit "${created.name}" added and selected!`, 'success');
@@ -387,7 +382,7 @@ export const AddProductPage = () => {
               type="button"
               onClick={(e) => handleSubmit(e)}
               disabled={submitting}
-              className="px-6 py-2.5 text-sm font-bold rounded-xl bg-[#00695C] hover:bg-[#004D40] text-white shadow-md shadow-teal-900/20 transition-all cursor-pointer flex items-center gap-2"
+              className="px-6 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-r from-[#00796b] to-[#004d40] hover:from-[#00695c] hover:to-[#00382e] text-white shadow-md shadow-teal-900/20 transition-all cursor-pointer flex items-center gap-2"
             >
               <Save className="w-4 h-4" />
               <span>{submitting ? 'Saving Product...' : 'Save Product'}</span>
@@ -434,13 +429,7 @@ export const AddProductPage = () => {
             {/* 1. Pure White Circular Back Button with Dark Teal Arrow */}
             <button
               type="button"
-              onClick={() => {
-                if (window.history.length > 1) {
-                  navigate(-1);
-                } else {
-                  navigate('/inventory');
-                }
-              }}
+              onClick={() => navigate('/dashboard')}
               className="w-9.5 h-9.5 sm:w-10 sm:h-10 rounded-full bg-white dark:bg-slate-800 text-[#134E48] dark:text-teal-300 flex items-center justify-center shadow-md shadow-teal-900/10 hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0 border border-teal-100/80 dark:border-slate-700"
               aria-label="Go Back"
             >
@@ -492,7 +481,7 @@ export const AddProductPage = () => {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
             {/* Product ID */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Product ID (System Generated)</label>
@@ -613,356 +602,322 @@ export const AddProductPage = () => {
               </div>
               {errors.unit && <p className="text-[11px] text-rose-500 font-medium">{errors.unit}</p>}
             </div>
+          </div>
+        </div>
 
-            {/* Selling Unit */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                Selling Unit (POS Billing) <span className="text-rose-500">*</span>
-              </label>
-              <div className="relative">
-                <select
-                  value={formData.selling_unit}
-                  onChange={(e) => setFormData(prev => ({ ...prev, selling_unit: e.target.value }))}
-                  className={`w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm text-slate-900 dark:text-white appearance-none focus:ring-2 focus:ring-[#00695C] focus:outline-none pr-9 ${
-                    errors.selling_unit ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
-                  }`}
-                >
-                  <option value="">Select Selling Unit</option>
-                  {units.map(u => (
-                    <option key={u.id} value={u.id}>{u.name} ({u.short_name})</option>
-                  ))}
-                </select>
-                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
-              </div>
-              {errors.selling_unit && <p className="text-[11px] text-rose-500 font-medium">{errors.selling_unit}</p>}
+        {/* ROW 2: Supplier Information & Purchase Price (2 Columns on Desktop) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          {/* CARD 2: Supplier Information */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-xs border border-teal-100/60 dark:border-slate-800 space-y-4 h-full">
+            <div className="inline-flex items-center gap-2 bg-[#DDF3ED] dark:bg-teal-950/80 text-[#00695C] dark:text-teal-300 px-3 py-1.5 rounded-xl text-xs font-bold">
+              <Truck className="w-4 h-4" />
+              <span>2. Supplier Information</span>
             </div>
 
-            {/* Conversion Ratio Preview Box */}
-            {prodUnitObj && sellUnitObj && (
-              <div className="p-3.5 rounded-2xl bg-teal-50/80 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800/80 flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300">
-                <Info className="w-4 h-4 text-[#00695C] dark:text-teal-300 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-bold text-[#00695C] dark:text-teal-300">Unit Ratio: </span>
-                  1 {prodUnitObj.short_name} = {conversionRatio} {sellUnitObj.short_name}.
-                  {conversionRatio !== 1 ? (
-                    <span> Selling in {sellUnitObj.name} will auto-calculate fractional billing amounts.</span>
-                  ) : (
-                    <span> Standard 1:1 unit ratio.</span>
-                  )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    Supplier Name <span className="text-rose-500">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsSupplierModalOpen(true)}
+                    className="text-xs font-bold text-[#00695C] dark:text-teal-300 hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Supplier
+                  </button>
+                </div>
+                <div className="relative">
+                  <select
+                    value={formData.supplier}
+                    onChange={(e) => setFormData(prev => ({ ...prev, supplier: e.target.value }))}
+                    className={`w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm text-slate-900 dark:text-white appearance-none focus:ring-2 focus:ring-[#00695C] focus:outline-none pr-9 ${
+                      errors.supplier ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
+                    }`}
+                  >
+                    <option value="">Select Supplier</option>
+                    {suppliers.map(s => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} {s.company_name ? `(${s.company_name})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+                </div>
+                {errors.supplier && <p className="text-[11px] text-rose-500 font-medium">{errors.supplier}</p>}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Supplier Purchase Tax (GST)</label>
+                <div className="relative">
+                  <select
+                    value={formData.purchase_tax}
+                    onChange={(e) => setFormData(prev => ({ ...prev, purchase_tax: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white appearance-none focus:ring-2 focus:ring-[#00695C] focus:outline-none pr-9"
+                  >
+                    <option value="0">No Tax (0%)</option>
+                    <option value="5">GST 5%</option>
+                    <option value="12">GST 12%</option>
+                    <option value="18">GST 18%</option>
+                    <option value="28">GST 28%</option>
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
                 </div>
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* CARD 2: Supplier Information */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-xs border border-teal-100/60 dark:border-slate-800 space-y-4">
-          <div className="inline-flex items-center gap-2 bg-[#DDF3ED] dark:bg-teal-950/80 text-[#00695C] dark:text-teal-300 px-3 py-1.5 rounded-xl text-xs font-bold">
-            <Truck className="w-4 h-4" />
-            <span>2. Supplier Information</span>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4">
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
+          {/* CARD 3: Purchase Price */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-xs border border-teal-100/60 dark:border-slate-800 space-y-4 h-full">
+            <div className="inline-flex items-center gap-2 bg-[#DDF3ED] dark:bg-teal-950/80 text-[#00695C] dark:text-teal-300 px-3 py-1.5 rounded-xl text-xs font-bold">
+              <DollarSign className="w-4 h-4" />
+              <span>3. Purchase Price</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                  Supplier Name <span className="text-rose-500">*</span>
+                  Non-Tax Price (₹) <span className="text-rose-500">*</span>
                 </label>
-                <button
-                  type="button"
-                  onClick={() => setIsSupplierModalOpen(true)}
-                  className="text-xs font-bold text-[#00695C] dark:text-teal-300 hover:underline flex items-center gap-1 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" /> Add Supplier
-                </button>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-2.5 text-slate-400 font-bold">₹</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="100.00"
+                    value={formData.purchase_non_tax_price}
+                    onChange={(e) => setFormData(prev => ({ ...prev, purchase_non_tax_price: e.target.value }))}
+                    className={`w-full pl-8 pr-3 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-[#00695C] focus:outline-none ${
+                      errors.purchase_non_tax_price ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
+                    }`}
+                  />
+                </div>
+                {errors.purchase_non_tax_price && <p className="text-[11px] text-rose-500 font-medium">{errors.purchase_non_tax_price}</p>}
               </div>
-              <div className="relative">
-                <select
-                  value={formData.supplier}
-                  onChange={(e) => setFormData(prev => ({ ...prev, supplier: e.target.value }))}
-                  className={`w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm text-slate-900 dark:text-white appearance-none focus:ring-2 focus:ring-[#00695C] focus:outline-none pr-9 ${
-                    errors.supplier ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
-                  }`}
-                >
-                  <option value="">Select Supplier</option>
-                  {suppliers.map(s => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} {s.company_name ? `(${s.company_name})` : ''}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  Tax Amt ({purchaseTaxRate}%)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-2.5 text-slate-400 font-bold">₹</span>
+                  <input
+                    type="text"
+                    readOnly
+                    value={purchaseTaxAmount.toFixed(2)}
+                    className="w-full pl-8 pr-3 py-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 cursor-not-allowed"
+                  />
+                </div>
               </div>
-              {errors.supplier && <p className="text-[11px] text-rose-500 font-medium">{errors.supplier}</p>}
-            </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Supplier Purchase Tax (GST)</label>
-              <div className="relative">
-                <select
-                  value={formData.purchase_tax}
-                  onChange={(e) => setFormData(prev => ({ ...prev, purchase_tax: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white appearance-none focus:ring-2 focus:ring-[#00695C] focus:outline-none pr-9"
-                >
-                  <option value="0">No Tax (0%)</option>
-                  <option value="5">GST 5%</option>
-                  <option value="12">GST 12%</option>
-                  <option value="18">GST 18%</option>
-                  <option value="28">GST 28%</option>
-                </select>
-                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* CARD 3: Purchase Price */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-xs border border-teal-100/60 dark:border-slate-800 space-y-4">
-          <div className="inline-flex items-center gap-2 bg-[#DDF3ED] dark:bg-teal-950/80 text-[#00695C] dark:text-teal-300 px-3 py-1.5 rounded-xl text-xs font-bold">
-            <DollarSign className="w-4 h-4" />
-            <span>3. Purchase Price</span>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                Non-Tax Purchase Price (₹) <span className="text-rose-500">*</span>
-              </label>
-              <div className="relative">
-                <span className="absolute left-3.5 top-2.5 text-slate-400 font-bold">₹</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="100.00"
-                  value={formData.purchase_non_tax_price}
-                  onChange={(e) => setFormData(prev => ({ ...prev, purchase_non_tax_price: e.target.value }))}
-                  className={`w-full pl-8 pr-3 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-[#00695C] focus:outline-none ${
-                    errors.purchase_non_tax_price ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
-                  }`}
-                />
-              </div>
-              {errors.purchase_non_tax_price && <p className="text-[11px] text-rose-500 font-medium">{errors.purchase_non_tax_price}</p>}
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                Tax Amount (GST {purchaseTaxRate}%)
-              </label>
-              <div className="relative">
-                <span className="absolute left-3.5 top-2.5 text-slate-400 font-bold">₹</span>
-                <input
-                  type="text"
-                  readOnly
-                  value={purchaseTaxAmount.toFixed(2)}
-                  className="w-full pl-8 pr-3 py-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 cursor-not-allowed"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-[#00695C] dark:text-teal-300">
-                Final Purchase Price
-              </label>
-              <div className="relative">
-                <span className="absolute left-3.5 top-2.5 text-[#00695C] dark:text-teal-400 font-black">₹</span>
-                <input
-                  type="text"
-                  readOnly
-                  value={purchaseFinalPrice.toFixed(2)}
-                  className="w-full pl-8 pr-3 py-2.5 bg-teal-50 dark:bg-teal-950/60 border border-teal-300 dark:border-teal-800 rounded-xl text-sm font-black text-[#00695C] dark:text-teal-300 cursor-not-allowed"
-                />
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-[#00695C] dark:text-teal-300">
+                  Final Price
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-2.5 text-[#00695C] dark:text-teal-400 font-black">₹</span>
+                  <input
+                    type="text"
+                    readOnly
+                    value={purchaseFinalPrice.toFixed(2)}
+                    className="w-full pl-8 pr-3 py-2.5 bg-teal-50 dark:bg-teal-950/60 border border-teal-300 dark:border-teal-800 rounded-xl text-sm font-black text-[#00695C] dark:text-teal-300 cursor-not-allowed"
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* CARD 4: Selling Price & MRP */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-xs border border-teal-100/60 dark:border-slate-800 space-y-4">
-          <div className="inline-flex items-center gap-2 bg-[#DDF3ED] dark:bg-teal-950/80 text-[#00695C] dark:text-teal-300 px-3 py-1.5 rounded-xl text-xs font-bold">
-            <Tag className="w-4 h-4" />
-            <span>4. Selling Price & MRP</span>
+        {/* ROW 3: Selling Price & Stock Expiry (2 Columns on Desktop) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          {/* CARD 4: Selling Price & MRP */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-xs border border-teal-100/60 dark:border-slate-800 space-y-4 h-full">
+            <div className="inline-flex items-center gap-2 bg-[#DDF3ED] dark:bg-teal-950/80 text-[#00695C] dark:text-teal-300 px-3 py-1.5 rounded-xl text-xs font-bold">
+              <Tag className="w-4 h-4" />
+              <span>4. Selling Price & MRP</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Selling GST Rate</label>
+                <div className="relative">
+                  <select
+                    value={formData.selling_tax}
+                    onChange={(e) => handleSellingTaxChange(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white appearance-none focus:ring-2 focus:ring-[#00695C] focus:outline-none pr-9"
+                  >
+                    <option value="0">No Tax (0%)</option>
+                    <option value="5">GST 5%</option>
+                    <option value="12">GST 12%</option>
+                    <option value="18">GST 18%</option>
+                    <option value="28">GST 28%</option>
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Non-Tax Selling Price (₹)</label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-2.5 text-slate-400 font-bold">₹</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="120.00"
+                    value={formData.selling_non_tax_price}
+                    onChange={(e) => handleNonTaxSellingChange(e.target.value)}
+                    className="w-full pl-8 pr-3 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-[#00695C] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  MRP (Max Retail Price) <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-2.5 text-slate-400 font-bold">₹</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="150.00"
+                    value={formData.mrp}
+                    onChange={(e) => setFormData(prev => ({ ...prev, mrp: e.target.value }))}
+                    className={`w-full pl-8 pr-3 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-[#00695C] focus:outline-none ${
+                      errors.mrp ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
+                    }`}
+                  />
+                </div>
+                {errors.mrp && <p className="text-[11px] text-rose-500 font-medium">{errors.mrp}</p>}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-[#00695C] dark:text-teal-300 flex items-center justify-between">
+                  <span>Final POS Selling Price (₹) <span className="text-rose-500">*</span></span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-2.5 text-[#00695C] dark:text-teal-400 font-black">₹</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="141.60"
+                    value={formData.selling_price}
+                    onChange={(e) => setFormData(prev => ({ ...prev, selling_price: e.target.value }))}
+                    className={`w-full pl-8 pr-3 py-2.5 bg-teal-50/50 dark:bg-teal-950/40 border rounded-xl text-sm font-black text-[#00695C] dark:text-teal-300 focus:ring-2 focus:ring-[#00695C] focus:outline-none ${
+                      errors.selling_price ? 'border-rose-500' : 'border-teal-300 dark:border-teal-800'
+                    }`}
+                  />
+                </div>
+                {errors.selling_price && <p className="text-[11px] text-rose-500 font-bold mt-1">{errors.selling_price}</p>}
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Selling GST Rate</label>
-              <div className="relative">
-                <select
-                  value={formData.selling_tax}
-                  onChange={(e) => handleSellingTaxChange(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white appearance-none focus:ring-2 focus:ring-[#00695C] focus:outline-none pr-9"
-                >
-                  <option value="0">No Tax (0%)</option>
-                  <option value="5">GST 5%</option>
-                  <option value="12">GST 12%</option>
-                  <option value="18">GST 18%</option>
-                  <option value="28">GST 28%</option>
-                </select>
-                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
-              </div>
+          {/* CARD 5: Stock & Expiry Information */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-xs border border-teal-100/60 dark:border-slate-800 space-y-4 h-full">
+            <div className="inline-flex items-center gap-2 bg-[#DDF3ED] dark:bg-teal-950/80 text-[#00695C] dark:text-teal-300 px-3 py-1.5 rounded-xl text-xs font-bold">
+              <Layers className="w-4 h-4" />
+              <span>5. Stock & Expiry Information</span>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Non-Tax Selling Price (₹)</label>
-              <div className="relative">
-                <span className="absolute left-3.5 top-2.5 text-slate-400 font-bold">₹</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  Stock Quantity <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="number"
-                  step="0.01"
+                  step="0.001"
                   min="0"
-                  placeholder="120.00"
-                  value={formData.selling_non_tax_price}
-                  onChange={(e) => handleNonTaxSellingChange(e.target.value)}
-                  className="w-full pl-8 pr-3 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-[#00695C] focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                MRP (Max Retail Price) <span className="text-rose-500">*</span>
-              </label>
-              <div className="relative">
-                <span className="absolute left-3.5 top-2.5 text-slate-400 font-bold">₹</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="150.00"
-                  value={formData.mrp}
-                  onChange={(e) => setFormData(prev => ({ ...prev, mrp: e.target.value }))}
-                  className={`w-full pl-8 pr-3 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-[#00695C] focus:outline-none ${
-                    errors.mrp ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
+                  placeholder="e.g. 25"
+                  value={formData.stock_quantity}
+                  onChange={(e) => setFormData(prev => ({ ...prev, stock_quantity: e.target.value }))}
+                  className={`w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-[#00695C] focus:outline-none ${
+                    errors.stock_quantity ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
                   }`}
                 />
+                {errors.stock_quantity && <p className="text-[11px] text-rose-500 font-medium">{errors.stock_quantity}</p>}
               </div>
-              {errors.mrp && <p className="text-[11px] text-rose-500 font-medium">{errors.mrp}</p>}
-            </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-[#00695C] dark:text-teal-300 flex items-center justify-between">
-                <span>Final POS Counter Selling Price (₹) <span className="text-rose-500">*</span></span>
-                <span className="text-[11px] font-medium text-slate-400">Used at billing counter</span>
-              </label>
-              <div className="relative">
-                <span className="absolute left-3.5 top-2.5 text-[#00695C] dark:text-teal-400 font-black">₹</span>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Low Stock Alert Limit</label>
                 <input
                   type="number"
-                  step="0.01"
+                  step="0.001"
                   min="0"
-                  placeholder="141.60"
-                  value={formData.selling_price}
-                  onChange={(e) => setFormData(prev => ({ ...prev, selling_price: e.target.value }))}
-                  className={`w-full pl-8 pr-3 py-2.5 bg-teal-50/50 dark:bg-teal-950/40 border rounded-xl text-sm font-black text-[#00695C] dark:text-teal-300 focus:ring-2 focus:ring-[#00695C] focus:outline-none ${
-                    errors.selling_price ? 'border-rose-500' : 'border-teal-300 dark:border-teal-800'
+                  placeholder="10"
+                  value={formData.low_stock_alert}
+                  onChange={(e) => setFormData(prev => ({ ...prev, low_stock_alert: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-[#00695C] focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5 sm:col-span-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Barcode (EAN/UPC)</label>
+                  <button
+                    type="button"
+                    onClick={handleGenerateBarcode}
+                    className="text-xs font-bold text-[#00695C] dark:text-teal-300 hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" /> Generate
+                  </button>
+                </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="e.g. 890123456789"
+                    value={formData.barcode}
+                    onChange={(e) => setFormData(prev => ({ ...prev, barcode: e.target.value }))}
+                    className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-[#00695C] focus:outline-none"
+                  />
+                  <BarcodeIcon className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Manufacturing Date</label>
+                <input
+                  type="date"
+                  value={formData.manufacturing_date}
+                  onChange={(e) => setFormData(prev => ({ ...prev, manufacturing_date: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-[#00695C] focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Expiry Date</label>
+                <input
+                  type="date"
+                  value={formData.expiry_date}
+                  onChange={(e) => setFormData(prev => ({ ...prev, expiry_date: e.target.value }))}
+                  className={`w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-[#00695C] focus:outline-none ${
+                    errors.expiry_date ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
                   }`}
                 />
+                {errors.expiry_date && <p className="text-[11px] text-rose-500 font-medium">{errors.expiry_date}</p>}
               </div>
-              {errors.selling_price && <p className="text-[11px] text-rose-500 font-bold mt-1">{errors.selling_price}</p>}
-            </div>
-          </div>
-        </div>
 
-        {/* CARD 5: Stock & Expiry Information */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-xs border border-teal-100/60 dark:border-slate-800 space-y-4">
-          <div className="inline-flex items-center gap-2 bg-[#DDF3ED] dark:bg-teal-950/80 text-[#00695C] dark:text-teal-300 px-3 py-1.5 rounded-xl text-xs font-bold">
-            <Layers className="w-4 h-4" />
-            <span>5. Stock & Expiry Information</span>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                Stock Quantity <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="number"
-                step="0.001"
-                min="0"
-                placeholder="e.g. 25"
-                value={formData.stock_quantity}
-                onChange={(e) => setFormData(prev => ({ ...prev, stock_quantity: e.target.value }))}
-                className={`w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-[#00695C] focus:outline-none ${
-                  errors.stock_quantity ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
-                }`}
-              />
-              {errors.stock_quantity && <p className="text-[11px] text-rose-500 font-medium">{errors.stock_quantity}</p>}
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Low Stock Alert Limit</label>
-              <input
-                type="number"
-                step="0.001"
-                min="0"
-                placeholder="10"
-                value={formData.low_stock_alert}
-                onChange={(e) => setFormData(prev => ({ ...prev, low_stock_alert: e.target.value }))}
-                className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-[#00695C] focus:outline-none"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Barcode (EAN/UPC)</label>
-                <button
-                  type="button"
-                  onClick={handleGenerateBarcode}
-                  className="text-xs font-bold text-[#00695C] dark:text-teal-300 hover:underline flex items-center gap-1 cursor-pointer"
-                >
-                  <Sparkles className="w-3.5 h-3.5" /> Generate
-                </button>
-              </div>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="e.g. 890123456789"
-                  value={formData.barcode}
-                  onChange={(e) => setFormData(prev => ({ ...prev, barcode: e.target.value }))}
-                  className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-[#00695C] focus:outline-none"
-                />
-                <BarcodeIcon className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Manufacturing Date</label>
-              <input
-                type="date"
-                value={formData.manufacturing_date}
-                onChange={(e) => setFormData(prev => ({ ...prev, manufacturing_date: e.target.value }))}
-                className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-[#00695C] focus:outline-none"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Expiry Date</label>
-              <input
-                type="date"
-                value={formData.expiry_date}
-                onChange={(e) => setFormData(prev => ({ ...prev, expiry_date: e.target.value }))}
-                className={`w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border rounded-xl text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-[#00695C] focus:outline-none ${
-                  errors.expiry_date ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'
-                }`}
-              />
-              {errors.expiry_date && <p className="text-[11px] text-rose-500 font-medium">{errors.expiry_date}</p>}
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Short Description / Note (Optional)</label>
-              <div className="relative border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden focus-within:ring-2 focus-within:ring-[#00695C]">
-                <textarea
-                  rows={3}
-                  maxLength={500}
-                  placeholder="Enter product storage instructions, batch note, or details..."
-                  value={formData.short_description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, short_description: e.target.value }))}
-                  className="w-full p-3 bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none resize-none"
-                />
-              </div>
-              <div className="text-right text-[11px] text-slate-400 font-mono pr-2 pt-0.5">
-                {formData.short_description.length}/500
+              <div className="space-y-1.5 sm:col-span-2">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Short Description / Note (Optional)</label>
+                <div className="relative border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden focus-within:ring-2 focus-within:ring-[#00695C]">
+                  <textarea
+                    rows={3}
+                    maxLength={500}
+                    placeholder="Enter product storage instructions, batch note, or details..."
+                    value={formData.short_description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, short_description: e.target.value }))}
+                    className="w-full p-3 bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none resize-none"
+                  />
+                </div>
+                <div className="text-right text-[11px] text-slate-400 font-mono pr-2 pt-0.5">
+                  {formData.short_description.length}/500
+                </div>
               </div>
             </div>
           </div>

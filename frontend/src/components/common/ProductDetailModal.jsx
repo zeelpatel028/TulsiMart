@@ -49,12 +49,18 @@ export const ProductDetailModal = ({
         <div className="grid grid-cols-1 sm:grid-cols-12 gap-5 items-start">
           {/* Left: Product Image */}
           <div className="sm:col-span-5 bg-[#F0FAF9] dark:bg-slate-800 rounded-3xl p-4 border border-[#B2DFDB]/60 dark:border-slate-700 relative flex items-center justify-center min-h-[220px]">
-            <img
-              src={product.image || '/logo.png'}
-              alt={product.name}
-              className="max-h-56 w-full object-contain p-2"
-              onError={(e) => { e.target.src = '/logo.png'; }}
-            />
+            {product.image && !product.image.includes('logo.png') ? (
+              <img
+                src={product.image}
+                alt={product.name}
+                className="max-h-56 w-full object-contain p-2"
+                onError={(e) => { e.target.style.display = 'none'; }}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center p-6 text-[#00796b] dark:text-teal-400">
+                <Package className="w-16 h-16 opacity-70" />
+              </div>
+            )}
             {Number(discountPercent) > 0 && (
               <span className="absolute top-3 left-3 bg-[#00695C] text-white font-extrabold text-xs px-2.5 py-1 rounded-xl shadow-sm">
                 {discountPercent}% OFF
@@ -139,17 +145,16 @@ export const ProductDetailModal = ({
             {/* Add to Cart & Buy Buttons */}
             <div className="pt-2 flex items-center gap-3">
               {cartQuantity === 0 ? (
-                <Button
-                  variant="primary"
-                  size="md"
-                  icon={ShoppingCart}
+                <button
+                  type="button"
                   onClick={() => onAddToCart && onAddToCart(product)}
-                  className="flex-1 font-bold py-3 text-sm"
+                  className="flex-1 font-extrabold py-3 text-sm rounded-xl bg-gradient-to-r from-[#00796b] to-[#004d40] hover:from-[#00695c] hover:to-[#00382e] text-white flex items-center justify-center gap-2 shadow-md shadow-teal-900/10 cursor-pointer transition-all"
                 >
-                  Add to Grocery Cart
-                </Button>
+                  <ShoppingCart className="w-4 h-4" />
+                  <span>Add to Grocery Cart</span>
+                </button>
               ) : (
-                <div className="flex-1 flex items-center justify-between bg-[#00695C] text-white p-2 rounded-2xl shadow-sm">
+                <div className="flex-1 flex items-center justify-between bg-gradient-to-r from-[#00796b] to-[#004d40] text-white p-2 rounded-2xl shadow-sm">
                   <span className="text-xs font-extrabold pl-2">Quantity in Cart:</span>
                   <div className="flex items-center gap-2">
                     <button
@@ -172,18 +177,17 @@ export const ProductDetailModal = ({
               )}
 
               {onBuyNow && (
-                <Button
-                  variant="secondary"
-                  size="md"
+                <button
+                  type="button"
                   onClick={() => {
                     if (cartQuantity === 0 && onAddToCart) onAddToCart(product);
                     onBuyNow(product);
                     onClose();
                   }}
-                  className="px-5 py-3 text-sm font-bold bg-[#009688] hover:bg-[#00695C] text-white border-none"
+                  className="px-5 py-3 text-sm font-extrabold rounded-xl bg-teal-600 hover:bg-teal-700 text-white shadow-sm transition-all cursor-pointer"
                 >
                   Buy Now / POS Bill
-                </Button>
+                </button>
               )}
             </div>
           </div>

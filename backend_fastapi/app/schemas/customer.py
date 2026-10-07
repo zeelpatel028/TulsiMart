@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
 
 
 class CustomerCreate(BaseModel):
@@ -12,6 +12,13 @@ class CustomerCreate(BaseModel):
     pincode: Optional[str] = None
     notes: Optional[str] = None
 
+    @field_validator("email", mode="before")
+    @classmethod
+    def empty_email_to_none(cls, v):
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
+
 
 class CustomerUpdate(BaseModel):
     name: Optional[str] = None
@@ -22,6 +29,13 @@ class CustomerUpdate(BaseModel):
     pincode: Optional[str] = None
     status: Optional[str] = None
     notes: Optional[str] = None
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def empty_email_to_none(cls, v):
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
 
 
 class CustomerResponse(BaseModel):

@@ -1,6 +1,6 @@
 from datetime import datetime, date
 from typing import Optional, Dict, Any
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
 
 
 class StoreSettingUpdate(BaseModel):
@@ -38,6 +38,13 @@ class StoreSettingUpdate(BaseModel):
     security_session_timeout: Optional[int] = None
     home_cash_amount: Optional[float] = None
     auto_1130_sweep_enabled: Optional[bool] = None
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def empty_email_to_none(cls, v):
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
 
 
 class StoreSettingResponse(BaseModel):

@@ -9,9 +9,11 @@ export const PurchaseOrdersTab = ({
   purchaseOrders,
   onCreatePO,
   onOpenReceiveModal,
-  onPayPO
+  onPayPO,
+  viewMode: propViewMode
 }) => {
-  const [viewMode, setViewMode] = useState('table');
+  const [internalViewMode, setInternalViewMode] = useState('table');
+  const viewMode = propViewMode || internalViewMode;
   const poList = Array.isArray(purchaseOrders) ? purchaseOrders : [];
 
   if (poList.length === 0) {
@@ -32,39 +34,40 @@ export const PurchaseOrdersTab = ({
 
   return (
     <div className="space-y-4 font-sans text-slate-800 dark:text-slate-100 selection:bg-[#80cbc4] selection:text-[#004d40]">
-      {/* View Switcher Header */}
-      <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
-        <div className="flex items-center gap-2">
-          <FileText className="w-4 h-4 text-[#00796b] dark:text-[#80cbc4]" />
-          <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
-            Wholesale Purchase Orders ({poList.length})
-          </span>
+      {!propViewMode && (
+        <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
+          <div className="flex items-center gap-2">
+            <FileText className="w-4 h-4 text-[#00796b] dark:text-[#80cbc4]" />
+            <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
+              Wholesale Purchase Orders ({poList.length})
+            </span>
+          </div>
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700">
+            <button
+              onClick={() => setInternalViewMode('grid')}
+              title="Grid View (Cards)"
+              className={`p-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                viewMode === 'grid'
+                  ? 'bg-white dark:bg-slate-700 text-[#00796b] dark:text-[#80cbc4] shadow-xs font-bold'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setInternalViewMode('table')}
+              title="Table View (List)"
+              className={`p-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                viewMode === 'table'
+                  ? 'bg-white dark:bg-slate-700 text-[#00796b] dark:text-[#80cbc4] shadow-xs font-bold'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+            >
+              <List className="w-4 h-4" />
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700">
-          <button
-            onClick={() => setViewMode('grid')}
-            title="Grid View (Cards)"
-            className={`p-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              viewMode === 'grid'
-                ? 'bg-white dark:bg-slate-700 text-[#00796b] dark:text-[#80cbc4] shadow-xs font-bold'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-            }`}
-          >
-            <LayoutGrid className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setViewMode('table')}
-            title="Table View (List)"
-            className={`p-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              viewMode === 'table'
-                ? 'bg-white dark:bg-slate-700 text-[#00796b] dark:text-[#80cbc4] shadow-xs font-bold'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-            }`}
-          >
-            <List className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
+      )}
 
       {viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-4">

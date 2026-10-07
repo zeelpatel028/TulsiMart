@@ -56,6 +56,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { getUnitConversionRatio } from '../../utils/unitConversion';
 import { extractList, formatUnit, formatCategory, formatCustomer, formatSupplier } from '../../utils/apiHelpers';
+import { CartProductCard } from '../../components/cart/CartProductCard';
+import { calculateCartTotals, getAvailablePortionOptions, calculateCartItemPricing } from '../../utils/portionCalculator';
 
 // Helper to detect loose weight or volume units
 const isWeightOrVolumeUnit = (unit) => {
@@ -713,38 +715,39 @@ export const BillingPage = () => {
     const targetCart = { ...updatedCarts[activeCartIndex] };
     const existingIndex = targetCart.items.findIndex((item) => item.product.id === product.id);
 
-    const prodUnit = product.unit || product.product_unit;
-    const sellUnit = product.selling_unit || product.unit;
-    const ratio = getUnitConversionRatio(prodUnit, sellUnit);
+    const unitShort = formatUnit(product.unit_name || product.unit || 'kg');
+    const options = getAvailablePortionOptions(unitShort);
+    const defaultOpt = options[0] || { label: `1 ${unitShort}`, value: `1 ${unitShort}`, ratio: 1 };
 
     const baseSellingPrice = parseFloat(product.selling_price || product.price || 0);
     const baseMrp = parseFloat(product.mrp || product.selling_price || product.price || 0);
-
-    const unitPricePerSellingUnit = ratio > 0 ? (baseSellingPrice / ratio) : baseSellingPrice;
-    const mrpPerSellingUnit = ratio > 0 ? (baseMrp / ratio) : baseMrp;
-
-    const initialQty = (ratio >= 1000) ? 1000 : 1;
+    const gstPct = parseFloat(
+      product.selling_gst_percent !== undefined && product.selling_gst_percent !== null
+        ? product.selling_gst_percent
+        : (product.gst_percent !== undefined && product.gst_percent !== null
+            ? product.gst_percent
+            : (product.tax_percentage || 0))
+    );
 
     if (existingIndex > -1) {
-      const currentQty = targetCart.items[existingIndex].quantity;
-      const step = (ratio >= 1000) ? 100 : 1;
-      targetCart.items[existingIndex].quantity += step;
+      const existing = targetCart.items[existingIndex];
+      existing.cartQuantity = (existing.cartQuantity || 1) + 1;
+      existing.quantity = (existing.portionRatio || 1) * existing.cartQuantity;
     } else {
       targetCart.items.push({
         product,
-        quantity: initialQty,
-        unitPrice: unitPricePerSellingUnit,
-        mrp: mrpPerSellingUnit,
-        gstPercent: parseFloat(
-          product.selling_gst_percent !== undefined && product.selling_gst_percent !== null
-            ? product.selling_gst_percent
-            : (product.gst_percent !== undefined && product.gst_percent !== null
-                ? product.gst_percent
-                : (product.tax_percentage || 0))
-        ),
-        sellingUnitShort: sellUnit ? (typeof sellUnit === 'object' ? sellUnit.short_name : (product.selling_unit_name || 'pc')) : 'pc',
-        productUnitShort: prodUnit ? (typeof prodUnit === 'object' ? prodUnit.short_name : (product.unit_name || 'pc')) : 'pc',
-        ratio: ratio
+        basePrice: baseSellingPrice,
+        baseUnit: unitShort,
+        portionLabel: defaultOpt.label,
+        portionRatio: defaultOpt.ratio,
+        cartQuantity: 1,
+        gstPercent: gstPct,
+        // Compatibility properties
+        quantity: defaultOpt.ratio * 1,
+        unitPrice: baseSellingPrice * defaultOpt.ratio,
+        mrp: baseMrp * defaultOpt.ratio,
+        productUnitShort: unitShort,
+        sellingUnitShort: unitShort,
       });
     }
 
@@ -752,7 +755,74 @@ export const BillingPage = () => {
     setCarts(updatedCarts);
   };
 
-  // Update Item Quantity (supports floating points e.g. 0.2, 0.0002 for loose items)
+  // Update Item Portion Weight Option (e.g. 200g, 500g, 1kg)
+  const handleUpdatePortion = (productId, portionOpt) => {
+    const updatedCarts = [...carts];
+    const targetCart = { ...updatedCarts[activeCartIndex] };
+    const item = targetCart.items.find((i) => i.product.id === productId);
+
+    if (item) {
+      item.portionLabel = portionOpt.label;
+      item.portionRatio = portionOpt.ratio;
+      item.unitPrice = item.basePrice * portionOpt.ratio;
+      item.quantity = portionOpt.ratio * (item.cartQuantity || 1);
+    }
+    updatedCarts[activeCartIndex] = targetCart;
+    setCarts(updatedCarts);
+  };
+
+  // Update Item Custom Weight Option (e.g. 750g)
+  const handleUpdateCustomPortion = (productId, customRatio, customLabel) => {
+    const updatedCarts = [...carts];
+    const targetCart = { ...updatedCarts[activeCartIndex] };
+    const item = targetCart.items.find((i) => i.product.id === productId);
+
+    if (item) {
+      item.portionLabel = customLabel;
+      item.portionRatio = customRatio;
+      item.unitPrice = item.basePrice * customRatio;
+      item.quantity = customRatio * (item.cartQuantity || 1);
+    }
+    updatedCarts[activeCartIndex] = targetCart;
+    setCarts(updatedCarts);
+  };
+
+  // Update Cart Quantity Stepper [-] 1 [+]
+  const handleUpdateCartQty = (productId, newCartQty) => {
+    const updatedCarts = [...carts];
+    const targetCart = { ...updatedCarts[activeCartIndex] };
+    const itemIndex = targetCart.items.findIndex((i) => i.product.id === productId);
+
+    if (itemIndex > -1) {
+      if (newCartQty <= 0) {
+        targetCart.items.splice(itemIndex, 1);
+      } else {
+        const item = targetCart.items[itemIndex];
+        item.cartQuantity = newCartQty;
+        item.quantity = (item.portionRatio || 1) * newCartQty;
+      }
+    }
+    updatedCarts[activeCartIndex] = targetCart;
+    setCarts(updatedCarts);
+  };
+
+  // Update Item Base Price / Unit Rate for Current Bill Only
+  const handleUpdateBasePrice = (productId, newBasePrice) => {
+    const parsedPrice = parseFloat(newBasePrice);
+    const updatedCarts = [...carts];
+    const targetCart = { ...updatedCarts[activeCartIndex] };
+    const item = targetCart.items.find((i) => i.product.id === productId);
+    if (item) {
+      const val = newBasePrice === '' ? '' : (isNaN(parsedPrice) ? 0 : Math.max(0, parsedPrice));
+      item.basePrice = val;
+      item.unitPrice = (typeof val === 'number') ? val * (item.portionRatio || 1) : '';
+      item.customPrice = true;
+    }
+    updatedCarts[activeCartIndex] = targetCart;
+    setCarts(updatedCarts);
+  };
+
+  // Legacy Update Quantity fallback
   const handleUpdateQuantity = (productId, newQty) => {
     const updatedCarts = [...carts];
     const targetCart = { ...updatedCarts[activeCartIndex] };
@@ -760,19 +830,12 @@ export const BillingPage = () => {
 
     if (itemIndex > -1) {
       const item = targetCart.items[itemIndex];
-      if (newQty === '' || newQty === undefined || newQty === null) {
-        item.quantity = '';
+      const parsed = parseFloat(newQty);
+      if (!isNaN(parsed) && parsed <= 0) {
+        targetCart.items.splice(itemIndex, 1);
       } else {
-        const parsed = parseFloat(newQty);
-        if (!isNaN(parsed) && parsed <= 0) {
-          targetCart.items.splice(itemIndex, 1);
-        } else {
-          if (!isNaN(parsed) && item.product.stock_quantity > 0 && parsed > item.product.stock_quantity) {
-            showToast(`Max available stock is ${item.product.stock_quantity}`, 'warning');
-            return;
-          }
-          item.quantity = isNaN(parsed) ? newQty : parsed;
-        }
+        item.cartQuantity = isNaN(parsed) ? 1 : Math.max(1, Math.round(parsed));
+        item.quantity = (item.portionRatio || 1) * item.cartQuantity;
       }
     }
 
@@ -788,6 +851,7 @@ export const BillingPage = () => {
     const item = targetCart.items.find((i) => i.product.id === productId);
     if (item) {
       item.unitPrice = newPrice === '' ? '' : (isNaN(parsedPrice) ? 0 : parsedPrice);
+      item.basePrice = isNaN(parsedPrice) ? 0 : (item.portionRatio ? parsedPrice / item.portionRatio : parsedPrice);
       item.customPrice = true;
     }
     updatedCarts[activeCartIndex] = targetCart;
@@ -814,9 +878,12 @@ export const BillingPage = () => {
     const updatedCarts = [...carts];
     const targetCart = { ...updatedCarts[activeCartIndex] };
     const item = targetCart.items.find((i) => i.product.id === productId);
-    if (item && parseFloat(item.unitPrice) > 0) {
-      const calculatedQty = parseFloat((parsedAmt / parseFloat(item.unitPrice)).toFixed(4));
-      item.quantity = calculatedQty;
+    if (item && parseFloat(item.basePrice) > 0) {
+      const customRatio = parsedAmt / parseFloat(item.basePrice);
+      item.portionRatio = customRatio;
+      item.portionLabel = `₹${parsedAmt.toFixed(0)} Amt`;
+      item.unitPrice = parsedAmt;
+      item.quantity = customRatio * (item.cartQuantity || 1);
     }
     updatedCarts[activeCartIndex] = targetCart;
     setCarts(updatedCarts);
@@ -824,7 +891,6 @@ export const BillingPage = () => {
 
   // Remove Item
   const handleRemoveItem = (productId) => {
-
     const updatedCarts = [...carts];
     const targetCart = { ...updatedCarts[activeCartIndex] };
     targetCart.items = targetCart.items.filter((item) => item.product.id !== productId);
@@ -973,23 +1039,14 @@ export const BillingPage = () => {
   };
 
   // Financial Calculations (Grocery retail prices are inclusive of GST)
-  const grossTotal = cartItems.reduce((acc, item) => acc + (parseFloat(item.mrp) || 0) * (parseFloat(item.quantity) || 0), 0);
-  const netSubtotal = cartItems.reduce((acc, item) => acc + (parseFloat(item.unitPrice) || 0) * (parseFloat(item.quantity) || 0), 0);
-  const totalMrpSavings = Math.max(0, grossTotal - netSubtotal);
-  const couponDiscount = currentCart.discountAmount || 0;
-
-  // Tax breakdown: Extracted from inclusive selling prices (Retail GST Standard)
-  const taxAmount = cartItems.reduce((acc, item) => {
-    const lineTotal = (parseFloat(item.unitPrice) || 0) * (parseFloat(item.quantity) || 0);
-    const gstRate = parseFloat(item.gstPercent || 0);
-    if (gstRate > 0) {
-      const baseVal = lineTotal / (1 + gstRate / 100);
-      return acc + (lineTotal - baseVal);
-    }
-    return acc;
-  }, 0);
+  const cartTotals = calculateCartTotals(cartItems, currentCart.discountAmount || 0);
+  const netSubtotal = cartTotals.subtotal;
+  const grossTotal = cartTotals.subtotal;
+  const totalMrpSavings = 0;
+  const couponDiscount = cartTotals.discountAmount;
+  const taxAmount = cartTotals.totalTax;
   const taxableSubtotal = Math.max(0, netSubtotal - taxAmount);
-  const grandTotal = Math.max(0, netSubtotal - couponDiscount);
+  const grandTotal = cartTotals.grandTotal;
 
   // Cash Change Calculation
   const cashAmountNumber = parseFloat(cashTendered) || 0;
@@ -1230,13 +1287,7 @@ export const BillingPage = () => {
             {/* 1. Pure White Circular Back Button */}
             <button
               type="button"
-              onClick={() => {
-                if (window.history.length > 1) {
-                  navigate(-1);
-                } else {
-                  navigate('/dashboard');
-                }
-              }}
+              onClick={() => navigate('/dashboard')}
               className="w-9.5 h-9.5 sm:w-10 sm:h-10 rounded-full bg-white dark:bg-slate-800 text-[#134E48] dark:text-teal-300 flex items-center justify-center shadow-md shadow-teal-900/10 hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0 border border-teal-100/80 dark:border-slate-700"
               aria-label="Go Back"
             >
@@ -1699,157 +1750,19 @@ export const BillingPage = () => {
                   <p className="text-xs text-slate-400">Scan barcodes or click products to add items</p>
                 </div>
               ) : (
-                <div className="max-h-64 overflow-y-auto custom-scrollbar-thin touch-pan space-y-2 pr-1">
-                  {cartItems.map((item) => {
-                    const unitShort = formatUnit(item.productUnitShort || item.sellingUnitShort || item.product?.unit_name || item.product?.unit);
-
-                    const qty = parseFloat(item.quantity) || 0;
-                    const price = parseFloat(item.unitPrice) || 0;
-                    const lineTotal = price * qty;
-                    const isLoose = isWeightOrVolumeUnit(unitShort);
-
-                    return (
-                      <div
-                        key={item.product.id}
-                        className="p-3 bg-slate-50/90 dark:bg-slate-800/80 hover:bg-[#e0f2f1]/30 rounded-2xl border border-slate-200/80 dark:border-slate-700 space-y-2.5 transition-all shadow-2xs"
-                      >
-                        {/* Top Line: Item Name & Line Total */}
-                        <div className="flex items-center justify-between gap-2">
-                          <h5 className="text-xs font-black text-slate-800 dark:text-slate-100 truncate" title={item.product.name}>
-                            {item.product.name}
-                          </h5>
-                          <div className="text-sm font-black text-[#00695C] dark:text-[#4DB6AC] font-mono shrink-0">
-                            ₹{lineTotal.toFixed(2)}
-                          </div>
-                        </div>
-
-                        {/* Middle Controls: Rate Input, GST Dropdown, Stepper & Trash */}
-                        <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            {/* Unit Price Input */}
-                            <div className="flex items-center gap-0.5 bg-white dark:bg-slate-900 px-2 py-1 rounded-xl border border-[#B2DFDB] dark:border-slate-700 text-xs shadow-2xs">
-                              <span className="text-[#607D8B] font-extrabold text-[11px]">₹</span>
-                              <input
-                                type="number"
-                                step="any"
-                                min="0"
-                                value={item.unitPrice === '' ? '' : item.unitPrice}
-                                onChange={(e) => handleUpdateUnitPrice(item.product.id, e.target.value)}
-                                placeholder="0.00"
-                                className="w-14 text-xs font-black text-[#00695C] dark:text-[#4DB6AC] bg-transparent outline-hidden"
-                              />
-                              <span className="text-[10px] font-bold text-[#607D8B]">/{unitShort}</span>
-                            </div>
-
-                            {/* GST Select Pill */}
-                            <div className="flex items-center gap-0.5 bg-[#E0F2F1] dark:bg-slate-700 text-[#00695C] dark:text-slate-200 font-extrabold px-2 py-1 rounded-xl border border-[#B2DFDB] dark:border-slate-600 text-xs shadow-2xs">
-                              <span className="text-[10px] text-[#00695C] dark:text-slate-300">GST</span>
-                              <select
-                                value={item.gstPercent ?? 0}
-                                onChange={(e) => handleUpdateGstPercent(item.product.id, e.target.value)}
-                                className="bg-transparent text-xs font-black focus:outline-hidden cursor-pointer pl-0.5 text-[#00695C] dark:text-slate-100"
-                              >
-                                <option value="0" className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">0%</option>
-                                <option value="5" className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">5%</option>
-                                <option value="12" className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">12%</option>
-                                <option value="18" className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">18%</option>
-                                <option value="28" className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">28%</option>
-                              </select>
-                            </div>
-                          </div>
-
-                          {/* Stepper + Remove */}
-                          <div className="flex items-center gap-2 shrink-0">
-                            <div className="flex items-center gap-1 bg-white dark:bg-slate-900 px-1.5 py-1 rounded-xl border border-[#B2DFDB] dark:border-slate-700 shadow-2xs">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const current = parseFloat(item.quantity) || 0;
-                                  const step = isLoose ? (['kg', 'l'].includes(unitShort.toLowerCase()) ? 0.1 : 1) : 1;
-                                  const next = Math.max(0, parseFloat((current - step).toFixed(4)));
-                                  handleUpdateQuantity(item.product.id, next);
-                                }}
-                                className="w-5 h-5 rounded-lg bg-[#E0F2F1] dark:bg-slate-800 text-[#00695C] dark:text-slate-200 flex items-center justify-center font-bold text-xs cursor-pointer hover:bg-[#b2dfdb] transition-colors"
-                                title="Decrease quantity"
-                              >
-                                -
-                              </button>
-                              <input
-                                type="number"
-                                step="any"
-                                min="0"
-                                value={item.quantity}
-                                onChange={(e) => handleUpdateQuantity(item.product.id, e.target.value)}
-                                className="w-12 text-center text-xs font-black text-[#263238] dark:text-slate-100 bg-transparent outline-hidden"
-                                placeholder="Qty"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const current = parseFloat(item.quantity) || 0;
-                                  const step = isLoose ? (['kg', 'l'].includes(unitShort.toLowerCase()) ? 0.1 : 1) : 1;
-                                  const next = parseFloat((current + step).toFixed(4));
-                                  handleUpdateQuantity(item.product.id, next);
-                                }}
-                                className="w-5 h-5 rounded-lg bg-[#E0F2F1] dark:bg-slate-800 text-[#00695C] dark:text-slate-200 flex items-center justify-center font-bold text-xs cursor-pointer hover:bg-[#b2dfdb] transition-colors"
-                                title="Increase quantity"
-                              >
-                                +
-                              </button>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveItem(item.product.id)}
-                              className="p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg cursor-pointer transition-colors"
-                              title="Remove item"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Bottom Line: Quick Weight Chips without ugly scrollbar arrows */}
-                        {isLoose && (
-                          <div className="flex items-center gap-1.5 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 overflow-x-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                            <span className="text-[10px] font-bold text-slate-400 shrink-0">Quick Weight:</span>
-                            {['200mg', '100g', '200g', '250g', '500g', '1kg'].map((preset) => {
-                              const targetQty = getQtyForPresetWeight(preset, unitShort);
-                              const isActive = Math.abs((parseFloat(item.quantity) || 0) - targetQty) < 0.00001;
-                              return (
-                                <button
-                                  key={preset}
-                                  type="button"
-                                  onClick={() => handleUpdateQuantity(item.product.id, targetQty)}
-                                  className={`px-2 py-0.5 text-[10px] font-extrabold rounded-lg border transition-all cursor-pointer shrink-0 ${
-                                    isActive
-                                      ? 'bg-[#00695C] text-white border-[#00695C] shadow-2xs'
-                                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-[#00695C] hover:text-[#00695C]'
-                                  }`}
-                                >
-                                  {preset}
-                                </button>
-                              );
-                            })}
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const inputVal = window.prompt(`Enter desired ₹ amount for ${item.product.name} (Rate: ₹${price}/${unitShort}):`);
-                                if (inputVal) {
-                                  handleSetItemTargetAmount(item.product.id, inputVal);
-                                }
-                              }}
-                              className="px-2 py-0.5 text-[10px] font-black rounded-lg border bg-[#E0F2F1] dark:bg-slate-700 text-[#00695C] dark:text-[#4DB6AC] border-[#B2DFDB] dark:border-slate-600 hover:bg-[#b2dfdb] transition-all cursor-pointer shrink-0"
-                              title="Set quantity by ₹ Amount"
-                            >
-                              ₹ Amt
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                <div className="max-h-[460px] overflow-y-auto custom-scrollbar-thin touch-pan space-y-3 pr-1">
+                  {cartItems.map((item) => (
+                    <CartProductCard
+                      key={item.product.id}
+                      item={item}
+                      onUpdatePortion={handleUpdatePortion}
+                      onUpdateCustomPortion={handleUpdateCustomPortion}
+                      onUpdateCartQty={handleUpdateCartQty}
+                      onUpdateGst={handleUpdateGstPercent}
+                      onUpdateBasePrice={handleUpdateBasePrice}
+                      onRemove={handleRemoveItem}
+                    />
+                  ))}
                 </div>
               )}
             </div>

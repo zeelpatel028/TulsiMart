@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
+import { CartLoader } from '../../components/common/CartLoader';
 
 export const LoginPage = () => {
   const navigate = useNavigate();
@@ -196,6 +197,7 @@ export const LoginPage = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 sm:p-6 font-sans text-slate-100 selection:bg-[#4DB6AC] selection:text-[#00695C]">
+      {loading && <CartLoader fullScreen text="Loading Tulsi Mart..." />}
 
       {/* Sleek Centered Card */}
       <div className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl shadow-2xl backdrop-blur-2xl p-6 sm:p-8 relative z-10 space-y-6">

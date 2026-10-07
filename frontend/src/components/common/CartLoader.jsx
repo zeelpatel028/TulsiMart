@@ -1,7 +1,7 @@
 import React from 'react';
 
-export const CartLoader = ({ 
-  text = "Loading...", 
+export const CartLoader = ({
+  text = "Loading...",
   fullScreen = false,
   size = "md"
 }) => {
@@ -14,8 +14,8 @@ export const CartLoader = ({
   const loaderContent = (
     <div className="flex flex-col items-center justify-center p-6 text-center space-y-3 font-sans select-none">
       {/* Simple Animated Spinner */}
-      <div 
-        className={`${sizeClasses} border-slate-200 dark:border-slate-800 border-t-[#009688] dark:border-t-[#4DB6AC] rounded-full animate-spin`} 
+      <div
+        className={`${sizeClasses} border-slate-200 dark:border-slate-800 border-t-[#009688] dark:border-t-[#4DB6AC] rounded-full animate-spin`}
       />
       {text && (
         <p className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 tracking-wide animate-pulse">

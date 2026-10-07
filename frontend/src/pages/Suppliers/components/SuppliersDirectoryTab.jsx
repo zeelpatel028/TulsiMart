@@ -30,9 +30,9 @@ export const SuppliersDirectoryTab = ({
   onEditSupplier,
   onDeleteSupplier,
   onViewProfile,
-  onPaySupplier
+  onPaySupplier,
+  viewMode = 'grid'
 }) => {
-  const [viewMode, setViewMode] = useState('table');
   const suppList = Array.isArray(suppliers) ? suppliers : [];
   const filteredSuppliers = suppList.filter(s => {
     if (!s) return false;
@@ -46,59 +46,17 @@ export const SuppliersDirectoryTab = ({
     return matchesCategory && matchesSearch;
   });
 
+  const getInitials = (name) => {
+    if (!name) return 'SU';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
+
   return (
     <div className="space-y-4 font-sans">
-      {/* Controls Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
-        <div className="w-full sm:w-80">
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder="Search vendor name, company, GSTIN..."
-          />
-        </div>
-
-        <div className="flex items-center gap-2.5 w-full sm:w-auto justify-between sm:justify-end">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-            <span className="text-xs font-bold text-slate-500 whitespace-nowrap hidden sm:inline">Category:</span>
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-sky-500/20"
-            >
-              <option value="ALL">All Wholesale Categories</option>
-              {supplierCategories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700 shrink-0">
-            <button
-              onClick={() => setViewMode('grid')}
-              title="Grid View (Cards)"
-              className={`p-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                viewMode === 'grid'
-                  ? 'bg-white dark:bg-slate-700 text-[#00695c] dark:text-[#80cbc4] shadow-xs font-bold'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-              }`}
-            >
-              <LayoutGrid className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('table')}
-              title="Table View (List)"
-              className={`p-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                viewMode === 'table'
-                  ? 'bg-white dark:bg-slate-700 text-[#00695c] dark:text-[#80cbc4] shadow-xs font-bold'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-              }`}
-            >
-              <List className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </div>
 
       {filteredSuppliers.length === 0 ? (
         <EmptyState
@@ -119,23 +77,23 @@ export const SuppliersDirectoryTab = ({
             return (
               <div
                 key={s.id}
-                className="group bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 p-5 hover:border-sky-300 dark:hover:border-sky-700/60 hover:shadow-xl transition-all duration-300 flex flex-col justify-between relative overflow-hidden"
+                className="group bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-5 hover:border-teal-300 dark:hover:border-teal-700/60 hover:shadow-xl transition-all duration-300 flex flex-col justify-between relative overflow-hidden"
               >
                 {/* Top Ambient Glow */}
-                <div className="absolute -top-12 -right-12 w-24 h-24 bg-sky-500/10 rounded-full blur-xl group-hover:bg-sky-500/20 transition-all pointer-events-none"></div>
+                <div className="absolute -top-12 -right-12 w-24 h-24 bg-teal-500/10 rounded-full blur-xl group-hover:bg-teal-500/20 transition-all pointer-events-none"></div>
 
                 <div>
                   {/* Header Row */}
                   <div className="flex items-start justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#00695C] to-[#009688] dark:from-slate-800 dark:to-slate-900 text-white font-black flex items-center justify-center text-sm shadow-md shrink-0">
-                        {supName ? supName[0].toUpperCase() : 'S'}
+                      <div className="w-11 h-11 rounded-2xl bg-teal-600 text-white font-black flex items-center justify-center text-sm shadow-md shadow-teal-600/20 shrink-0 tracking-wider">
+                        {getInitials(supName)}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h3 className="font-extrabold text-sm text-[#263238] dark:text-slate-100 font-heading group-hover:text-[#009688] dark:group-hover:text-[#4DB6AC] transition-colors">
+                        <h3 className="font-extrabold text-sm text-[#263238] dark:text-slate-100 font-heading group-hover:text-[#00796b] dark:group-hover:text-[#80cbc4] transition-colors truncate">
                           {s.company_name || s.name}
                         </h3>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold">Contact: {s.name}</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold mt-0.5">Contact: {s.name}</p>
                       </div>
                     </div>
                     <Badge variant={s.is_active !== false ? 'success' : 'secondary'} size="xs">
@@ -144,10 +102,10 @@ export const SuppliersDirectoryTab = ({
                   </div>
 
                   {/* Info Meta */}
-                  <div className="mt-3 space-y-2 text-xs text-slate-600 dark:text-slate-300">
+                  <div className="mt-3.5 space-y-2 text-xs text-slate-600 dark:text-slate-300">
                     <div className="flex items-center gap-2">
-                      <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="font-mono font-bold text-slate-700 dark:text-slate-200">{s.phone}</span>
+                      <Phone className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
+                      <span className="font-mono font-bold text-slate-800 dark:text-slate-100">{s.phone}</span>
                     </div>
                     {s.gstin && (
                       <div className="flex items-center gap-2 text-[11px]">
@@ -189,14 +147,14 @@ export const SuppliersDirectoryTab = ({
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => onViewProfile(s)}
-                      className="p-2 text-slate-500 hover:text-sky-600 dark:hover:text-sky-400 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                      title="View Profile Drawer"
+                      className="p-2 text-slate-500 hover:text-teal-600 dark:hover:text-teal-400 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                      title="View Profile Dashboard"
                     >
                       <Eye className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => onEditSupplier(s)}
-                      className="p-2 text-slate-500 hover:text-sky-600 dark:hover:text-sky-400 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                      className="p-2 text-slate-500 hover:text-teal-600 dark:hover:text-teal-400 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                       title="Edit Supplier"
                     >
                       <Edit className="w-4 h-4" />
@@ -215,7 +173,7 @@ export const SuppliersDirectoryTab = ({
                     size="sm"
                     icon={CreditCard}
                     onClick={() => onPaySupplier(s)}
-                    className="bg-[#00695C] hover:bg-[#004D40] text-white font-bold text-xs rounded-xl shadow-xs"
+                    className="bg-[#00796b] hover:bg-[#004d40] text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer"
                   >
                     Pay Supplier
                   </Button>
@@ -226,11 +184,11 @@ export const SuppliersDirectoryTab = ({
         </div>
       ) : (
         /* TABLE VIEW */
-        <Card className="p-0 overflow-hidden">
+        <Card className="p-0 overflow-hidden rounded-2xl border border-slate-200/80 dark:border-slate-800">
           <div className="overflow-x-auto max-h-[640px] overflow-y-auto custom-scrollbar touch-pan">
             <table className="w-full min-w-[750px] text-left text-xs border-collapse">
-              <thead className="sticky top-0 z-10 bg-teal-50/80 dark:bg-slate-800 shadow-xs">
-                <tr className="bg-teal-50/80 dark:bg-slate-800 border-b border-teal-200/80 dark:border-slate-800 text-[#00695c] dark:text-teal-300 font-extrabold uppercase tracking-wider text-[11px] whitespace-nowrap">
+              <thead className="sticky top-0 z-10 bg-teal-50/90 dark:bg-slate-800 shadow-2xs">
+                <tr className="border-b border-teal-200/80 dark:border-slate-800 text-[#00796b] dark:text-teal-300 font-extrabold uppercase tracking-wider text-[11px] whitespace-nowrap">
                   <th className="py-3.5 px-4">Supplier / Company</th>
                   <th className="py-3.5 px-4">Category</th>
                   <th className="py-3.5 px-4">Phone / GSTIN</th>
@@ -243,12 +201,13 @@ export const SuppliersDirectoryTab = ({
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
                 {filteredSuppliers.map((s) => {
                   const pendingBal = Number(s.pending_balance || 0);
+                  const supName = s.company_name || s.name || '';
                   return (
                     <tr key={s.id} className="hover:bg-teal-50/40 dark:hover:bg-slate-800/60 transition-colors whitespace-nowrap">
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-[#00695C]/10 text-[#00695C] dark:text-[#4DB6AC] flex items-center justify-center font-black text-xs shrink-0">
-                            {(s.company_name || s.name || 'S')[0].toUpperCase()}
+                          <div className="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                            {getInitials(supName)}
                           </div>
                           <div>
                             <p className="font-bold text-slate-900 dark:text-slate-100">{s.company_name || s.name}</p>
@@ -286,7 +245,7 @@ export const SuppliersDirectoryTab = ({
                               size="xs"
                               icon={CreditCard}
                               onClick={() => onPaySupplier(s)}
-                              className="!bg-[#00695C] hover:!bg-[#004D40] !text-white font-bold"
+                              className="bg-[#00796b] hover:bg-[#004d40] text-white font-bold cursor-pointer"
                             >
                               Pay
                             </Button>
@@ -296,13 +255,13 @@ export const SuppliersDirectoryTab = ({
                             size="xs"
                             icon={Eye}
                             onClick={() => onViewProfile(s)}
-                            className="font-bold"
+                            className="font-bold cursor-pointer"
                           >
                             Ledger
                           </Button>
                           <button
                             onClick={() => onEditSupplier(s)}
-                            className="p-1 text-slate-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                            className="p-1 text-slate-400 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
                             title="Edit"
                           >
                             <Edit className="w-3.5 h-3.5" />

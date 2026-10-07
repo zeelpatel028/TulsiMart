@@ -15,8 +15,13 @@ import {
   RefreshCw,
   Wallet,
   Truck,
-  ArrowLeft
+  ArrowLeft,
+  LayoutGrid,
+  List,
+  ShoppingCart
 } from 'lucide-react';
+
+import { SearchInput } from '../../components/common/UiHelpers';
 
 // API
 import { suppliersApi, inventoryApi, gullaApi } from '../../api';
@@ -60,6 +65,17 @@ export const SupplierList = () => {
   const [gullaSummary, setGullaSummary] = useState(null);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const [directoryViewMode, setDirectoryViewMode] = useState('grid');
+
+  // Controls state for other tabs
+  const [poSearch, setPoSearch] = useState('');
+  const [poStatusFilter, setPoStatusFilter] = useState('ALL');
+  const [poViewMode, setPoViewMode] = useState('grid');
+
+  const [grnSearch, setGrnSearch] = useState('');
+
+  const [paymentSearch, setPaymentSearch] = useState('');
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState('ALL');
 
   // Modals state
   const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
@@ -176,6 +192,56 @@ export const SupplierList = () => {
       monthlyPurchases, pendingPayments, overduePayments, productsOnOrder, lowStockReorderCount
     };
   }, [suppliers, purchaseOrders, products]);
+
+  // Filtered Purchase Orders
+  const filteredPurchaseOrders = useMemo(() => {
+    let list = Array.isArray(purchaseOrders) ? purchaseOrders : [];
+    if (poStatusFilter !== 'ALL') {
+      list = list.filter(po => po && po.status === poStatusFilter);
+    }
+    if (poSearch.trim()) {
+      const q = poSearch.toLowerCase();
+      list = list.filter(po => 
+        (po.po_number && po.po_number.toLowerCase().includes(q)) ||
+        (po.supplier_name && po.supplier_name.toLowerCase().includes(q)) ||
+        (po.supplier_company && po.supplier_company.toLowerCase().includes(q)) ||
+        (po.status && po.status.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }, [purchaseOrders, poStatusFilter, poSearch]);
+
+  // Filtered GRNs
+  const filteredGrnList = useMemo(() => {
+    let list = Array.isArray(grnList) ? grnList : [];
+    if (grnSearch.trim()) {
+      const q = grnSearch.toLowerCase();
+      list = list.filter(g => 
+        (g.grn_number && g.grn_number.toLowerCase().includes(q)) ||
+        (g.po_number && g.po_number.toLowerCase().includes(q)) ||
+        (g.supplier_name && g.supplier_name.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }, [grnList, grnSearch]);
+
+  // Filtered Payments
+  const filteredPaymentsList = useMemo(() => {
+    let list = Array.isArray(paymentsList) ? paymentsList : [];
+    if (paymentMethodFilter !== 'ALL') {
+      list = list.filter(p => p && p.payment_method === paymentMethodFilter);
+    }
+    if (paymentSearch.trim()) {
+      const q = paymentSearch.toLowerCase();
+      list = list.filter(p => 
+        (p.reference_number && p.reference_number.toLowerCase().includes(q)) ||
+        (p.supplier_name && p.supplier_name.toLowerCase().includes(q)) ||
+        (p.notes && p.notes.toLowerCase().includes(q)) ||
+        (p.payment_date && p.payment_date.includes(q))
+      );
+    }
+    return list;
+  }, [paymentsList, paymentMethodFilter, paymentSearch]);
 
   // PO Totals Calculation Helper
   const calculatePOTotals = (items, gstMode = 'EXCLUSIVE', taxType = 'INTRA_STATE') => {
@@ -392,6 +458,20 @@ export const SupplierList = () => {
     setIsPaymentModalOpen(true);
   };
 
+  const handleOpenAddSupplier = () => {
+    setEditingSupplier(null);
+    setSupplierForm({
+      name: '', company_name: '', phone: '', email: '', gstin: '',
+      address: '', city: 'Mumbai', category: 'FMCG & Branded Grocery',
+      payment_terms: 'Net 15', credit_limit: 100000, rating: 5, notes: ''
+    });
+    setIsSupplierModalOpen(true);
+  };
+
+  const handleOpenPurchaseProduct = () => {
+    setIsPoModalOpen(true);
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6 pb-12 animate-fade-in font-sans">
       {/* 📱 MOBILE / TABLET COMPACT PASTEL MINT HEADER */}
@@ -426,33 +506,45 @@ export const SupplierList = () => {
         <div className="absolute top-2 right-6 w-1.5 h-1.5 rounded-full bg-[#83D9CC] opacity-60 pointer-events-none" />
         <div className="absolute bottom-4 right-20 w-2 h-2 rounded-full bg-[#83D9CC] opacity-50 pointer-events-none" />
 
-        <div className="w-full max-w-3xl mx-auto flex items-center justify-between gap-2.5 relative z-10">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className="w-full max-w-full flex items-center justify-between gap-2 relative z-10">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
             {/* 1. Pure White Circular Back Button */}
             <button
               type="button"
-              onClick={() => {
-                if (window.history.length > 1) {
-                  navigate(-1);
-                } else {
-                  navigate('/dashboard');
-                }
-              }}
-              className="w-9.5 h-9.5 sm:w-10 sm:h-10 rounded-full bg-white dark:bg-slate-800 text-[#134E48] dark:text-teal-300 flex items-center justify-center shadow-md shadow-teal-900/10 hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0 border border-teal-100/80 dark:border-slate-700"
+              onClick={() => navigate('/dashboard')}
+              className="w-9 h-9 rounded-full bg-white dark:bg-slate-800 text-[#134E48] dark:text-teal-300 flex items-center justify-center shadow-xs hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0 border border-teal-100/80 dark:border-slate-700"
               aria-label="Go Back"
             >
-              <ArrowLeft className="w-4.5 h-4.5 stroke-[2.6]" />
+              <ArrowLeft className="w-4 h-4 stroke-[2.6]" />
             </button>
 
             {/* 2. Title & Subtitle */}
             <div className="min-w-0 flex-1">
-              <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight font-heading leading-tight truncate">
+              <h1 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight font-heading leading-tight truncate">
                 Supplier & <span className="text-[#00695C] dark:text-[#4DB6AC]">Procurement</span>
               </h1>
-              <p className="text-[11px] sm:text-xs font-semibold text-[#267B70] dark:text-slate-300 truncate mt-0.5">
-                Vendor directory, purchase orders & GRN ledgers
-              </p>
             </div>
+          </div>
+
+          {/* 3. Action Buttons */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={handleOpenPurchaseProduct}
+              className="flex items-center gap-1 px-2.5 py-1.5 bg-[#00796b] hover:bg-[#004d40] active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer"
+              title="Purchase Product"
+            >
+              <ShoppingCart className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Purchase</span>
+            </button>
+
+            <button
+              onClick={handleOpenAddSupplier}
+              className="flex items-center gap-1 px-2.5 py-1.5 bg-gradient-to-r from-[#00796b] to-[#004d40] hover:from-[#00695c] hover:to-[#00382e] active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer"
+              title="Add Supplier"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Supplier</span>
+            </button>
           </div>
         </div>
       </div>
@@ -463,7 +555,7 @@ export const SupplierList = () => {
         <div className="absolute -top-12 -left-12 w-40 h-40 bg-teal-300/20 dark:bg-teal-900/10 rounded-full blur-2xl pointer-events-none" />
         
         {/* Banner Grid Layout */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+        <div className="flex items-center justify-between gap-4 relative z-10">
           {/* Left: Truck Icon & Title with Status Badge */}
           <div className="flex items-center gap-3 sm:gap-4 min-w-0">
             <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-[#00796b] to-[#004d40] text-white p-2.5 sm:p-3 border border-[#004d40]/20 flex items-center justify-center shrink-0 shadow-md shadow-teal-900/10">
@@ -486,48 +578,23 @@ export const SupplierList = () => {
             </div>
           </div>
 
-          {/* Right Action Buttons & Gulla Register */}
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
-            {gullaSummary && (
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/90 dark:bg-slate-800/90 border border-teal-200 dark:border-slate-700/80 rounded-xl text-[#00796b] dark:text-[#80cbc4] text-xs font-black shadow-2xs">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                <Wallet className="w-3.5 h-3.5 text-[#00796b] dark:text-[#80cbc4]" />
-                <span>Gulla: ₹{Number(gullaSummary.cash_in_hand ?? gullaSummary.net_cash_in_gulla ?? 0).toLocaleString('en-IN')}</span>
-              </div>
-            )}
-
+          {/* Right: Action Buttons */}
+          <div className="flex items-center gap-2.5 shrink-0">
             <Button 
-              variant="outline" 
+              variant="primary" 
               size="sm" 
-              icon={RefreshCw} 
-              onClick={fetchProcurementData} 
-              className="border-teal-300 dark:border-slate-700 text-[#00796b] dark:text-[#80cbc4] hover:bg-teal-50 dark:hover:bg-slate-800 font-bold rounded-xl shadow-2xs cursor-pointer"
+              icon={ShoppingCart} 
+              onClick={handleOpenPurchaseProduct} 
+              className="bg-gradient-to-r from-teal-600 to-[#00796b] hover:from-teal-700 hover:to-[#004d40] text-white font-extrabold rounded-xl shadow-xs cursor-pointer shrink-0"
             >
-              Sync
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              icon={FileText} 
-              onClick={() => setIsPoModalOpen(true)} 
-              className="border-teal-300 dark:border-slate-700 text-[#00796b] dark:text-[#80cbc4] hover:bg-teal-50 dark:hover:bg-slate-800 font-bold rounded-xl shadow-2xs cursor-pointer"
-            >
-              Create PO
+              Purchase Product
             </Button>
             <Button
               variant="primary"
               size="sm"
               icon={Plus}
-              onClick={() => {
-                setEditingSupplier(null);
-                setSupplierForm({
-                  name: '', company_name: '', phone: '', email: '', gstin: '',
-                  address: '', city: 'Mumbai', category: 'FMCG & Branded Grocery',
-                  payment_terms: 'Net 15', credit_limit: 100000, rating: 5, notes: ''
-                });
-                setIsSupplierModalOpen(true);
-              }}
-              className="bg-gradient-to-r from-[#00796b] to-[#004d40] hover:from-[#00695c] hover:to-[#00382e] text-white font-extrabold shadow-sm shadow-teal-900/20 rounded-xl cursor-pointer"
+              onClick={handleOpenAddSupplier}
+              className="bg-gradient-to-r from-[#00796b] to-[#004d40] hover:from-[#00695c] hover:to-[#00382e] text-white font-extrabold shadow-xs rounded-xl cursor-pointer shrink-0"
             >
               Add Supplier
             </Button>
@@ -535,43 +602,212 @@ export const SupplierList = () => {
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <ProcurementKpiCards kpis={kpis} />
-
-      {/* Tabs */}
-      <div className="bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-teal-100 dark:border-slate-800 flex items-center gap-1.5 overflow-x-auto no-scrollbar shadow-2xs">
-        {[
-          { id: 'suppliers', label: 'Suppliers Directory', icon: Building2, count: suppliers.length },
-          { id: 'orders', label: 'Purchase Orders', icon: FileText, count: purchaseOrders.length },
-          { id: 'grn', label: 'Goods Receiving (GRN)', icon: Package, count: grnList.length },
-          { id: 'payments', label: 'Supplier Payments', icon: Receipt, count: paymentsList.length },
-          { id: 'analytics', label: 'Procurement Analytics', icon: BarChart3 }
-        ].map(tab => {
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-extrabold rounded-xl transition-all duration-200 cursor-pointer whitespace-nowrap ${
-                isActive
-                  ? 'bg-[#00796b] text-white shadow-sm shadow-teal-900/20'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-teal-50/70 dark:hover:bg-slate-800'
-              }`}
-            >
-              <tab.icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-              <span>{tab.label}</span>
-              {tab.count !== undefined && (
-                <span className={`px-2 py-0.5 rounded-md text-[10px] font-black font-mono ${
+      {/* 🌟 Unified Single Control Box (Tabs + Search + Filters in ONE Box) */}
+      <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-teal-100 dark:border-slate-800 shadow-xs space-y-3.5">
+        
+        {/* Navigation Tabs Bar */}
+        <div className={`flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 min-w-0 ${activeTab === 'suppliers' ? 'pb-3 border-b border-slate-100 dark:border-slate-800/80' : ''}`}>
+          {[
+            { id: 'suppliers', label: 'Suppliers Directory', icon: Building2, count: suppliers.length },
+            { id: 'orders', label: 'Purchase Orders', icon: FileText, count: purchaseOrders.length },
+            { id: 'grn', label: 'Goods Receiving (GRN)', icon: Package, count: grnList.length },
+            { id: 'payments', label: 'Supplier Payments', icon: Receipt, count: paymentsList.length },
+            { id: 'analytics', label: 'Procurement Analytics', icon: BarChart3 }
+          ].map(tab => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-3.5 py-2 text-xs font-extrabold rounded-xl transition-all duration-200 cursor-pointer whitespace-nowrap shrink-0 ${
                   isActive
-                    ? 'bg-teal-800 text-teal-100'
-                    : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                }`}>
-                  {tab.count}
-                </span>
-              )}
+                    ? 'bg-[#00796b] text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <tab.icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                <span>{tab.label}</span>
+                {tab.count !== undefined && (
+                  <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-black font-mono ${
+                    isActive
+                      ? 'bg-teal-800 text-teal-100'
+                      : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                  }`}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 1️⃣ Suppliers Directory Controls */}
+        {activeTab === 'suppliers' && (
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-0.5">
+            <div className="flex-1 min-w-0">
+              <SearchInput
+                value={search}
+                onChange={setSearch}
+                placeholder="Search vendor name, company, GSTIN..."
+              />
+            </div>
+
+            <div className="flex items-center gap-2.5 justify-between sm:justify-end shrink-0">
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="flex-1 sm:flex-none px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-[#00796b]/20 cursor-pointer"
+              >
+                <option value="ALL">All Wholesale Categories</option>
+                {SUPPLIER_CATEGORIES.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700 shrink-0">
+                <button
+                  onClick={() => setDirectoryViewMode('grid')}
+                  title="Grid View (Cards)"
+                  className={`p-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    directoryViewMode === 'grid'
+                      ? 'bg-white dark:bg-slate-700 text-[#00796b] dark:text-[#80cbc4] shadow-xs font-bold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setDirectoryViewMode('table')}
+                  title="Table View (List)"
+                  className={`p-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    directoryViewMode === 'table'
+                      ? 'bg-white dark:bg-slate-700 text-[#00796b] dark:text-[#80cbc4] shadow-xs font-bold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 2️⃣ Purchase Orders Controls */}
+        {activeTab === 'orders' && (
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-0.5">
+            <div className="flex-1 min-w-0">
+              <SearchInput
+                value={poSearch}
+                onChange={setPoSearch}
+                placeholder="Search PO number, vendor name, status..."
+              />
+            </div>
+
+            <div className="flex items-center gap-2.5 justify-between sm:justify-end shrink-0">
+              <select
+                value={poStatusFilter}
+                onChange={(e) => setPoStatusFilter(e.target.value)}
+                className="flex-1 sm:flex-none px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-[#00796b]/20 cursor-pointer"
+              >
+                <option value="ALL">All PO Statuses</option>
+                <option value="ORDERED">ORDERED</option>
+                <option value="RECEIVED">RECEIVED</option>
+                <option value="CANCELLED">CANCELLED</option>
+              </select>
+
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700 shrink-0">
+                <button
+                  onClick={() => setPoViewMode('grid')}
+                  title="Grid View (Cards)"
+                  className={`p-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    poViewMode === 'grid'
+                      ? 'bg-white dark:bg-slate-700 text-[#00796b] dark:text-[#80cbc4] shadow-xs font-bold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setPoViewMode('table')}
+                  title="Table View (List)"
+                  className={`p-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    poViewMode === 'table'
+                      ? 'bg-white dark:bg-slate-700 text-[#00796b] dark:text-[#80cbc4] shadow-xs font-bold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 3️⃣ Goods Receiving (GRN) Controls */}
+        {activeTab === 'grn' && (
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-0.5">
+            <div className="flex-1 min-w-0">
+              <SearchInput
+                value={grnSearch}
+                onChange={setGrnSearch}
+                placeholder="Search GRN number, PO ref, supplier..."
+              />
+            </div>
+
+            <div className="flex items-center gap-2.5 justify-between sm:justify-end shrink-0">
+              <span className="text-xs font-bold text-[#00796b] dark:text-[#80cbc4] bg-teal-50 dark:bg-teal-950/60 px-3 py-2 rounded-xl border border-teal-200/60 dark:border-teal-800/40">
+                Verified GRN Ledgers ({filteredGrnList.length})
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* 4️⃣ Supplier Payments Controls */}
+        {activeTab === 'payments' && (
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-0.5">
+            <div className="flex-1 min-w-0">
+              <SearchInput
+                value={paymentSearch}
+                onChange={setPaymentSearch}
+                placeholder="Search payment reference, supplier, notes..."
+              />
+            </div>
+
+            <div className="flex items-center gap-2.5 justify-between sm:justify-end shrink-0">
+              <select
+                value={paymentMethodFilter}
+                onChange={(e) => setPaymentMethodFilter(e.target.value)}
+                className="flex-1 sm:flex-none px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-[#00796b]/20 cursor-pointer"
+              >
+                <option value="ALL">All Payment Methods</option>
+                <option value="BANK_TRANSFER">BANK TRANSFER</option>
+                <option value="CASH">CASH</option>
+                <option value="UPI">UPI</option>
+                <option value="CHEQUE">CHEQUE</option>
+              </select>
+            </div>
+          </div>
+        )}
+
+        {/* 5️⃣ Procurement Analytics Controls */}
+        {activeTab === 'analytics' && (
+          <div className="flex items-center justify-between gap-3 pt-0.5">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-[#00796b] dark:text-[#80cbc4]" />
+              <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
+                Procurement & Vendor Performance Overview
+              </span>
+            </div>
+            <button
+              onClick={fetchProcurementData}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl transition-all cursor-pointer border border-slate-200 dark:border-slate-700"
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-[#00796b]" />
+              <span>Refresh Data</span>
             </button>
-          );
-        })}
+          </div>
+        )}
+
       </div>
 
       {/* Main Tab Views */}
@@ -583,10 +819,8 @@ export const SupplierList = () => {
           categoryFilter={categoryFilter}
           setCategoryFilter={setCategoryFilter}
           supplierCategories={SUPPLIER_CATEGORIES}
-          onAddSupplier={() => {
-            setEditingSupplier(null);
-            setIsSupplierModalOpen(true);
-          }}
+          viewMode={directoryViewMode}
+          onAddSupplier={handleOpenAddSupplier}
           onEditSupplier={(s) => {
             setEditingSupplier(s);
             setSupplierForm(s);
@@ -621,19 +855,20 @@ export const SupplierList = () => {
 
       {activeTab === 'orders' && (
         <PurchaseOrdersTab
-          purchaseOrders={purchaseOrders}
-          onCreatePO={() => setIsPoModalOpen(true)}
+          purchaseOrders={filteredPurchaseOrders}
+          onCreatePO={handleOpenPurchaseProduct}
           onOpenReceiveModal={handleOpenReceiveModal}
           onPayPO={handlePaySpecificPO}
+          viewMode={poViewMode}
         />
       )}
 
       {activeTab === 'grn' && (
-        <GrnLedgerTab grnList={grnList} />
+        <GrnLedgerTab grnList={filteredGrnList} />
       )}
 
       {activeTab === 'payments' && (
-        <PaymentsLedgerTab paymentsList={paymentsList} />
+        <PaymentsLedgerTab paymentsList={filteredPaymentsList} />
       )}
 
       {activeTab === 'analytics' && (

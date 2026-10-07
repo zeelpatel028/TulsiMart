@@ -5,7 +5,7 @@ from app.core.security import get_password_hash
 from app.core.logging_config import logger
 from app.models.user import LoginAccount
 from app.models.store import StoreSetting
-from app.models.product import Category, Product
+from app.models.product import Category, Product, Unit
 
 
 def init_db():
@@ -52,6 +52,40 @@ def init_db():
                 )
                 db.add(admin_user)
                 logger.info("Seeded initial Admin User (username: admin, password: admin123).")
+
+            # Seed Default Grocery Units if empty
+            existing_unit = db.query(Unit).first()
+            if not existing_unit:
+                default_units = [
+                    Unit(name="Kilogram", short_name="kg", base_unit="g", conversion_factor=1000.0),
+                    Unit(name="Gram", short_name="g", base_unit="g", conversion_factor=1.0),
+                    Unit(name="Milligram", short_name="mg", base_unit="g", conversion_factor=0.001),
+                    Unit(name="Quintal", short_name="q", base_unit="g", conversion_factor=100000.0),
+                    Unit(name="Litre", short_name="L", base_unit="ml", conversion_factor=1000.0),
+                    Unit(name="Millilitre", short_name="ml", base_unit="ml", conversion_factor=1.0),
+                    Unit(name="Piece", short_name="pc", base_unit="pc", conversion_factor=1.0),
+                    Unit(name="Packet", short_name="pkt", base_unit="pkt", conversion_factor=1.0),
+                    Unit(name="Pack", short_name="pack", base_unit="pack", conversion_factor=1.0),
+                    Unit(name="Box", short_name="box", base_unit="box", conversion_factor=1.0),
+                    Unit(name="Bottle", short_name="btl", base_unit="btl", conversion_factor=1.0),
+                    Unit(name="Jar", short_name="jar", base_unit="jar", conversion_factor=1.0),
+                    Unit(name="Can", short_name="can", base_unit="can", conversion_factor=1.0),
+                    Unit(name="Pouch", short_name="pouch", base_unit="pouch", conversion_factor=1.0),
+                    Unit(name="Bag", short_name="bag", base_unit="bag", conversion_factor=1.0),
+                    Unit(name="Dozen", short_name="dz", base_unit="pc", conversion_factor=12.0),
+                    Unit(name="Half Dozen", short_name="hdz", base_unit="pc", conversion_factor=6.0),
+                    Unit(name="Bundle", short_name="bdl", base_unit="bdl", conversion_factor=1.0),
+                    Unit(name="Sachet", short_name="sachet", base_unit="sachet", conversion_factor=1.0),
+                    Unit(name="Strip", short_name="strip", base_unit="strip", conversion_factor=1.0),
+                    Unit(name="Carton", short_name="ctn", base_unit="ctn", conversion_factor=1.0),
+                    Unit(name="Set", short_name="set", base_unit="set", conversion_factor=1.0),
+                    Unit(name="Tray", short_name="tray", base_unit="tray", conversion_factor=1.0),
+                    Unit(name="Roll", short_name="roll", base_unit="roll", conversion_factor=1.0),
+                    Unit(name="Meter", short_name="m", base_unit="m", conversion_factor=1.0)
+                ]
+                db.add_all(default_units)
+                db.flush()
+                logger.info("Seeded default grocery units.")
 
             # Seed demo products ONLY when using SQLite3 database (Localhost development)
             is_sqlite = settings.DATABASE_URL.strip().startswith("sqlite")

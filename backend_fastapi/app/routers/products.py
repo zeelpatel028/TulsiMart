@@ -131,6 +131,12 @@ def serialize_product_fast(p) -> dict:
             "id": p.brand.id,
             "name": p.brand.name
         } if getattr(p, "brand", None) else None,
+        "supplier_id": getattr(p, "supplier_id", None),
+        "supplier": {
+            "id": p.supplier.id,
+            "name": p.supplier.name,
+            "company_name": getattr(p.supplier, "company_name", None)
+        } if getattr(p, "supplier", None) else None,
     }
 
 
@@ -172,14 +178,14 @@ def list_products(
 def get_next_product_id(db: Session = Depends(get_db)):
     service = ProductService(db)
     next_id = service.get_next_product_id()
-    return success_response(data={"next_id": next_id}, message="Next product ID generated")
+    return success_response(data={"next_id": next_id, "next_product_id": next_id}, message="Next product ID generated")
 
 
 @router.get("/inventory/products/{product_id}/")
 def get_product(product_id: int, db: Session = Depends(get_db)):
     service = ProductService(db)
     product = service.get_product(product_id)
-    return success_response(data=ProductResponse.model_validate(product).model_dump(), message="Product details fetched")
+    return success_response(data=serialize_product_fast(product), message="Product details fetched")
 
 
 @router.post("/inventory/products/")
@@ -190,7 +196,7 @@ def create_product(
 ):
     service = ProductService(db)
     product = service.create_product(data)
-    return success_response(data=ProductResponse.model_validate(product).model_dump(), message="Product created", status_code=201)
+    return success_response(data=serialize_product_fast(product), message="Product created", status_code=201)
 
 
 @router.put("/inventory/products/{product_id}/")
@@ -202,7 +208,7 @@ def update_product(
 ):
     service = ProductService(db)
     product = service.update_product(product_id, data)
-    return success_response(data=ProductResponse.model_validate(product).model_dump(), message="Product updated")
+    return success_response(data=serialize_product_fast(product), message="Product updated")
 
 
 @router.delete("/inventory/products/{product_id}/")
@@ -225,7 +231,7 @@ def adjust_stock(
 ):
     service = ProductService(db)
     product = service.adjust_stock(product_id, data, user_id=current_user.id)
-    return success_response(data=ProductResponse.model_validate(product).model_dump(), message="Stock adjusted")
+    return success_response(data=serialize_product_fast(product), message="Stock adjusted")
 
 
 @router.post("/inventory/products/bulk_upload/")

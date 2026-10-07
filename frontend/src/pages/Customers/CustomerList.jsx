@@ -24,7 +24,15 @@ import {
   List, 
   RefreshCw, 
   AlertCircle,
-  ArrowLeft
+  ArrowLeft,
+  CreditCard,
+  Calendar,
+  Banknote,
+  Smartphone,
+  Building2,
+  Minus,
+  CheckCircle2,
+  IndianRupee
 } from 'lucide-react';
 import { customerApi } from '../../services/customerApi';
 import { extractList } from '../../utils/apiHelpers';
@@ -323,10 +331,20 @@ export const CustomerList = () => {
     return `₹${num.toFixed(2)}`;
   };
 
+  const activeCount = customers.filter(c => c.status !== 'BLOCKED').length;
+  const blockedCount = customers.filter(c => c.status === 'BLOCKED').length;
+  const khataDueCount = customers.filter(c => (Number(c.outstanding_balance || c.pending_payments) || 0) > 0).length;
   const totalKhataDue = customers.reduce((acc, c) => acc + (Number(c.outstanding_balance || c.pending_payments) || 0), 0);
 
+  const displayedCustomers = customers.filter(c => {
+    if (statusFilter === 'ACTIVE') return c.status !== 'BLOCKED';
+    if (statusFilter === 'BLOCKED') return c.status === 'BLOCKED';
+    if (statusFilter === 'KHATA_DUE') return (Number(c.outstanding_balance || c.pending_payments) || 0) > 0;
+    return true;
+  });
+
   return (
-    <div className="space-y-6 font-sans text-slate-800 dark:text-slate-100 selection:bg-[#80cbc4] selection:text-[#004d40]">
+    <div className="space-y-6 font-sans text-slate-800 dark:text-slate-100 selection:bg-[#80cbc4] selection:text-[#004d40] pb-10">
       {/* 📱 MOBILE / TABLET COMPACT PASTEL MINT HEADER */}
       <div className="lg:hidden sticky top-0 z-30 bg-[#E3F6F4] dark:bg-slate-900 text-slate-900 dark:text-white px-3.5 py-2.5 sm:px-5 sm:py-3.5 rounded-b-[18px] shadow-xs border-b border-teal-200/50 dark:border-slate-800 relative overflow-hidden min-h-[72px] sm:min-h-[82px] flex items-center -mx-3 -mt-3 sm:-mx-5 sm:-mt-5 mb-3">
         {/* SVG Decorative Bottom-Left Wave */}
@@ -364,13 +382,7 @@ export const CustomerList = () => {
             {/* 1. Pure White Circular Back Button */}
             <button
               type="button"
-              onClick={() => {
-                if (window.history.length > 1) {
-                  navigate(-1);
-                } else {
-                  navigate('/dashboard');
-                }
-              }}
+              onClick={() => navigate('/dashboard')}
               className="w-9.5 h-9.5 sm:w-10 sm:h-10 rounded-full bg-white dark:bg-slate-800 text-[#134E48] dark:text-teal-300 flex items-center justify-center shadow-md shadow-teal-900/10 hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0 border border-teal-100/80 dark:border-slate-700"
               aria-label="Go Back"
             >
@@ -390,12 +402,13 @@ export const CustomerList = () => {
         </div>
       </div>
 
-      {/* 🌟 Top Header Banner (Desktop Only) */}
+      {/* 🌟 Tulsi Mart Edge-to-Edge Desktop Header Banner */}
       <div className="hidden lg:block -mx-8 -mt-8 mb-6 bg-gradient-to-r from-teal-50/90 via-emerald-50/60 to-teal-50/90 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 text-slate-800 dark:text-white p-5 lg:px-8 border-b border-teal-200/70 dark:border-slate-800 relative overflow-hidden shadow-2xs">
+        {/* Subtle Decorative Background Glow */}
         <div className="absolute -top-12 -left-12 w-40 h-40 bg-teal-300/20 dark:bg-teal-900/10 rounded-full blur-2xl pointer-events-none" />
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
-          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
+          <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
             <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-[#00796b] to-[#004d40] text-white p-2.5 sm:p-3 border border-[#004d40]/20 flex items-center justify-center shrink-0 shadow-md shadow-teal-900/10">
               <Users className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
             </div>
@@ -403,13 +416,14 @@ export const CustomerList = () => {
             <div className="min-w-0">
               <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                 <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight font-heading">
-                  Customer Directory
+                  Customer <span className="text-[#00796b] dark:text-[#80cbc4]">Directory</span>
                 </h1>
-                <Badge variant="teal" size="sm" className="font-extrabold uppercase tracking-wide">
-                  Real DB Connected
-                </Badge>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-teal-100/90 text-[#00695c] dark:bg-teal-950/80 dark:text-teal-300 border border-teal-200 dark:border-teal-800/50 shadow-2xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Live Directory
+                </span>
               </div>
-              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-0.5 font-medium truncate">
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
                 Manage grocery customer profiles, khata balance statements & purchase histories
               </p>
             </div>
@@ -418,116 +432,80 @@ export const CustomerList = () => {
           <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
             <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/70 dark:bg-slate-800/80 border border-teal-200/60 dark:border-slate-700 shadow-2xs text-xs font-bold">
               <UserCheck className="w-4 h-4 text-[#00796b] dark:text-[#80cbc4]" />
-              <span className="text-slate-600 dark:text-slate-400">Total Records:</span>
+              <span className="text-slate-600 dark:text-slate-400">Total:</span>
               <span className="text-slate-900 dark:text-white font-extrabold">{totalItems}</span>
             </div>
 
             <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/70 dark:bg-slate-800/80 border border-teal-200/60 dark:border-slate-700 shadow-2xs text-xs font-bold">
               <Wallet className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-              <span className="text-slate-600 dark:text-slate-400">Total Khata Due:</span>
+              <span className="text-slate-600 dark:text-slate-400">Khata Due:</span>
               <span className="text-amber-700 dark:text-amber-400 font-extrabold">{formatCurrency(totalKhataDue)}</span>
             </div>
-
-            <Button
-              variant="teal"
-              onClick={handleOpenAddModal}
-              className="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer bg-[#00796b] hover:bg-[#004d40] text-white"
-            >
-              <Plus className="w-4 h-4" />
-              <span>New Customer</span>
-            </Button>
           </div>
         </div>
       </div>
 
-      {/* 🔍 Controls & Search Bar Container matching OrderList */}
-      <Card variant="default" className="p-4 sm:p-5 border-teal-200/80 dark:border-slate-800 shadow-2xs">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4">
-          
-          {/* Search Input */}
+      {/* 🌟 Redesigned Unified Control Toolbar */}
+      <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+        
+        {/* Controls: Search Input + New Customer Button + View Switcher */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+          {/* Search Bar */}
           <div className="flex-1 min-w-0">
             <SearchInput
               value={search}
               onChange={handleSearchChange}
-              placeholder="Search Customer Name, Phone Number, Email, City..."
-              className="w-full"
+              placeholder="Search customer name, phone, email, city..."
             />
           </div>
 
-          {/* Status Tabs & Controls matching Bill Page */}
-          <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 flex-wrap">
-            
-            {/* Status Tabs */}
-            <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-teal-200/60 dark:border-slate-700">
-              <button
-                onClick={() => handleStatusFilterChange('ALL')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  statusFilter === 'ALL'
-                    ? 'bg-[#00796b] text-white shadow-2xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                }`}
-              >
-                All Customers
-              </button>
-              <button
-                onClick={() => handleStatusFilterChange('ACTIVE')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  statusFilter === 'ACTIVE'
-                    ? 'bg-[#00796b] text-white shadow-2xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                }`}
-              >
-                Active
-              </button>
-              <button
-                onClick={() => handleStatusFilterChange('BLOCKED')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  statusFilter === 'BLOCKED'
-                    ? 'bg-rose-600 text-white shadow-2xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                }`}
-              >
-                Blocked
-              </button>
-            </div>
+          {/* Action Controls */}
+          <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
+            {/* New Customer Button */}
+            <button
+              onClick={handleOpenAddModal}
+              className="px-3.5 py-2 rounded-xl text-xs font-extrabold bg-gradient-to-r from-[#00796b] to-[#004d40] text-white hover:from-[#00695c] hover:to-[#00382e] shadow-xs transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>New Customer</span>
+            </button>
 
-            {/* View Mode Toggle (Grid vs Table) */}
-            <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-teal-200/60 dark:border-slate-700">
+            {/* View Switcher (Grid vs Table) */}
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700 shrink-0">
               <button
                 onClick={() => setViewMode('grid')}
-                title="Grid View (Image matching Bill Page)"
-                className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                title="Grid View (Card layout)"
+                className={`p-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                   viewMode === 'grid'
-                    ? 'bg-[#00796b] text-white shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
+                    ? 'bg-white dark:bg-slate-700 text-teal-700 dark:text-teal-300 shadow-xs font-bold'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
               >
                 <LayoutGrid className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setViewMode('table')}
-                title="Table View"
-                className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                title="Table View (List layout)"
+                className={`p-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                   viewMode === 'table'
-                    ? 'bg-[#00796b] text-white shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
+                    ? 'bg-white dark:bg-slate-700 text-teal-700 dark:text-teal-300 shadow-xs font-bold'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
               >
                 <List className="w-4 h-4" />
               </button>
+
+              <button
+                onClick={() => loadCustomers()}
+                title="Refresh Data"
+                className="p-1.5 rounded-lg text-xs text-slate-500 hover:text-teal-700 transition-all cursor-pointer"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-[#00796b]' : ''}`} />
+              </button>
             </div>
-
-            <button
-              onClick={() => loadCustomers()}
-              title="Refresh Customer Data"
-              className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-teal-200/80 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-teal-50 dark:hover:bg-slate-700 hover:text-[#00796b] dark:hover:text-[#80cbc4] transition-all cursor-pointer"
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-[#00796b]' : ''}`} />
-            </button>
           </div>
-
         </div>
-      </Card>
+      </div>
 
       {/* ⚠️ API Error Alert */}
       {error && (
@@ -548,7 +526,7 @@ export const CustomerList = () => {
           <div className="w-8 h-8 rounded-full border-2 border-[#00796b] border-t-transparent animate-spin mx-auto mb-2" />
           <p className="text-xs font-bold text-slate-600 dark:text-slate-400">Loading Customer Records...</p>
         </div>
-      ) : customers.length === 0 ? (
+      ) : displayedCustomers.length === 0 ? (
         <Card variant="default" className="p-8 border-teal-200/80 dark:border-slate-800">
           <EmptyState
             icon={Users}
@@ -560,9 +538,9 @@ export const CustomerList = () => {
           />
         </Card>
       ) : viewMode === 'grid' ? (
-        /* 🌟 Card Grid View - Exact match to Bill Management UI & User Screenshot */
+        /* 🌟 Card Grid View - Exact match to Inventory Page UI */
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-4">
-          {customers.map((c) => {
+          {displayedCustomers.map((c) => {
             const pendingBal = Number(c.outstanding_balance || c.pending_payments) || 0;
             const initials = c.name ? c.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'CU';
             const isBlocked = c.status === 'BLOCKED';
@@ -644,43 +622,45 @@ export const CustomerList = () => {
                   </div>
                 </div>
 
-                {/* Bottom Footer: Action Buttons (Exact Match to Screenshot & OrderList) */}
-                <div className="flex items-center justify-between pt-1 text-xs gap-2">
-                  {/* History / Details Button */}
-                  <button
-                    onClick={() => handleOpenProfile(c)}
-                    className="px-3.5 py-1.5 rounded-xl text-xs font-black bg-teal-50 text-[#00796b] dark:bg-slate-800 dark:text-[#80cbc4] border border-teal-200/70 dark:border-slate-700 hover:bg-teal-100 dark:hover:bg-slate-700 transition-all cursor-pointer flex items-center gap-1.5"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>History</span>
-                  </button>
-
-                  {/* Pay / Khata Button */}
-                  <button
-                    onClick={() => handleOpenKhata(c)}
-                    className="px-4 py-1.5 rounded-xl text-xs font-black bg-[#00796b] text-white hover:bg-[#004d40] shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center gap-1.5 flex-1 justify-center"
-                  >
-                    <Wallet className="w-3.5 h-3.5" />
-                    <span>Pay</span>
-                  </button>
-
-                  {/* Edit Icon Button */}
+                {/* Bottom Footer: Action Buttons (Inventory Style) */}
+                <div className="flex items-center justify-between pt-1 text-xs gap-2 flex-wrap">
+                  {/* Update Customer Pill Button */}
                   <button
                     onClick={() => handleOpenEditModal(c)}
-                    title="Edit Customer"
-                    className="p-1.5 rounded-xl border border-teal-200/80 dark:border-slate-700 text-slate-600 hover:bg-teal-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                    className="px-3 py-1.5 rounded-xl bg-[#E0F2F1] text-[#00695C] dark:bg-teal-950 dark:text-teal-300 border border-teal-200/80 dark:border-teal-800 hover:bg-[#B2DFDB] transition-all font-extrabold text-xs cursor-pointer flex items-center gap-1.5"
                   >
-                    <Edit2 className="w-4 h-4" />
+                    <Edit2 className="w-3.5 h-3.5" />
+                    <span>Update Customer</span>
                   </button>
 
-                  {/* Delete Icon Button */}
-                  <button
-                    onClick={() => setDeletingCustomer(c)}
-                    title="Delete Customer"
-                    className="p-1.5 rounded-xl border border-rose-200 dark:border-rose-900/50 text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-1.5 ml-auto">
+                    {/* Pay / Khata Button */}
+                    <button
+                      onClick={() => handleOpenKhata(c)}
+                      className="px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-[#00796b] to-[#004d40] text-white hover:from-[#00695c] hover:to-[#00382e] shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-1"
+                    >
+                      <Wallet className="w-3.5 h-3.5" />
+                      <span>Pay</span>
+                    </button>
+
+                    {/* History Icon Button */}
+                    <button
+                      onClick={() => handleOpenProfile(c)}
+                      title="View History"
+                      className="p-1.5 rounded-xl border border-teal-200/80 dark:border-slate-700 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+
+                    {/* Delete Icon Button */}
+                    <button
+                      onClick={() => setDeletingCustomer(c)}
+                      title="Delete Customer"
+                      className="p-1.5 rounded-xl border border-rose-200 dark:border-rose-900/50 text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             );
@@ -703,7 +683,7 @@ export const CustomerList = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-teal-50 dark:divide-slate-800/80 font-medium">
-                {customers.map((c) => {
+                {displayedCustomers.map((c) => {
                   const pendingBal = Number(c.outstanding_balance || c.pending_payments) || 0;
                   const initials = c.name ? c.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'CU';
                   const isBlocked = c.status === 'BLOCKED';
@@ -985,206 +965,547 @@ export const CustomerList = () => {
         </form>
       </Modal>
 
-      {/* 💰 Khata Payment Modal */}
-      {isKhataOpen && khataCustomer && (
-        <Modal
-          isOpen={isKhataOpen}
-          onClose={() => setIsKhataOpen(false)}
-          title={`Record Khata Payment: ${khataCustomer.name}`}
-          size="md"
-        >
-          <form onSubmit={handleRecordKhata} className="space-y-4 font-sans text-slate-800 dark:text-slate-100">
-            <div className="p-3 bg-amber-50 dark:bg-slate-800 rounded-2xl border border-amber-200 dark:border-slate-700 flex items-center justify-between">
-              <div>
-                <span className="text-xs text-amber-800 dark:text-amber-300 font-bold block">Current Pending Khata Balance:</span>
-                <span className="text-xs text-slate-500">Customer ID: #{khataCustomer.id}</span>
-              </div>
-              <span className="text-lg font-black text-amber-700 dark:text-amber-400">
-                {formatCurrency(khataCustomer.outstanding_balance || khataCustomer.pending_payments || 0)}
-              </span>
-            </div>
+      {/* 💰 Record Khata Payment Modal */}
+      {isKhataOpen && khataCustomer && (() => {
+        const dueAmount = khataCustomer.outstanding_balance || khataCustomer.pending_payments || 0;
+        const amountNum = parseFloat(khataForm.amount) || 0;
+        const isOverpaying = amountNum > dueAmount && dueAmount > 0;
+        const isInvalidAmount = !amountNum || amountNum <= 0 || isOverpaying;
+        const remainingBalance = Math.max(0, dueAmount - amountNum);
+        
+        const cashCountTotal = [500, 200, 100, 50, 20, 10, 5, 1].reduce((acc, d) => {
+          const cnt = parseInt(khataNoteCounts[d] || '0', 10);
+          return acc + (d === 1 ? cnt : cnt * d);
+        }, 0);
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Payment Amount (₹) <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  required
-                  value={khataForm.amount}
-                  onChange={(e) => setKhataForm({ ...khataForm, amount: e.target.value })}
-                  placeholder="0.00"
-                  className="w-full px-3.5 py-2 text-sm font-bold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[#00796b] outline-hidden font-mono"
-                />
-              </div>
+        const updateDenomCount = (denom, delta) => {
+          const currentCnt = parseInt(khataNoteCounts[denom] || '0', 10);
+          const newCnt = Math.max(0, currentCnt + delta);
+          handleKhataNoteChange(denom, newCnt === 0 ? '' : newCnt.toString());
+        };
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Payment Method
-                </label>
-                <select
-                  value={khataForm.payment_method}
-                  onChange={(e) => setKhataForm({ ...khataForm, payment_method: e.target.value })}
-                  className="w-full px-3.5 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[#00796b] outline-hidden font-bold"
-                >
-                  <option value="CASH">CASH</option>
-                  <option value="UPI">UPI / GPay / PhonePe</option>
-                  <option value="CARD">Debit / Credit Card</option>
-                  <option value="NET_BANKING">Net Banking</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Quick Currency Denomination Counter */}
-            {khataForm.payment_method === 'CASH' && (
-              <div className="p-3 bg-slate-50 dark:bg-slate-850 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
-                  <span className="flex items-center gap-1.5">
-                    <Calculator className="w-3.5 h-3.5 text-[#00796b]" />
-                    Quick Cash Denomination Counter
+        return (
+          <Modal
+            isOpen={isKhataOpen}
+            onClose={() => setIsKhataOpen(false)}
+            maxWidth="max-w-xl"
+            title={
+              <span className="flex items-center gap-3 text-left">
+                <span className="w-10 h-10 rounded-2xl bg-[#00796b] text-white flex items-center justify-center font-bold text-lg shadow-md shadow-[#00796b]/20 shrink-0">
+                  <IndianRupee className="w-5 h-5" />
+                </span>
+                <span className="block min-w-0">
+                  <span className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight block">
+                    Record Khata Payment
                   </span>
-                  {khataForm.cash_tendered && (
-                    <span className="text-[#00796b] dark:text-[#80cbc4] font-mono">Tendered: ₹{khataForm.cash_tendered}</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block">
+                    Customer: <strong className="text-slate-800 dark:text-slate-100">{khataCustomer.name}</strong>
+                  </span>
+                </span>
+              </span>
+            }
+            footer={
+              <div className="w-full flex items-center justify-end gap-3">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setIsKhataOpen(false)} 
+                  disabled={submittingKhata}
+                  className="px-5 py-2.5 rounded-xl font-semibold border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 transition-all text-sm cursor-pointer"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="button"
+                  onClick={handleRecordKhata}
+                  disabled={submittingKhata || isInvalidAmount}
+                  className={`px-6 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 ${
+                    isInvalidAmount
+                      ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed shadow-none'
+                      : 'bg-[#00796b] hover:bg-[#004d40] text-white shadow-teal-600/20 active:scale-95 cursor-pointer'
+                  }`}
+                >
+                  {submittingKhata ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Recording...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Confirm Payment</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            }
+          >
+            <form onSubmit={handleRecordKhata} className="space-y-5 font-sans text-slate-800 dark:text-slate-100 pb-1">
+              
+              {/* 1. Pending Khata Balance Card */}
+              <div className={`p-4 rounded-2xl border shadow-2xs flex items-center justify-between transition-all ${
+                dueAmount > 0 
+                  ? 'bg-gradient-to-br from-amber-50/90 to-orange-50/40 dark:from-slate-800/90 dark:to-amber-950/30 border-amber-200/80 dark:border-amber-800/50' 
+                  : 'bg-gradient-to-br from-emerald-50/90 to-teal-50/40 dark:from-slate-800/90 dark:to-emerald-950/30 border-emerald-200/80 dark:border-emerald-800/50'
+              }`}>
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                    <Wallet className="w-3.5 h-3.5 text-[#00796b] dark:text-teal-400" />
+                    <span>Current Pending Khata Balance</span>
+                  </div>
+                  <div className="text-xs font-mono font-medium text-slate-400 dark:text-slate-500">
+                    Customer ID: <span className="font-semibold text-slate-600 dark:text-slate-300">#ID-{khataCustomer.id}</span>
+                  </div>
+                </div>
+                <div className={`text-2xl sm:text-3xl font-black font-mono tracking-tight shrink-0 ${
+                  dueAmount > 0 ? 'text-amber-800 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-400'
+                }`}>
+                  {formatCurrency(dueAmount)}
+                </div>
+              </div>
+
+              {/* 2. Payment Amount Input */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                    Payment Amount (₹) <span className="text-rose-500">*</span>
+                  </label>
+                  {dueAmount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setKhataForm({ ...khataForm, amount: String(dueAmount) })}
+                      className="text-[11px] font-semibold text-[#00796b] hover:text-[#004d40] dark:text-teal-400 hover:underline cursor-pointer"
+                    >
+                      Pay Full Amount ({formatCurrency(dueAmount)})
+                    </button>
                   )}
                 </div>
 
-                <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
-                  {[500, 200, 100, 50, 20, 10, 5, 1].map((denom) => (
-                    <div key={denom} className="text-center">
-                      <span className="block text-[10px] font-bold text-slate-500">₹{denom}</span>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        value={khataNoteCounts[denom]}
-                        onChange={(e) => handleKhataNoteChange(denom, e.target.value)}
-                        placeholder="0"
-                        className="w-full text-center px-1 py-1 text-xs font-mono bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-1 focus:ring-[#00796b]"
-                      />
-                    </div>
-                  ))}
+                <div className="relative rounded-2xl shadow-2xs">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 font-bold text-lg font-mono">
+                    ₹
+                  </div>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    required
+                    value={khataForm.amount}
+                    onChange={(e) => setKhataForm({ ...khataForm, amount: e.target.value })}
+                    placeholder="0.00"
+                    className={`w-full pl-9 pr-4 py-3 text-lg font-black bg-white dark:bg-slate-800 border rounded-2xl outline-hidden font-mono transition-all ${
+                      isOverpaying 
+                        ? 'border-rose-400 focus:ring-2 focus:ring-rose-500 text-rose-700 dark:text-rose-300' 
+                        : 'border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-[#00796b] text-slate-900 dark:text-white'
+                    }`}
+                  />
+                </div>
+
+                {/* Validation Feedback */}
+                {isOverpaying ? (
+                  <p className="text-xs font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-1 mt-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    Payment amount cannot be greater than pending Khata balance ({formatCurrency(dueAmount)}).
+                  </p>
+                ) : !khataForm.amount || amountNum <= 0 ? (
+                  <p className="text-[11px] font-medium text-slate-400 dark:text-slate-500">
+                    Enter the exact amount collected from the customer.
+                  </p>
+                ) : null}
+              </div>
+
+              {/* 3. Payment Method Selector */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                  Payment Method
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { id: 'CASH', label: 'CASH', icon: Banknote },
+                    { id: 'UPI', label: 'UPI / GPay', icon: Smartphone },
+                    { id: 'CARD', label: 'Card', icon: CreditCard },
+                    { id: 'NET_BANKING', label: 'Net Bank', icon: Building2 },
+                  ].map((method) => {
+                    const MethodIcon = method.icon;
+                    const isSelected = khataForm.payment_method === method.id;
+                    return (
+                      <button
+                        key={method.id}
+                        type="button"
+                        onClick={() => setKhataForm({ ...khataForm, payment_method: method.id })}
+                        className={`p-2.5 rounded-xl border text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          isSelected 
+                            ? 'bg-teal-50 dark:bg-teal-950/60 border-[#00796b] text-[#00796b] dark:text-teal-300 shadow-2xs ring-1 ring-[#00796b]' 
+                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300'
+                        }`}
+                      >
+                        <MethodIcon className={`w-4 h-4 ${isSelected ? 'text-[#00796b] dark:text-teal-300' : 'text-slate-400'}`} />
+                        <span>{method.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-            )}
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Payment Note / Reference
-              </label>
-              <input
-                type="text"
-                value={khataForm.notes}
-                onChange={(e) => setKhataForm({ ...khataForm, notes: e.target.value })}
-                placeholder="Transaction reference or receipt note"
-                className="w-full px-3.5 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[#00796b] outline-hidden"
-              />
-            </div>
+              {/* 4. Quick Cash Denomination Counter */}
+              {khataForm.payment_method === 'CASH' && (
+                <div className="p-3.5 bg-slate-50/80 dark:bg-slate-800/50 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
+                    <span className="flex items-center gap-1.5">
+                      <Calculator className="w-4 h-4 text-[#00796b] dark:text-teal-400" />
+                      Quick Cash Counter
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-slate-400 font-medium">Cash Total:</span>
+                      <span className="text-xs font-bold text-[#00796b] dark:text-teal-300 font-mono">
+                        {formatCurrency(cashCountTotal)}
+                      </span>
+                    </div>
+                  </div>
 
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
-              <Button type="button" variant="outline" onClick={() => setIsKhataOpen(false)} disabled={submittingKhata}>
-                Cancel
-              </Button>
-              <Button type="submit" variant="warning" disabled={submittingKhata} className="min-w-[120px] font-bold">
-                {submittingKhata ? 'Recording...' : 'Confirm Payment'}
-              </Button>
-            </div>
-          </form>
-        </Modal>
-      )}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[500, 200, 100, 50, 20, 10, 5, 1].map((denom) => {
+                      const count = khataNoteCounts[denom] || '';
+                      return (
+                        <div key={denom} className="p-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs flex items-center justify-between gap-1">
+                          <span className="text-xs font-black text-slate-700 dark:text-slate-200 font-mono w-10 shrink-0">
+                            ₹{denom}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => updateDenomCount(denom, -1)}
+                              className="w-5 h-5 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-200 flex items-center justify-center text-xs font-bold cursor-pointer transition-colors"
+                              title="Decrease"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              value={count}
+                              onChange={(e) => handleKhataNoteChange(denom, e.target.value)}
+                              placeholder="0"
+                              className="w-8 text-center py-0.5 text-xs font-mono font-bold bg-transparent outline-hidden"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => updateDenomCount(denom, 1)}
+                              className="w-5 h-5 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-200 flex items-center justify-center text-xs font-bold cursor-pointer transition-colors"
+                              title="Increase"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* 5. Payment Note / Reference */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                    Payment Note / Reference
+                  </label>
+                  <span className="text-[11px] text-slate-400 font-medium">Optional</span>
+                </div>
+                <input
+                  type="text"
+                  value={khataForm.notes}
+                  onChange={(e) => setKhataForm({ ...khataForm, notes: e.target.value })}
+                  placeholder="e.g., Transaction reference, receipt note, or notes breakdown"
+                  className="w-full px-3.5 py-2.5 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[#00796b] outline-hidden transition-all text-slate-800 dark:text-slate-100"
+                />
+              </div>
+
+              {/* 6. Live Payment Summary */}
+              <div className="p-3.5 bg-slate-50/90 dark:bg-slate-800/40 rounded-2xl border border-slate-200/80 dark:border-slate-800 text-xs space-y-2">
+                <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                  Payment Summary
+                </span>
+                <div className="space-y-1.5 font-medium pt-0.5">
+                  <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                    <span>Pending Khata Balance</span>
+                    <span className="font-mono font-bold">{formatCurrency(dueAmount)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-slate-900 dark:text-white font-bold">
+                    <span>Payment Amount</span>
+                    <span className="font-mono text-[#00796b] dark:text-teal-400">{formatCurrency(amountNum)}</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/70 dark:border-slate-700 font-bold text-slate-800 dark:text-slate-100">
+                    <span>Remaining Khata Balance</span>
+                    <span className={`font-mono text-sm ${remainingBalance > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                      {formatCurrency(remainingBalance)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+            </form>
+          </Modal>
+        );
+      })()}
 
       {/* 👁️ View Customer Profile & Purchase History Modal */}
       {selectedCustomer && (
         <Modal
           isOpen={Boolean(selectedCustomer)}
           onClose={() => setSelectedCustomer(null)}
-          title={`Customer Profile & History: ${selectedCustomer.name}`}
-          size="lg"
-        >
-          <div className="space-y-5 font-sans text-slate-800 dark:text-slate-100">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="p-3.5 bg-teal-50 dark:bg-slate-800/80 rounded-2xl border border-teal-200/70 dark:border-slate-700">
-                <span className="text-[11px] font-bold text-[#00796b] dark:text-[#80cbc4] uppercase block">Total Spent</span>
-                <span className="text-lg font-black text-slate-900 dark:text-white">
-                  {formatCurrency(selectedCustomer.total_spent)}
+          maxWidth="max-w-3xl"
+          title={
+            <span className="flex items-center gap-3 text-left">
+              <span className="w-11 h-11 rounded-2xl bg-teal-600 text-white flex items-center justify-center font-bold text-base shadow-md shadow-teal-600/20 shrink-0 tracking-wider">
+                {(() => {
+                  const parts = (selectedCustomer.name || '').trim().split(/\s+/);
+                  if (parts.length >= 2) {
+                    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+                  }
+                  return (selectedCustomer.name || 'CU').slice(0, 2).toUpperCase();
+                })()}
+              </span>
+              <span className="block min-w-0">
+                <span className="flex items-center gap-2 flex-wrap">
+                  <span className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight truncate">
+                    {selectedCustomer.name}
+                  </span>
+                  <span className="text-xs font-mono font-medium px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700">
+                    #ID-{selectedCustomer.id}
+                  </span>
                 </span>
-              </div>
-
-              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700">
-                <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase block">Total Orders</span>
-                <span className="text-lg font-black text-slate-900 dark:text-slate-100">
-                  {selectedCustomer.total_orders || historyData.total_orders || 0}
+                <span className="flex items-center gap-2 mt-1">
+                  <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full ${
+                    selectedCustomer.status === 'BLOCKED' 
+                      ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60' 
+                      : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60'
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${selectedCustomer.status === 'BLOCKED' ? 'bg-rose-500' : 'bg-emerald-500 animate-pulse'}`} />
+                    {selectedCustomer.status === 'BLOCKED' ? 'Blocked Customer' : 'Active Customer'}
+                  </span>
                 </span>
-              </div>
-
-              <div className="p-3.5 bg-amber-50 dark:bg-slate-800/80 rounded-2xl border border-amber-200/70 dark:border-slate-700">
-                <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300 uppercase block">Pending Khata</span>
-                <span className="text-lg font-black text-amber-700 dark:text-amber-400">
-                  {formatCurrency(selectedCustomer.outstanding_balance || selectedCustomer.pending_payments || 0)}
-                </span>
-              </div>
-            </div>
-
-            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs space-y-1">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <span className="font-bold">Phone: <span className="font-mono">{selectedCustomer.phone}</span></span>
-                {selectedCustomer.email && <span>Email: {selectedCustomer.email}</span>}
-                <span>Status: <Badge variant={selectedCustomer.status === 'BLOCKED' ? 'danger' : 'success'} size="xs">{selectedCustomer.status}</Badge></span>
-              </div>
-              {selectedCustomer.address && (
-                <div className="text-slate-500">Address: {selectedCustomer.address}, {selectedCustomer.city || 'Mumbai'} {selectedCustomer.pincode}</div>
-              )}
-            </div>
-
-            <div>
-              <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2.5 flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-[#00796b]" />
-                Recent Purchase Orders & Bills
-              </h4>
-
-              {loadingHistory ? (
-                <div className="py-8 text-center text-xs text-slate-500">Loading order history...</div>
-              ) : historyData.orders.length === 0 ? (
-                <div className="py-8 text-center text-xs text-slate-500 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-dashed border-slate-200">
-                  No previous orders found for this customer.
-                </div>
-              ) : (
-                <div className="overflow-x-auto max-h-64 rounded-xl border border-slate-200 dark:border-slate-700">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-100 dark:bg-slate-800 text-[11px] font-bold text-slate-500 uppercase sticky top-0">
-                      <tr>
-                        <th className="py-2.5 px-3">Order #</th>
-                        <th className="py-2.5 px-3">Date</th>
-                        <th className="py-2.5 px-3">Amount</th>
-                        <th className="py-2.5 px-3">Method</th>
-                        <th className="py-2.5 px-3">Payment</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-                      {historyData.orders.map((o) => (
-                        <tr key={o.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
-                          <td className="py-2.5 px-3 font-bold text-[#00796b] dark:text-[#80cbc4] font-mono">#{o.order_number || o.id}</td>
-                          <td className="py-2.5 px-3 text-slate-500">{o.created_at ? new Date(o.created_at).toLocaleDateString('en-IN') : '—'}</td>
-                          <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white">{formatCurrency(o.total_amount)}</td>
-                          <td className="py-2.5 px-3 text-slate-600">{o.payment_method || 'CASH'}</td>
-                          <td className="py-2.5 px-3">
-                            <Badge variant={o.payment_status === 'PAID' ? 'success' : 'warning'} size="xs">
-                              {o.payment_status || 'PENDING'}
-                            </Badge>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-end pt-3 border-t border-slate-200 dark:border-slate-800">
-              <Button variant="outline" onClick={() => setSelectedCustomer(null)}>
+              </span>
+            </span>
+          }
+          footer={
+            <div className="w-full flex items-center justify-end">
+              <Button 
+                variant="outline" 
+                onClick={() => setSelectedCustomer(null)}
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 transition-all cursor-pointer text-sm shadow-xs"
+              >
                 Close Profile
               </Button>
             </div>
+          }
+        >
+          <div className="space-y-6 font-sans text-slate-800 dark:text-slate-100 pb-2">
+            
+            {/* 1. Summary Cards (3-Card Grid) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+              {/* Total Spent Card */}
+              <div className="p-4 bg-gradient-to-br from-teal-50/80 to-emerald-50/40 dark:from-slate-800/90 dark:to-teal-950/30 rounded-2xl border border-teal-200/80 dark:border-teal-800/50 shadow-xs relative overflow-hidden group">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-teal-800 dark:text-teal-300 uppercase tracking-wider">
+                    Total Spent
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-teal-100 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300 flex items-center justify-center shrink-0">
+                    <Wallet className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                  {formatCurrency(selectedCustomer.total_spent)}
+                </div>
+                <p className="text-[11px] font-medium text-teal-700/80 dark:text-teal-400 mt-1">
+                  Lifetime spending
+                </p>
+              </div>
+
+              {/* Total Orders Card */}
+              <div className="p-4 bg-gradient-to-br from-blue-50/80 to-indigo-50/40 dark:from-slate-800/90 dark:to-blue-950/30 rounded-2xl border border-blue-200/80 dark:border-blue-800/50 shadow-xs relative overflow-hidden group">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-blue-800 dark:text-blue-300 uppercase tracking-wider">
+                    Total Orders
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 flex items-center justify-center shrink-0">
+                    <ShoppingBag className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                  {selectedCustomer.total_orders || historyData.total_orders || 0}
+                </div>
+                <p className="text-[11px] font-medium text-blue-700/80 dark:text-blue-400 mt-1">
+                  Orders placed
+                </p>
+              </div>
+
+              {/* Pending Khata Card */}
+              <div className="p-4 bg-gradient-to-br from-amber-50/80 to-orange-50/40 dark:from-slate-800/90 dark:to-amber-950/30 rounded-2xl border border-amber-200/80 dark:border-amber-800/50 shadow-xs relative overflow-hidden group">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-amber-800 dark:text-amber-300 uppercase tracking-wider">
+                    Pending Khata
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+                    <CreditCard className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-amber-800 dark:text-amber-300 tracking-tight">
+                  {formatCurrency(selectedCustomer.outstanding_balance || selectedCustomer.pending_payments || 0)}
+                </div>
+                <p className="text-[11px] font-medium text-amber-700/80 dark:text-amber-400 mt-1">
+                  Outstanding amount
+                </p>
+              </div>
+            </div>
+
+            {/* 2. Customer Information Section */}
+            <div className="bg-slate-50/80 dark:bg-slate-800/40 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4.5 space-y-3">
+              <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                <Users className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                Customer Information
+              </h4>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                {/* Phone */}
+                <div className="flex items-start gap-3 bg-white dark:bg-slate-800/80 p-3 rounded-xl border border-slate-100 dark:border-slate-700/60 shadow-2xs">
+                  <div className="p-2 rounded-lg bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5">
+                    <Phone className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase block">Phone Number</span>
+                    <span className="text-sm font-bold text-slate-800 dark:text-slate-100 font-mono tracking-tight">
+                      {selectedCustomer.phone || '-'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Email */}
+                <div className="flex items-start gap-3 bg-white dark:bg-slate-800/80 p-3 rounded-xl border border-slate-100 dark:border-slate-700/60 shadow-2xs">
+                  <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5">
+                    <Mail className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase block">Email Address</span>
+                    <span className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate block">
+                      {selectedCustomer.email || 'Not available'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Status */}
+                <div className="flex items-start gap-3 bg-white dark:bg-slate-800/80 p-3 rounded-xl border border-slate-100 dark:border-slate-700/60 shadow-2xs">
+                  <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5">
+                    <UserCheck className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase block">Account Status</span>
+                    <div className="mt-0.5">
+                      <Badge variant={selectedCustomer.status === 'BLOCKED' ? 'danger' : 'success'} size="xs">
+                        {selectedCustomer.status || 'ACTIVE'}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Address */}
+                <div className="flex items-start gap-3 bg-white dark:bg-slate-800/80 p-3 rounded-xl border border-slate-100 dark:border-slate-700/60 shadow-2xs">
+                  <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
+                    <MapPin className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase block">Delivery Address</span>
+                    <span className="text-xs font-medium text-slate-700 dark:text-slate-200 leading-snug block">
+                      {[selectedCustomer.address, selectedCustomer.city, selectedCustomer.pincode].filter(Boolean).join(', ') || 'Not available'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Recent Orders & Bills Section */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                  <Receipt className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                  Recent Orders & Bills
+                </h4>
+                {historyData.orders && historyData.orders.length > 0 && (
+                  <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500">
+                    Showing {historyData.orders.length} {historyData.orders.length === 1 ? 'order' : 'orders'}
+                  </span>
+                )}
+              </div>
+
+              {loadingHistory ? (
+                <div className="py-12 text-center bg-slate-50/50 dark:bg-slate-800/20 rounded-2xl border border-slate-200/60 dark:border-slate-800">
+                  <div className="inline-flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+                    <RefreshCw className="w-4 h-4 animate-spin text-teal-600" />
+                    Loading order history...
+                  </div>
+                </div>
+              ) : !historyData.orders || historyData.orders.length === 0 ? (
+                /* Empty State */
+                <div className="py-10 px-4 text-center bg-slate-50/60 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center">
+                  <div className="w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 flex items-center justify-center mb-3 shadow-xs">
+                    <ShoppingBag className="w-6 h-6" />
+                  </div>
+                  <h5 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-1">
+                    No orders yet
+                  </h5>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs leading-relaxed">
+                    This customer hasn't placed any orders yet. Orders will appear here after the customer completes a purchase.
+                  </p>
+                </div>
+              ) : (
+                /* Orders List */
+                <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                  {historyData.orders.map((o) => (
+                    <div 
+                      key={o.id}
+                      className="p-3.5 bg-white dark:bg-slate-800/90 rounded-xl border border-slate-200/80 dark:border-slate-700/80 hover:border-teal-300 dark:hover:border-teal-700/70 transition-all shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-bold font-mono text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/60 px-2 py-0.5 rounded-md border border-teal-200/60 dark:border-teal-800/50">
+                            #ORD-{o.order_number || o.id}
+                          </span>
+                          <span className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {o.created_at ? new Date(o.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                          </span>
+                        </div>
+                        <div className="text-xs font-medium text-slate-600 dark:text-slate-300 flex items-center gap-3 pt-0.5">
+                          <span>{o.items_count ? `${o.items_count} Items` : 'Order Summary'}</span>
+                          <span className="text-slate-300 dark:text-slate-600">•</span>
+                          <span className="text-slate-500 dark:text-slate-400">Payment: <strong className="text-slate-700 dark:text-slate-200 font-semibold">{o.payment_method || 'Cash on Delivery'}</strong></span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
+                        <div className="text-left sm:text-right">
+                          <div className="text-sm font-black text-slate-900 dark:text-white">
+                            {formatCurrency(o.total_amount)}
+                          </div>
+                          <div className="mt-0.5">
+                            <Badge 
+                              variant={
+                                o.payment_status === 'PAID' || o.payment_status === 'COMPLETED' ? 'success' : 
+                                o.payment_status === 'CANCELLED' ? 'danger' : 'warning'
+                              } 
+                              size="xs"
+                            >
+                              {o.payment_status || 'COMPLETED'}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
           </div>
         </Modal>
       )}

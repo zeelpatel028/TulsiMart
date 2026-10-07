@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Minus } from 'lucide-react';
+import { Plus, Minus, Package } from 'lucide-react';
 
 export const ProductCard = ({
   product,
@@ -29,12 +29,18 @@ export const ProductCard = ({
           className="relative aspect-square w-full rounded-lg bg-slate-50 dark:bg-slate-800 mb-2 overflow-hidden border border-slate-100 dark:border-slate-700 flex items-center justify-center cursor-pointer"
           onClick={() => onOpenDetails && onOpenDetails(product)}
         >
-          <img
-            src={product.image || '/logo.png'}
-            alt={product.name}
-            className="w-full h-full object-cover p-1"
-            onError={(e) => { e.target.src = '/logo.png'; }}
-          />
+          {product.image && !product.image.includes('logo.png') ? (
+            <img
+              src={product.image}
+              alt={product.name}
+              className="w-full h-full object-cover p-1"
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-[#00796b] dark:text-teal-400 bg-teal-50/70 dark:bg-slate-800">
+              <Package className="w-8 h-8 opacity-60" />
+            </div>
+          )}
 
           {Number(discountPercent) > 0 && (
             <span className="absolute top-1.5 left-1.5 bg-teal-700 text-white font-bold text-[10px] px-1.5 py-0.5 rounded">

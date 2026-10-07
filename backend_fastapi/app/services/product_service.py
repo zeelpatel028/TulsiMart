@@ -42,32 +42,52 @@ class ProductService:
         return product
 
     def get_next_product_id(self) -> str:
-        max_id = self.repo.get_max_product_id()
-        next_id = max_id + 1
-        return f"PRD-{next_id:04d}"
+        count = self.repo.get_max_product_id() + 1
+        while True:
+            candidate = f"PRD-{count:04d}"
+            existing = self.repo.get_by_sku_or_barcode(candidate)
+            if not existing:
+                return candidate
+            count += 1
 
     def create_product(self, data: ProductCreate) -> Product:
-        existing = self.repo.get_by_sku_or_barcode(data.sku)
-        if existing:
-            raise HTTPException(status_code=400, detail=f"Product with SKU '{data.sku}' already exists")
+        sku = data.sku or self.get_next_product_id()
+        product_code = data.product_code or sku
 
-        product_code = data.product_code or self.get_next_product_id()
+        existing_sku = self.repo.get_by_sku_or_barcode(sku)
+        if existing_sku:
+            # If auto-generated SKU somehow collided, auto-assign next unique ID
+            sku = self.get_next_product_id()
+            product_code = sku
+
+        if data.barcode and data.barcode != product_code:
+            existing_barcode = self.repo.get_by_sku_or_barcode(data.barcode)
+            if existing_barcode:
+                if not existing_sku or (existing_sku and existing_barcode.id != existing_sku.id):
+                    raise HTTPException(status_code=400, detail=f"Product with barcode '{data.barcode}' already exists")
 
         product = Product(
             product_code=product_code,
             name=data.name,
-            sku=data.sku,
+            sku=sku,
             barcode=data.barcode or product_code,
             category_id=data.category_id,
             brand_id=data.brand_id,
             unit_id=data.unit_id,
-            selling_unit_id=data.selling_unit_id,
             supplier_id=data.supplier_id,
+            purchase_gst_percent=data.purchase_gst_percent or 0.00,
+            purchase_non_tax_price=data.purchase_non_tax_price or 0.00,
+            purchase_tax_amount=data.purchase_tax_amount or 0.00,
+            purchase_final_price=data.purchase_final_price or 0.00,
+            selling_gst_percent=data.selling_gst_percent or 0.00,
+            selling_non_tax_price=data.selling_non_tax_price or 0.00,
+            selling_tax_amount=data.selling_tax_amount or 0.00,
+            selling_tax_price=data.selling_tax_price or 0.00,
             cost_price=data.cost_price,
             mrp=data.mrp,
             selling_price=data.selling_price,
             discount_percent=data.discount_percent,
-            gst_percent=data.gst_percent,
+            gst_percent=data.gst_percent or data.selling_gst_percent or 0.00,
             stock_quantity=data.stock_quantity,
             min_stock_alert=data.min_stock_alert,
             manufacturing_date=data.manufacturing_date,
