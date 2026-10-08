@@ -359,8 +359,8 @@ class AnalyticsService:
             }
             return {"summary": summary, "data": data}
 
-        # 2. GST Tax Report
-        elif rtype == "gst":
+        # 2. Bill GST Bill (Sales Bills GST)
+        elif rtype in ["gst", "sales_gst", "bill_gst"]:
             query = self.db.query(Order)
             if date_from:
                 try:
@@ -372,13 +372,17 @@ class AnalyticsService:
                     query = query.filter(Order.created_at <= datetime.fromisoformat(date_to + "T23:59:59"))
                 except Exception:
                     pass
+            if search:
+                pattern = f"%{search}%"
+                query = query.filter(or_(Order.invoice_number.ilike(pattern), Order.order_number.ilike(pattern), Order.customer_name.ilike(pattern)))
 
             orders = query.order_by(Order.created_at.desc()).all()
             data = [
                 {
-                    "invoice_number": o.invoice_number or o.order_number,
+                    "bill_invoice_number": o.invoice_number or o.order_number,
                     "date": o.created_at.strftime("%Y-%m-%d") if o.created_at else "",
                     "customer_name": o.customer_name or "Walk-in Customer",
+                    "payment_method": o.payment_method or "CASH",
                     "taxable_amount": float(o.subtotal),
                     "gst_tax_amount": float(o.tax_amount),
                     "total_amount": float(o.total_amount)
@@ -389,9 +393,10 @@ class AnalyticsService:
             gst_tot = sum(d["gst_tax_amount"] for d in data)
             grand_tot = sum(d["total_amount"] for d in data)
             summary = {
+                "total_bills": len(data),
                 "taxable_subtotal": round(taxable_tot, 2),
-                "total_gst_tax": round(gst_tot, 2),
-                "total_invoiced": round(grand_tot, 2)
+                "output_gst_tax": round(gst_tot, 2),
+                "total_billed_amount": round(grand_tot, 2)
             }
             return {"summary": summary, "data": data}
 
@@ -519,30 +524,310 @@ class AnalyticsService:
             }
             return {"summary": summary, "data": data}
 
-        # 7. Procurement & Purchase Orders
-        elif rtype == "purchase":
+        # 7. Purchase Order GST Report
+        elif rtype in ["purchase", "po_gst", "purchase_gst"]:
             from app.models.supplier import PurchaseOrder, Supplier
             query = self.db.query(PurchaseOrder).join(Supplier, PurchaseOrder.supplier_id == Supplier.id, isouter=True)
+            if date_from:
+                try:
+                    query = query.filter(PurchaseOrder.created_at >= datetime.fromisoformat(date_from))
+                except Exception:
+                    pass
+            if date_to:
+                try:
+                    query = query.filter(PurchaseOrder.created_at <= datetime.fromisoformat(date_to + "T23:59:59"))
+                except Exception:
+                    pass
             if search:
-                query = query.filter(PurchaseOrder.po_number.ilike(f"%{search}%"))
+                pattern = f"%{search}%"
+                query = query.filter(or_(PurchaseOrder.po_number.ilike(pattern), Supplier.name.ilike(pattern), Supplier.company_name.ilike(pattern)))
 
             pos = query.order_by(PurchaseOrder.created_at.desc()).all()
-            data = [
-                {
+            data = []
+            for po in pos:
+                tot = float(po.total_amount or 0)
+                taxable = round(tot / 1.18, 2)
+                gst_amt = round(tot - taxable, 2)
+                data.append({
                     "po_number": po.po_number,
-                    "supplier_name": po.supplier.name if po.supplier else "N/A",
-                    "order_date": po.created_at.strftime("%Y-%m-%d") if po.created_at else "",
-                    "status": po.status,
-                    "total_amount": float(po.total_amount)
-                }
-                for po in pos
-            ]
-            tot_po_val = sum(d["total_amount"] for d in data)
+                    "order_date": po.order_date.strftime("%Y-%m-%d") if po.order_date else (po.created_at.strftime("%Y-%m-%d") if po.created_at else ""),
+                    "supplier_name": (po.supplier.company_name or po.supplier.name) if po.supplier else "N/A",
+                    "supplier_gstin": po.supplier.gstin if po.supplier and po.supplier.gstin else "URP",
+                    "gst_mode": po.gst_mode or "EXCLUSIVE",
+                    "taxable_amount": taxable,
+                    "gst_tax_amount": gst_amt,
+                    "total_amount": tot,
+                    "status": po.status
+                })
+            tot_taxable = sum(d["taxable_amount"] for d in data)
+            tot_gst = sum(d["gst_tax_amount"] for d in data)
+            tot_val = sum(d["total_amount"] for d in data)
             summary = {
                 "total_purchase_orders": len(data),
-                "total_procurement_value": round(tot_po_val, 2)
+                "taxable_subtotal": round(tot_taxable, 2),
+                "input_gst_tax": round(tot_gst, 2),
+                "total_purchase_value": round(tot_val, 2)
             }
             return {"summary": summary, "data": data}
 
         # Default fallback to Sales Report
         return self.get_reports(report_type="sales", date_from=date_from, date_to=date_to, category=category, search=search)
+
+    def get_admin_dashboard_summary(self) -> Dict[str, Any]:
+        """
+        Returns super admin dashboard operational metrics:
+        products, categories, low stock, out of stock, expiring soon, suppliers,
+        purchase orders, inventory valuation, stock breakdown, and admin activity log.
+        EXCLUDES all customer billing / user order data.
+        """
+        today_date = date.today()
+        next_30_days = today_date + timedelta(days=30)
+
+        # 1. Product & Inventory Aggregates
+        prod_stats = (
+            self.db.query(
+                func.count(Product.id).label("total_products"),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (Product.stock_quantity <= Product.min_stock_alert, case((Product.stock_quantity > 0, 1), else_=0)),
+                            else_=0
+                        )
+                    ),
+                    0
+                ).label("low_stock"),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (Product.stock_quantity <= 0, 1),
+                            else_=0
+                        )
+                    ),
+                    0
+                ).label("out_of_stock"),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (Product.stock_quantity > Product.min_stock_alert, 1),
+                            else_=0
+                        )
+                    ),
+                    0
+                ).label("in_stock"),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (Product.expiry_date != None, case((Product.expiry_date <= next_30_days, 1), else_=0)),
+                            else_=0
+                        )
+                    ),
+                    0
+                ).label("expiring_soon"),
+                func.coalesce(
+                    func.sum(Product.cost_price * Product.stock_quantity),
+                    0
+                ).label("inventory_value")
+            )
+            .filter(Product.is_active == True)
+            .first()
+        )
+
+        total_products = int(prod_stats[0]) if prod_stats and prod_stats[0] else 0
+        low_stock_count = int(prod_stats[1]) if prod_stats and prod_stats[1] else 0
+        out_of_stock_count = int(prod_stats[2]) if prod_stats and prod_stats[2] else 0
+        in_stock_count = int(prod_stats[3]) if prod_stats and prod_stats[3] else 0
+        expiring_soon_count = int(prod_stats[4]) if prod_stats and prod_stats[4] else 0
+        inventory_value = float(prod_stats[5]) if prod_stats and prod_stats[5] else 0.0
+
+        # 2. Categories Aggregates
+        from app.models.product import Category
+        categories_count = self.db.query(func.count(Category.id)).filter(Category.is_active == True).scalar() or 0
+
+        cat_rows = (
+            self.db.query(
+                Category.id,
+                Category.name,
+                Category.icon,
+                func.count(Product.id).label("product_count")
+            )
+            .join(Product, Product.category_id == Category.id, isouter=True)
+            .filter(Category.is_active == True)
+            .group_by(Category.id, Category.name, Category.icon)
+            .all()
+        )
+        categories_summary = [
+            {
+                "id": row[0],
+                "name": row[1],
+                "icon": row[2] or "ShoppingBag",
+                "product_count": int(row[3])
+            }
+            for row in cat_rows
+        ]
+
+        # 3. Supplier Aggregates
+        from app.models.supplier import Supplier, PurchaseOrder
+        total_suppliers = self.db.query(func.count(Supplier.id)).scalar() or 0
+        active_suppliers = self.db.query(func.count(Supplier.id)).filter(Supplier.is_active == True).scalar() or 0
+        pending_suppliers = max(0, total_suppliers - active_suppliers)
+
+        supplier_rows = (
+            self.db.query(
+                Supplier.id,
+                Supplier.name,
+                Supplier.company_name,
+                Supplier.is_active,
+                func.count(func.distinct(Product.id)).label("products_count"),
+                func.count(func.distinct(PurchaseOrder.id)).label("po_count")
+            )
+            .join(Product, Product.supplier_id == Supplier.id, isouter=True)
+            .join(PurchaseOrder, PurchaseOrder.supplier_id == Supplier.id, isouter=True)
+            .group_by(Supplier.id, Supplier.name, Supplier.company_name, Supplier.is_active)
+            .limit(6)
+            .all()
+        )
+        suppliers_summary = [
+            {
+                "id": row[0],
+                "name": row[1],
+                "company_name": row[2] or row[1],
+                "status": "Active" if row[3] else "Pending",
+                "products_count": int(row[4]),
+                "po_count": int(row[5])
+            }
+            for row in supplier_rows
+        ]
+
+        # 4. Purchase Order Aggregates
+        po_stats = (
+            self.db.query(
+                func.count(PurchaseOrder.id).label("total_pos"),
+                func.coalesce(func.sum(case((PurchaseOrder.status.in_(["ORDERED", "PENDING", "NEW", "DRAFT"]), 1), else_=0)), 0).label("pending_pos"),
+                func.coalesce(func.sum(case((PurchaseOrder.status.in_(["PROCESSING", "SHIPPED", "PARTIAL"]), 1), else_=0)), 0).label("processing_pos"),
+                func.coalesce(func.sum(case((PurchaseOrder.status.in_(["RECEIVED", "DELIVERED", "COMPLETED"]), 1), else_=0)), 0).label("delivered_pos")
+            )
+            .first()
+        )
+
+        total_pos_count = int(po_stats[0]) if po_stats and po_stats[0] else 0
+        pending_pos_count = int(po_stats[1]) if po_stats and po_stats[1] else 0
+        processing_pos_count = int(po_stats[2]) if po_stats and po_stats[2] else 0
+        delivered_pos_count = int(po_stats[3]) if po_stats and po_stats[3] else 0
+
+        latest_pos_query = (
+            self.db.query(PurchaseOrder)
+            .join(Supplier, PurchaseOrder.supplier_id == Supplier.id, isouter=True)
+            .order_by(PurchaseOrder.id.desc())
+            .limit(6)
+            .all()
+        )
+        latest_purchase_orders = [
+            {
+                "id": po.id,
+                "po_number": po.po_number,
+                "supplier_name": po.supplier.name if po.supplier else "N/A",
+                "total_amount": float(po.total_amount or 0.0),
+                "status": po.status,
+                "order_date": str(po.order_date) if po.order_date else None,
+                "created_at": po.created_at.isoformat() if po.created_at else None
+            }
+            for po in latest_pos_query
+        ]
+
+        # 5. Low Stock Products
+        low_stock_query = (
+            self.db.query(Product)
+            .join(Category, Product.category_id == Category.id, isouter=True)
+            .filter(Product.is_active == True, Product.stock_quantity <= Product.min_stock_alert)
+            .order_by(Product.stock_quantity.asc())
+            .limit(8)
+            .all()
+        )
+        low_stock_products = [
+            {
+                "id": p.id,
+                "name": p.name,
+                "sku": p.sku,
+                "category_name": p.category.name if p.category else "General",
+                "stock_quantity": float(p.stock_quantity),
+                "min_stock_alert": float(p.min_stock_alert),
+                "status": "Critical" if p.stock_quantity <= 3 else ("Out of Stock" if p.stock_quantity <= 0 else "Low Stock")
+            }
+            for p in low_stock_query
+        ]
+
+        # 6. Top Products
+        top_products = []
+
+        # 7. Recent Admin Activity
+        activities = []
+        recent_prods = self.db.query(Product).order_by(Product.created_at.desc()).limit(5).all()
+        for p in recent_prods:
+            if p.created_at:
+                activities.append({
+                    "id": f"prod-{p.id}",
+                    "title": f'Product "{p.name}" added',
+                    "type": "Product Added",
+                    "timestamp": p.created_at.isoformat()
+                })
+
+        for po in latest_pos_query[:5]:
+            if po.created_at:
+                sup_name = po.supplier.name if po.supplier else ""
+                activities.append({
+                    "id": f"po-{po.id}",
+                    "title": f'Purchase Order {po.po_number} created' + (f' ({sup_name})' if sup_name else ''),
+                    "type": "Purchase Order Created",
+                    "timestamp": po.created_at.isoformat()
+                })
+
+        recent_sups = self.db.query(Supplier).order_by(Supplier.created_at.desc()).limit(5).all()
+        for s in recent_sups:
+            if s.created_at:
+                activities.append({
+                    "id": f"sup-{s.id}",
+                    "title": f'Supplier "{s.name}" added',
+                    "type": "Supplier Added",
+                    "timestamp": s.created_at.isoformat()
+                })
+
+        recent_cats = self.db.query(Category).order_by(Category.created_at.desc()).limit(5).all()
+        for c in recent_cats:
+            if c.created_at:
+                activities.append({
+                    "id": f"cat-{c.id}",
+                    "title": f'Category "{c.name}" added',
+                    "type": "Category Added",
+                    "timestamp": c.created_at.isoformat()
+                })
+
+        activities.sort(key=lambda x: x["timestamp"], reverse=True)
+        recent_admin_activity = activities[:10]
+
+        return {
+            "products_count": total_products,
+            "categories_count": categories_count,
+            "low_stock_count": low_stock_count,
+            "out_of_stock_count": out_of_stock_count,
+            "expiring_soon_count": expiring_soon_count,
+            "total_suppliers": total_suppliers,
+            "active_suppliers": active_suppliers,
+            "pending_suppliers": pending_suppliers,
+            "total_pos_count": total_pos_count,
+            "pending_pos_count": pending_pos_count,
+            "processing_pos_count": processing_pos_count,
+            "delivered_pos_count": delivered_pos_count,
+            "inventory_value": inventory_value,
+            "stock_overview": {
+                "in_stock": in_stock_count,
+                "low_stock": low_stock_count,
+                "out_of_stock": out_of_stock_count
+            },
+            "low_stock_products": low_stock_products,
+            "latest_purchase_orders": latest_purchase_orders,
+            "suppliers_summary": suppliers_summary,
+            "categories_summary": categories_summary,
+            "top_products": top_products,
+            "recent_admin_activity": recent_admin_activity
+        }
+

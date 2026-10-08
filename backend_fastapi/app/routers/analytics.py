@@ -15,6 +15,14 @@ def get_dashboard_summary(db: Session = Depends(get_db)):
     return success_response(data=summary, message="Dashboard summary fetched")
 
 
+@router.get("/analytics/admin-dashboard/")
+def get_admin_dashboard_summary(db: Session = Depends(get_db)):
+    service = AnalyticsService(db)
+    summary = service.get_admin_dashboard_summary()
+    return success_response(data=summary, message="Super Admin dashboard summary fetched")
+
+
+
 @router.get("/analytics/sales-trends/")
 def get_sales_trends(
     days: Optional[int] = Query(None, ge=1, le=365),

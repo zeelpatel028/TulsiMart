@@ -130,13 +130,20 @@ def toggle_account_otp(
 @router.get("/core/staff/")
 def list_staff(
     page: int = Query(1, ge=1),
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(50, ge=1, le=500),
+    search: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     current_user: LoginAccount = Depends(get_current_user)
 ):
     service = UserService(db)
-    staff_list, total = service.list_staff(page=page, limit=limit)
-    data = [StaffResponse.model_validate(s).model_dump() for s in staff_list]
+    staff_list, total = service.list_staff(page=page, limit=limit, search=search)
+    data = []
+    for s in staff_list:
+        res = StaffResponse.model_validate(s).model_dump()
+        res["first_name"] = s.name
+        res["username"] = s.name
+        res["is_staff_active"] = s.is_active
+        data.append(res)
     pagination = get_pagination_meta(total, page, limit)
     return success_response(data=data, pagination=pagination, message="Staff list fetched")
 
@@ -145,11 +152,15 @@ def list_staff(
 def create_staff(
     data: StaffCreate,
     db: Session = Depends(get_db),
-    current_user: LoginAccount = Depends(require_admin)
+    current_user: LoginAccount = Depends(get_current_user)
 ):
     service = UserService(db)
     staff = service.create_staff(data)
-    return success_response(data=StaffResponse.model_validate(staff).model_dump(), message="Staff created", status_code=201)
+    res = StaffResponse.model_validate(staff).model_dump()
+    res["first_name"] = staff.name
+    res["username"] = staff.name
+    res["is_staff_active"] = staff.is_active
+    return success_response(data=res, message="Staff created", status_code=201)
 
 
 @router.put("/core/staff/{staff_id}/")
@@ -157,18 +168,22 @@ def update_staff(
     staff_id: int,
     data: StaffUpdate,
     db: Session = Depends(get_db),
-    current_user: LoginAccount = Depends(require_admin)
+    current_user: LoginAccount = Depends(get_current_user)
 ):
     service = UserService(db)
     staff = service.update_staff(staff_id, data)
-    return success_response(data=StaffResponse.model_validate(staff).model_dump(), message="Staff updated")
+    res = StaffResponse.model_validate(staff).model_dump()
+    res["first_name"] = staff.name
+    res["username"] = staff.name
+    res["is_staff_active"] = staff.is_active
+    return success_response(data=res, message="Staff updated")
 
 
 @router.delete("/core/staff/{staff_id}/")
 def delete_staff(
     staff_id: int,
     db: Session = Depends(get_db),
-    current_user: LoginAccount = Depends(require_admin)
+    current_user: LoginAccount = Depends(get_current_user)
 ):
     service = UserService(db)
     service.delete_staff(staff_id)
@@ -179,11 +194,15 @@ def delete_staff(
 def toggle_staff_status(
     staff_id: int,
     db: Session = Depends(get_db),
-    current_user: LoginAccount = Depends(require_admin)
+    current_user: LoginAccount = Depends(get_current_user)
 ):
     service = UserService(db)
     staff = service.toggle_staff_status(staff_id)
-    return success_response(data=StaffResponse.model_validate(staff).model_dump(), message="Staff status toggled")
+    res = StaffResponse.model_validate(staff).model_dump()
+    res["first_name"] = staff.name
+    res["username"] = staff.name
+    res["is_staff_active"] = staff.is_active
+    return success_response(data=res, message="Staff status toggled")
 
 
 @router.post("/core/staff/{staff_id}/update_attendance/")
@@ -198,8 +217,13 @@ def update_staff_attendance(
     if not staff:
         return error_response(message="Staff not found", status_code=404)
     staff.attendance_data = payload.get("attendance_data", {})
-    db.flush()
-    return success_response(data=StaffResponse.model_validate(staff).model_dump(), message="Attendance updated")
+    db.commit()
+    db.refresh(staff)
+    res = StaffResponse.model_validate(staff).model_dump()
+    res["first_name"] = staff.name
+    res["username"] = staff.name
+    res["is_staff_active"] = staff.is_active
+    return success_response(data=res, message="Attendance updated")
 
 
 # --- LOGS ---
@@ -209,7 +233,7 @@ def list_activity_logs(
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
-    current_user: LoginAccount = Depends(require_admin)
+    current_user: LoginAccount = Depends(get_current_user)
 ):
     repo = StoreRepository(db)
     logs, total = repo.list_activity_logs(page=page, limit=limit)

@@ -1,6 +1,6 @@
 from datetime import datetime, date
-from typing import Optional, List
-from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator
+from typing import Optional, List, Any
+from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator, model_validator
 
 
 class SupplierCreate(BaseModel):
@@ -76,6 +76,7 @@ class SupplierResponse(BaseModel):
 
 class PurchaseOrderItemCreate(BaseModel):
     product_id: Optional[int] = None
+    product: Optional[int] = None
     product_name: str
     unit_cost: float
     quantity: int = 1
@@ -83,16 +84,36 @@ class PurchaseOrderItemCreate(BaseModel):
     tax_rate: float = 0.00
     subtotal: float
 
+    @model_validator(mode="before")
+    @classmethod
+    def resolve_product_id(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            if not data.get("product_id") and data.get("product"):
+                data["product_id"] = data.get("product")
+        return data
+
 
 class PurchaseOrderCreate(BaseModel):
-    supplier_id: int
-    order_date: date
+    po_number: Optional[str] = None
+    supplier_id: Optional[int] = None
+    supplier: Optional[int] = None
+    order_date: Optional[date] = Field(default_factory=date.today)
     expected_delivery: Optional[date] = None
     status: str = "ORDERED"
     gst_mode: Optional[str] = "EXCLUSIVE"
     tax_type: Optional[str] = "INTRA_STATE"
     notes: Optional[str] = None
     items: List[PurchaseOrderItemCreate] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def resolve_fields(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            if not data.get("supplier_id") and data.get("supplier"):
+                data["supplier_id"] = data.get("supplier")
+            if not data.get("order_date"):
+                data["order_date"] = date.today().isoformat()
+        return data
 
 
 class PurchaseOrderResponse(BaseModel):
@@ -115,13 +136,27 @@ class PurchaseOrderResponse(BaseModel):
 
 
 class SupplierPaymentCreate(BaseModel):
-    supplier_id: int
+    supplier_id: Optional[int] = None
+    supplier: Optional[int] = None
     purchase_order_id: Optional[int] = None
+    purchase_order: Optional[int] = None
     amount: float
     payment_method: str = "BANK_TRANSFER"
     reference_number: Optional[str] = None
-    payment_date: date
+    payment_date: Optional[date] = Field(default_factory=date.today)
     notes: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def resolve_payment_fields(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            if not data.get("supplier_id") and data.get("supplier"):
+                data["supplier_id"] = data.get("supplier")
+            if not data.get("purchase_order_id") and data.get("purchase_order"):
+                data["purchase_order_id"] = data.get("purchase_order")
+            if not data.get("payment_date"):
+                data["payment_date"] = date.today().isoformat()
+        return data
 
 
 class SupplierPaymentResponse(BaseModel):
@@ -136,3 +171,4 @@ class SupplierPaymentResponse(BaseModel):
     payment_date: date
     notes: Optional[str] = None
     created_at: datetime
+

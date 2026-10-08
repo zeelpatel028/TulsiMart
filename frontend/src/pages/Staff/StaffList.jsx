@@ -28,7 +28,10 @@ import {
   FileText,
   MessageSquare,
   Tag,
-  ArrowLeft
+  ArrowLeft,
+  Eye,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 import { authApi, expensesApi, gullaApi } from '../../api';
 import { extractList } from '../../utils/apiHelpers';
@@ -89,12 +92,17 @@ export const StaffList = () => {
   const [advanceAmount, setAdvanceAmount] = useState('');
   const [advanceNote, setAdvanceNote] = useState('');
 
-  // Leave / Raja Date Modal State
+  // Leave Modal State
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   const [leaveStaff, setLeaveStaff] = useState(null);
-  const [leaveDateInput, setLeaveDateInput] = useState(new Date().toISOString().split('T')[0]);
-  const [leaveType, setLeaveType] = useState('FULL');
-  const [leaveNote, setLeaveNote] = useState('');
+  const [leaveTab, setLeaveTab] = useState('add'); // 'add' or 'view'
+  const [leaveForm, setLeaveForm] = useState({
+    title: '',
+    reason: '',
+    start_date: new Date().toISOString().split('T')[0],
+    end_date: new Date().toISOString().split('T')[0],
+    num_days: 1,
+  });
 
   // View All Raja Dates Modal State
   const [isRajaViewModalOpen, setIsRajaViewModalOpen] = useState(false);
@@ -120,6 +128,15 @@ export const StaffList = () => {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyStaff, setHistoryStaff] = useState(null);
   const [salaryHistory, setSalaryHistory] = useState([]);
+
+  // View Staff All Detail Modal State
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [detailStaff, setDetailStaff] = useState(null);
+
+  const handleOpenDetailModal = (staff) => {
+    setDetailStaff(staff);
+    setIsDetailModalOpen(true);
+  };
 
   // Gulla-style Denomination Currency Note Tally State
   const [denominationCounts, setDenominationCounts] = useState({
@@ -324,69 +341,7 @@ export const StaffList = () => {
     showToast('Staff note deleted!', 'info');
   };
 
-  // Log Raja / Leave Date
-  const handleOpenLeaveModal = (staff) => {
-    setLeaveStaff(staff);
-    setLeaveDateInput(new Date().toISOString().split('T')[0]);
-    setLeaveType('FULL');
-    setLeaveNote('');
-    setIsLeaveModalOpen(true);
-  };
 
-  const handleAddLeaveSubmit = (e) => {
-    e.preventDefault();
-    if (!leaveStaff || !leaveDateInput) return;
-    const att = getStaffAttendance(leaveStaff.id);
-    const existing = att.leaveDates || [];
-
-    if (existing.some(l => l.date === leaveDateInput)) {
-      showToast('This leave date is already logged!', 'warning');
-      return;
-    }
-
-    const newLeave = {
-      id: Date.now(),
-      date: leaveDateInput,
-      type: leaveType,
-      note: leaveNote || (leaveType === 'FULL' ? 'Full Day Leave' : 'Half Day Leave')
-    };
-
-    const updatedLeaves = [newLeave, ...existing];
-    const deduction = leaveType === 'FULL' ? 1 : 0.5;
-    const newPresentDays = Math.max(0, att.presentDays - deduction);
-
-    const updatedRecord = {
-      ...att,
-      presentDays: newPresentDays,
-      absentDays: leaveType === 'FULL' ? att.absentDays + 1 : att.absentDays,
-      halfDays: leaveType === 'HALF' ? att.halfDays + 1 : att.halfDays,
-      leaveDates: updatedLeaves
-    };
-
-    updateAndPersistStaffAttendance(leaveStaff.id, updatedRecord);
-
-    showToast(`Raja Date (${leaveDateInput}) logged for ${leaveStaff.first_name || leaveStaff.username}!`, 'success');
-    setIsLeaveModalOpen(false);
-  };
-
-  const handleRemoveLeave = (staffId, leaveId) => {
-    const att = getStaffAttendance(staffId);
-    const target = (att.leaveDates || []).find(l => l.id === leaveId);
-    if (!target) return;
-
-    const updatedLeaves = (att.leaveDates || []).filter(l => l.id !== leaveId);
-    const restoration = target.type === 'FULL' ? 1 : 0.5;
-
-    const updatedRecord = {
-      ...att,
-      presentDays: att.presentDays + restoration,
-      leaveDates: updatedLeaves
-    };
-
-    updateAndPersistStaffAttendance(staffId, updatedRecord);
-
-    showToast('Leave date removed and work day restored!', 'info');
-  };
 
   // Open Create Staff Modal
   const handleOpenCreate = () => {
@@ -746,6 +701,96 @@ export const StaffList = () => {
     }
   };
 
+  // Leave Modal Handlers
+  const handleOpenLeaveModal = (staff, initialTab = 'add') => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    setLeaveStaff(staff);
+    setLeaveTab(initialTab);
+    setLeaveForm({
+      title: '',
+      reason: '',
+      start_date: todayStr,
+      end_date: todayStr,
+      num_days: 1,
+    });
+    setIsLeaveModalOpen(true);
+  };
+
+  const handleLeaveDateChange = (field, value) => {
+    const startStr = field === 'start_date' ? value : leaveForm.start_date;
+    const endStr = field === 'end_date' ? value : leaveForm.end_date;
+    
+    let days = 1;
+    if (startStr && endStr && endStr >= startStr) {
+      const d1 = new Date(startStr);
+      const d2 = new Date(endStr);
+      const diffTime = Math.abs(d2.getTime() - d1.getTime());
+      days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    }
+    
+    setLeaveForm(prev => ({
+      ...prev,
+      [field]: value,
+      num_days: days
+    }));
+  };
+
+  const handleAddLeaveSubmit = (e) => {
+    e.preventDefault();
+    if (!leaveStaff) return;
+    if (!leaveForm.title.trim()) {
+      showToast('Please enter a leave title', 'warning');
+      return;
+    }
+    if (leaveForm.start_date && leaveForm.end_date && leaveForm.end_date < leaveForm.start_date) {
+      showToast('End Date cannot be before Start Date', 'error');
+      return;
+    }
+
+    try {
+      const att = getStaffAttendance(leaveStaff.id);
+      const staffName = leaveStaff.first_name ? `${leaveStaff.first_name} ${leaveStaff.last_name || ''}`.trim() : leaveStaff.username;
+
+      const newLeave = {
+        id: Date.now(),
+        title: leaveForm.title.trim(),
+        reason: leaveForm.reason.trim(),
+        start_date: leaveForm.start_date,
+        end_date: leaveForm.end_date,
+        num_days: Number(leaveForm.num_days || 1),
+        date: leaveForm.start_date,
+        type: 'FULL',
+        createdAt: new Date().toISOString()
+      };
+
+      const updatedRecord = {
+        ...att,
+        leaveDates: [newLeave, ...(att.leaveDates || [])]
+      };
+
+      updateAndPersistStaffAttendance(leaveStaff.id, updatedRecord);
+      showToast(`Leave recorded for ${staffName} (${leaveForm.num_days} days)!`, 'success');
+      setLeaveTab('view');
+    } catch (err) {
+      showToast('Failed to record leave', 'error');
+    }
+  };
+
+  const handleRemoveLeaveItem = (staffId, leaveId) => {
+    try {
+      const att = getStaffAttendance(staffId);
+      const updatedList = (att.leaveDates || []).filter(l => l.id !== leaveId);
+      const updatedRecord = {
+        ...att,
+        leaveDates: updatedList
+      };
+      updateAndPersistStaffAttendance(staffId, updatedRecord);
+      showToast('Leave record removed', 'info');
+    } catch (err) {
+      showToast('Failed to remove leave', 'error');
+    }
+  };
+
   // View Salary History Modal
   const handleOpenHistoryModal = (staff) => {
     setHistoryStaff(staff);
@@ -756,7 +801,6 @@ export const StaffList = () => {
 
   // Computed KPI Metrics
   const totalStaffCount = staffList.length;
-  const activeStaffCount = staffList.filter(s => s.is_staff_active).length;
   const totalMonthlyPayroll = staffList.reduce((acc, s) => acc + Number(s.salary || 0), 0);
   const todayPresentCount = staffList.filter(s => {
     const att = getStaffAttendance(s.id);
@@ -859,57 +903,12 @@ export const StaffList = () => {
         </div>
       </div>
 
-      {/* KPI Stats Overview Bar */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs p-4 rounded-2xl border border-teal-100 dark:border-slate-800 flex items-center justify-between shadow-2xs hover:border-teal-300 dark:hover:border-slate-700 transition-all">
-          <div>
-            <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Total Active Staff</p>
-            <h3 className="text-xl sm:text-2xl font-black text-[#00796b] dark:text-[#80cbc4] font-heading mt-0.5">{totalStaffCount}</h3>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/80 text-[#00796b] dark:text-[#80cbc4] flex items-center justify-center border border-teal-200/80 dark:border-teal-800/50 shadow-2xs">
-            <Users className="w-5 h-5" />
-          </div>
-        </div>
 
-        <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs p-4 rounded-2xl border border-teal-100 dark:border-slate-800 flex items-center justify-between shadow-2xs hover:border-teal-300 dark:hover:border-slate-700 transition-all">
-          <div>
-            <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Active Staff</p>
-            <h3 className="text-xl sm:text-2xl font-black text-[#00796b] dark:text-[#80cbc4] font-heading mt-0.5">{activeStaffCount}</h3>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/80 text-[#00796b] dark:text-[#80cbc4] flex items-center justify-center border border-teal-200/80 dark:border-teal-800/50 shadow-2xs">
-            <UserCheck className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs p-4 rounded-2xl border border-teal-100 dark:border-slate-800 flex items-center justify-between shadow-2xs hover:border-teal-300 dark:hover:border-slate-700 transition-all">
-          <div>
-            <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Monthly Payroll Budget</p>
-            <h3 className="text-xl sm:text-2xl font-black text-[#00796b] dark:text-[#80cbc4] font-heading mt-0.5">
-              ₹{totalMonthlyPayroll.toLocaleString('en-IN')}
-            </h3>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200/50 dark:border-amber-900/50 shadow-2xs">
-            <Wallet className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs p-4 rounded-2xl border border-teal-100 dark:border-slate-800 flex items-center justify-between shadow-2xs hover:border-teal-300 dark:hover:border-slate-700 transition-all">
-          <div>
-            <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Today's Attendance</p>
-            <h3 className="text-xl sm:text-2xl font-black text-[#00796b] dark:text-[#80cbc4] font-heading mt-0.5">
-              {todayPresentCount} / {totalStaffCount}
-            </h3>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/80 text-[#00796b] dark:text-[#80cbc4] flex items-center justify-center border border-teal-200/80 dark:border-teal-800/50 shadow-2xs">
-            <CheckCircle2 className="w-5 h-5" />
-          </div>
-        </div>
-      </div>
 
       {/* Filter, Search & Layout Controls Bar */}
-      <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs p-3.5 sm:p-4 rounded-2xl border border-teal-100 dark:border-slate-800 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs p-3 sm:p-3.5 rounded-2xl border border-teal-100 dark:border-slate-800 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
         {/* Search Bar */}
-        <div className="w-full md:w-80">
+        <div className="w-full md:w-72 lg:w-80 shrink-0">
           <SearchInput
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -919,9 +918,9 @@ export const StaffList = () => {
         </div>
 
         {/* Right Side Controls: Role Filters + Layout Toggle */}
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Role Filter Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between md:justify-end gap-2.5 sm:gap-3 w-full md:w-auto">
+          {/* Segmented Role Filter Tabs */}
+          <div className="bg-slate-100/90 dark:bg-slate-800/90 p-1 rounded-xl flex items-center gap-1 overflow-x-auto no-scrollbar">
             {[
               { id: 'ALL', label: 'All Staff' },
               { id: 'MANAGER', label: 'Managers' },
@@ -931,10 +930,10 @@ export const StaffList = () => {
               <button
                 key={tab.id}
                 onClick={() => setRoleFilter(tab.id)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all shrink-0 cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
                   roleFilter === tab.id
-                    ? 'bg-[#00796b] text-white shadow-sm shadow-teal-900/20'
-                    : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-teal-50/70 dark:hover:bg-slate-700'
+                    ? 'bg-white dark:bg-slate-700 text-[#00796b] dark:text-[#80cbc4] shadow-2xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 {tab.label}
@@ -943,26 +942,28 @@ export const StaffList = () => {
           </div>
 
           {/* View Mode Toggle: Table vs Cards */}
-          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl shrink-0">
+          <div className="bg-slate-100/90 dark:bg-slate-800/90 p-1 rounded-xl flex items-center gap-1 shrink-0 self-start sm:self-auto">
             <button
               onClick={() => setViewMode('table')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'table'
-                  ? 'bg-white dark:bg-slate-700 text-[#00695C] dark:text-[#4DB6AC] shadow-xs'
+                  ? 'bg-white dark:bg-slate-700 text-[#00695C] dark:text-[#4DB6AC] shadow-2xs'
                   : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
             >
-              📊 Table View
+              <List className="w-3.5 h-3.5" />
+              <span>Table</span>
             </button>
             <button
               onClick={() => setViewMode('grid')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'grid'
-                  ? 'bg-white dark:bg-slate-700 text-[#00695C] dark:text-[#4DB6AC] shadow-xs'
+                  ? 'bg-white dark:bg-slate-700 text-[#00695C] dark:text-[#4DB6AC] shadow-2xs'
                   : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
             >
-              🎴 Cards View
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Cards</span>
             </button>
           </div>
         </div>
@@ -1072,6 +1073,13 @@ export const StaffList = () => {
                           Present
                         </button>
                         <button
+                          onClick={() => handleOpenLeaveModal(s, 'add')}
+                          title="Leave Management (Add / View Leaves)"
+                          className="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300 hover:bg-rose-100 font-extrabold text-[11px] cursor-pointer"
+                        >
+                          Leave
+                        </button>
+                        <button
                           onClick={() => handleOpenSalaryModal(s)}
                           title="Pay Salary"
                           className="px-2.5 py-1 rounded-lg bg-[#00796b] text-white hover:bg-[#004d40] font-extrabold text-[11px] cursor-pointer shadow-2xs"
@@ -1086,7 +1094,7 @@ export const StaffList = () => {
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleOpenDeleteModal(s)}
+                          onClick={() => handleOpenDelete(s)}
                           title="Delete Account"
                           className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
                         >
@@ -1103,42 +1111,44 @@ export const StaffList = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           {filteredStaffList.map((s) => {
-            const att = getStaffAttendance(s.id);
-            const monthlySalary = Number(s.salary || 0);
+            const staffName = s.first_name ? `${s.first_name} ${s.last_name || ''}`.trim() : s.username;
 
             return (
               <div
                 key={s.id}
-                className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-5 hover:shadow-2xl hover:border-sky-400/40 transition-all duration-300 flex flex-col justify-between group"
+                className="bg-white dark:bg-slate-900 rounded-3xl border border-teal-100/80 dark:border-slate-800 p-5 shadow-sm hover:shadow-xl hover:border-teal-400/50 transition-all duration-300 flex flex-col justify-between group relative overflow-hidden"
               >
+                {/* Top Accent Gradient Bar */}
+                <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#00695C] via-[#009688] to-[#4DB6AC] rounded-t-3xl" />
+
                 <div>
-                  {/* Top Header Card Info */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#00695C] to-[#009688] text-white flex items-center justify-center font-black text-lg shrink-0 shadow-md border border-white/20 group-hover:scale-105 transition-transform">
-                        {s.first_name ? s.first_name[0] : (s.username?.[0] || 'U')}
+                  {/* Avatar + Staff Name + Role & Status Badge */}
+                  <div className="flex items-start justify-between gap-3 mt-1">
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-[#00695C] to-[#009688] text-white flex items-center justify-center font-black text-xl shrink-0 shadow-md border border-white/20 group-hover:scale-105 transition-transform">
+                        {staffName ? staffName[0].toUpperCase() : 'S'}
                       </div>
                       <div className="min-w-0">
-                        <h3 className="text-base font-black text-[#263238] dark:text-slate-100 leading-tight truncate">
-                          {s.first_name ? `${s.first_name} ${s.last_name || ''}` : s.username}
+                        <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 leading-tight truncate">
+                          {staffName}
                         </h3>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-[11px] text-slate-400 font-mono">@{s.username}</span>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                          <span className={`inline-flex items-center gap-1 text-[11px] font-extrabold px-2.5 py-0.5 rounded-lg ${
                             s.role === 'STORE_MANAGER' || s.role === 'Store Manager' || s.role === 'STORE_MANAGEMENT' || s.role === 'Store Management'
                               ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
                               : s.role === 'CASHIER' || s.role === 'Cashier'
                               ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
                               : 'bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800'
                           }`}>
+                            <ShieldCheck className="w-3 h-3 shrink-0" />
                             {s.role === 'STORE_MANAGEMENT' || s.role === 'Store Management'
-                              ? '🏢 Store Management'
+                              ? 'Store Management'
                               : s.role === 'STORE_MANAGER' || s.role === 'Store Manager'
-                              ? '🏪 Store Manager'
+                              ? 'Store Manager'
                               : s.role === 'CASHIER' || s.role === 'Cashier'
-                              ? '💵 Cashier'
+                              ? 'Cashier'
                               : s.role === 'DELIVERY' || s.role === 'Delivery Staff'
-                              ? '🚚 Delivery'
+                              ? 'Delivery'
                               : (s.role || 'Staff')}
                           </span>
                         </div>
@@ -1147,210 +1157,88 @@ export const StaffList = () => {
 
                     <button
                       onClick={() => handleToggleStatus(s)}
-                      className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 cursor-pointer transition-transform active:scale-95 flex items-center gap-1 ${
+                      className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 cursor-pointer transition-transform active:scale-95 flex items-center gap-1.5 ${
                         s.is_staff_active 
                           ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' 
                           : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
                       }`}
+                      title="Toggle Staff Active Status"
                     >
                       <span className={`w-1.5 h-1.5 rounded-full ${s.is_staff_active ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}></span>
                       {s.is_staff_active ? 'Active' : 'Disabled'}
                     </button>
                   </div>
 
-                  {/* Contact Info & Base Salary */}
-                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 space-y-1 text-xs text-slate-600 dark:text-slate-300">
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1.5 text-slate-400">
-                        <Phone className="w-3.5 h-3.5 shrink-0" /> Mobile:
-                      </span>
-                      <span className="font-mono font-bold text-[#263238] dark:text-slate-200">{s.phone || 'No phone'}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="flex items-center gap-1.5 text-slate-400">
-                        <IndianRupee className="w-3.5 h-3.5 shrink-0" /> Monthly Base Salary:
-                      </span>
-                      <span className="font-black text-emerald-600 dark:text-emerald-400">
-                        ₹{monthlySalary.toLocaleString('en-IN')}/mo
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Attendance & Work Days Box */}
-                  <div className="mt-4 p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-2.5">
-                    {/* Advance Taken Banner */}
-                    <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 dark:border-slate-700/60 text-[11px]">
-                      <span className="text-slate-500 flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3 text-amber-500" /> Advance Taken:
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-amber-600 dark:text-amber-400">
-                          ₹{(att.advanceTaken || 0).toLocaleString('en-IN')}
-                        </span>
-                        <button
-                          onClick={() => handleOpenAdvanceModal(s)}
-                          className="text-[10px] text-[#009688] hover:underline font-bold cursor-pointer"
-                        >
-                          + Give Advance
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Upgraded Raja System */}
-                    <div className="pt-2.5 border-t border-slate-200/60 dark:border-slate-700/60 text-[11px]">
-                      <div className="flex items-center justify-between gap-1 mb-2">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <CalendarDays className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                          <span className="text-xs font-black text-slate-700 dark:text-slate-200 truncate">
-                            Raja Dates
-                          </span>
-                          <span className="px-1.5 py-0.2 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 text-[10px] font-black shrink-0">
-                            {(att.leaveDates || []).length}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button
-                            onClick={() => handleOpenLeaveModal(s)}
-                            className="text-[10px] bg-rose-500 hover:bg-rose-600 text-white font-extrabold px-2 py-0.5 rounded-lg transition-colors cursor-pointer shadow-xs"
-                            title="Log New Raja Date"
-                          >
-                            + Log Raja
-                          </button>
-                          {(att.leaveDates || []).length > 0 && (
-                            <button
-                              onClick={() => handleOpenRajaViewModal(s)}
-                              className="text-[10px] bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-extrabold px-2 py-0.5 rounded-lg transition-colors cursor-pointer"
-                              title="View All Raja Dates"
-                            >
-                              View All
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {(att.leaveDates || []).length === 0 ? (
-                        <div className="p-2 bg-white dark:bg-slate-800/40 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 text-center">
-                          <span className="text-[10px] text-slate-400 font-medium">No Raja dates logged</span>
-                        </div>
-                      ) : (
-                        <div className="space-y-1 mt-1 max-h-36 overflow-y-auto pr-1">
-                          {(att.leaveDates || []).map((l) => (
-                            <div
-                              key={l.id}
-                              className="p-1.5 bg-rose-50/70 dark:bg-rose-950/40 rounded-xl border border-rose-100 dark:border-rose-900/60 text-[10px] flex items-center justify-between gap-1.5"
-                            >
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <span className="font-mono font-bold text-rose-800 dark:text-rose-300 shrink-0">
-                                  {l.date}
-                                </span>
-                                <span className={`px-1.5 py-0.2 rounded-md font-extrabold text-[9px] ${
-                                  l.type === 'FULL' 
-                                    ? 'bg-rose-200 dark:bg-rose-900 text-rose-900 dark:text-rose-100' 
-                                    : 'bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100'
-                                }`}>
-                                  {l.type === 'FULL' ? 'Full Raja' : 'Half Day Raja'}
-                                </span>
-                                {l.note && (
-                                  <span className="text-slate-500 dark:text-slate-400 truncate text-[9px]">
-                                    ({l.note})
-                                  </span>
-                                )}
-                              </div>
-
-                              <button
-                                onClick={() => handleRemoveLeave(s.id, l.id)}
-                                className="w-4 h-4 rounded-full bg-rose-200 dark:bg-rose-900 text-rose-800 dark:text-rose-200 hover:bg-rose-600 hover:text-white flex items-center justify-center text-[11px] font-black cursor-pointer shrink-0 transition-colors"
-                                title="Remove Raja Date & Restore Work Day"
-                              >
-                                ×
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 text-[11px]">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-slate-500 font-bold flex items-center gap-1">
-                          <MessageSquare className="w-3 h-3 text-[#009688]" /> Notes:
-                        </span>
-                        <button
-                          onClick={() => handleOpenNoteModal(s)}
-                          className="text-[10px] text-[#009688] dark:text-[#4DB6AC] font-bold hover:underline cursor-pointer"
-                        >
-                          + Add Note
-                        </button>
-                      </div>
-
-                      {(att.staffNotes || []).length === 0 ? (
-                        <span className="text-[10px] text-slate-400 italic">No notes added</span>
-                      ) : (
-                        <div className="space-y-1 mt-1 max-h-24 overflow-y-auto pr-1">
-                          {(att.staffNotes || []).slice(0, 3).map((n) => (
-                            <div
-                              key={n.id}
-                              className="p-1.5 bg-slate-100/70 dark:bg-slate-800/80 rounded-lg text-[10px] flex items-start justify-between gap-1.5"
-                            >
-                              <div>
-                                <div className="flex items-center gap-1">
-                                  <span className="font-bold text-[#263238] dark:text-slate-200">{n.category}:</span>
-                                  <span className="text-slate-400 text-[9px]">{n.date}</span>
-                                </div>
-                                <p className="text-slate-600 dark:text-slate-300 leading-tight">{n.text}</p>
-                              </div>
-                              <button
-                                onClick={() => handleRemoveNote(s.id, n.id)}
-                                className="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 cursor-pointer shrink-0"
-                                title="Delete Note"
-                              >
-                                ×
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                  {/* Phone / Contact Info */}
+                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-600 dark:text-slate-300 bg-slate-50/70 dark:bg-slate-800/40 px-3.5 py-2.5 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <span className="flex items-center gap-2 text-slate-500 font-bold">
+                      <Phone className="w-4 h-4 text-[#00695C] shrink-0" /> Mobile Number:
+                    </span>
+                    <span className="font-mono font-black text-slate-900 dark:text-slate-100 text-sm">
+                      {s.phone || 'N/A'}
+                    </span>
                   </div>
                 </div>
 
-                {/* Bottom Card Actions */}
-                <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="primary"
-                      size="xs"
-                      icon={IndianRupee}
-                      onClick={() => handleOpenSalaryModal(s)}
-                      className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold shadow-md active:scale-95 transition-transform"
-                    >
-                      Pay Salary
-                    </Button>
+                {/* Card Actions Footer - 6 Clear Action Buttons */}
+                <div className="mt-5 pt-3.5 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                  {/* Top Row: Pay Salary, Add Leave, View Details */}
+                  <div className="grid grid-cols-3 gap-1.5">
                     <button
-                      onClick={() => handleOpenHistoryModal(s)}
-                      className="p-2 text-slate-500 hover:text-sky-600 dark:hover:text-sky-300 hover:bg-sky-50 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
-                      title="View Salary History"
+                      onClick={() => handleOpenSalaryModal(s)}
+                      className="flex items-center justify-center gap-1 px-2 py-2 rounded-xl bg-gradient-to-r from-[#00695C] to-[#009688] hover:from-[#004D40] hover:to-[#00796B] text-white font-extrabold text-[11px] shadow-xs active:scale-95 transition-all cursor-pointer"
+                      title="Pay Salary"
                     >
-                      <History className="w-4 h-4" />
+                      <IndianRupee className="w-3.5 h-3.5 shrink-0" />
+                      Pay Salary
+                    </button>
+
+                    <button
+                      onClick={() => handleOpenLeaveModal(s)}
+                      className="flex items-center justify-center gap-1 px-2 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/60 font-extrabold text-[11px] border border-rose-200/80 dark:border-rose-900/60 active:scale-95 transition-all cursor-pointer"
+                      title="Add Leave / Log Raja Date"
+                    >
+                      <CalendarDays className="w-3.5 h-3.5 shrink-0 text-rose-600 dark:text-rose-400" />
+                      Add Leave
+                    </button>
+
+                    <button
+                      onClick={() => handleOpenDetailModal(s)}
+                      className="flex items-center justify-center gap-1 px-2 py-2 rounded-xl bg-teal-50/70 dark:bg-teal-950/40 text-[#00695C] dark:text-[#4DB6AC] hover:bg-teal-100 dark:hover:bg-teal-900/60 font-extrabold text-[11px] border border-teal-200/80 dark:border-teal-900/60 active:scale-95 transition-all cursor-pointer"
+                      title="View Staff All Details"
+                    >
+                      <Eye className="w-3.5 h-3.5 shrink-0 text-[#00695C] dark:text-[#4DB6AC]" />
+                      Details
                     </button>
                   </div>
 
-                  <div className="flex items-center gap-1">
+                  {/* Bottom Row: Salary History, Update, Delete */}
+                  <div className="flex items-center justify-between gap-1.5 pt-0.5">
+                    <button
+                      onClick={() => handleOpenHistoryModal(s)}
+                      className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-sky-50 dark:hover:bg-slate-700 hover:text-sky-600 dark:hover:text-sky-300 font-bold text-[11px] transition-all cursor-pointer border border-slate-200/60 dark:border-slate-700/60"
+                      title="View Salary History"
+                    >
+                      <History className="w-3.5 h-3.5 shrink-0 text-sky-600" />
+                      History
+                    </button>
+
                     <button
                       onClick={() => handleOpenEdit(s)}
-                      className="p-2 text-slate-500 hover:text-blue-600 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
-                      title="Edit Staff Member"
+                      className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-300 font-bold text-[11px] transition-all cursor-pointer border border-slate-200/60 dark:border-slate-700/60"
+                      title="Update / Edit Staff Details"
                     >
-                      <Edit className="w-4 h-4" />
+                      <Edit className="w-3.5 h-3.5 shrink-0 text-blue-600" />
+                      Update
                     </button>
+
                     <button
                       onClick={() => handleOpenDelete(s)}
-                      className="p-2 text-rose-500 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/60 rounded-xl transition-colors cursor-pointer"
+                      className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-rose-50 dark:hover:bg-slate-700 hover:text-rose-600 dark:hover:text-rose-300 font-bold text-[11px] transition-all cursor-pointer border border-slate-200/60 dark:border-slate-700/60"
                       title="Delete Staff Member"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5 shrink-0 text-rose-600" />
+                      Delete
                     </button>
                   </div>
                 </div>
@@ -1827,66 +1715,7 @@ export const StaffList = () => {
         </div>
       </Modal>
 
-      {/* 5. Log Raja / Leave Date Modal */}
-      <Modal
-        isOpen={isLeaveModalOpen}
-        onClose={() => setIsLeaveModalOpen(false)}
-        title={`Log Raja Date: ${leaveStaff?.first_name || leaveStaff?.username || ''}`}
-        subtitle="Log staff leave/off date to auto-adjust attendance work days"
-        maxWidth="max-w-sm"
-        footer={
-          <div className="flex items-center justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={() => setIsLeaveModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" size="sm" onClick={handleAddLeaveSubmit} className="bg-rose-600 hover:bg-rose-700 text-white">
-              Save Raja Date
-            </Button>
-          </div>
-        }
-      >
-        <form onSubmit={handleAddLeaveSubmit} className="space-y-3.5 text-xs">
-          <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">
-              Select Leave Date *
-            </label>
-            <input
-              type="date"
-              required
-              value={leaveDateInput}
-              onChange={(e) => setLeaveDateInput(e.target.value)}
-              className="w-full px-3.5 py-2 text-sm font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[#384959] dark:text-slate-100"
-            />
-          </div>
 
-          <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">
-              Leave Type
-            </label>
-            <select
-              value={leaveType}
-              onChange={(e) => setLeaveType(e.target.value)}
-              className="w-full px-3 py-2 text-sm font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[#384959] dark:text-slate-100"
-            >
-              <option value="FULL">🔴 Full Day Leave (-1 Work Day)</option>
-              <option value="HALF">🟠 Half Day Leave (-0.5 Work Day)</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">
-              Leave Reason / Note
-            </label>
-            <input
-              type="text"
-              value={leaveNote}
-              onChange={(e) => setLeaveNote(e.target.value)}
-              placeholder="e.g. Personal work / Sick leave"
-              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
-            />
-          </div>
-        </form>
-      </Modal>
 
       {/* 6. Add Staff Note / Remark Modal */}
       <Modal
@@ -1977,95 +1806,351 @@ export const StaffList = () => {
         </div>
       </Modal>
 
-      {/* 8. View All Raja Dates Modal */}
+      {/* 8. Leave Management Modal (Option 1: Add Leave & Option 2: View All Leaves) */}
       <Modal
-        isOpen={isRajaViewModalOpen}
-        onClose={() => setIsRajaViewModalOpen(false)}
-        title={`Raja History: ${rajaViewStaff ? (rajaViewStaff.first_name ? `${rajaViewStaff.first_name} ${rajaViewStaff.last_name || ''}`.trim() : rajaViewStaff.username) : ''}`}
-        subtitle="Complete log of all registered leaves & Raja dates"
+        isOpen={isLeaveModalOpen}
+        onClose={() => setIsLeaveModalOpen(false)}
+        title={`Leave Management: ${leaveStaff ? (leaveStaff.first_name ? `${leaveStaff.first_name} ${leaveStaff.last_name || ''}`.trim() : leaveStaff.username) : ''}`}
+        subtitle="Record employee leaves or view total leave history"
         maxWidth="max-w-lg"
         footer={
-          <div className="flex items-center justify-between w-full">
-            <Button
-              variant="outline"
-              size="sm"
-              icon={Plus}
-              onClick={() => {
-                setIsRajaViewModalOpen(false);
-                if (rajaViewStaff) handleOpenLeaveModal(rajaViewStaff);
-              }}
-              className="border-rose-200 text-rose-600 hover:bg-rose-50 font-bold"
-            >
-              + Log New Raja Date
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setIsRajaViewModalOpen(false)}>
+          <div className="flex items-center justify-end w-full">
+            <Button variant="outline" size="sm" onClick={() => setIsLeaveModalOpen(false)}>
               Close
             </Button>
           </div>
         }
       >
-        {rajaViewStaff && (() => {
-          const att = getStaffAttendance(rajaViewStaff.id);
-          const leaves = att.leaveDates || [];
+        {leaveStaff && (() => {
+          const att = getStaffAttendance(leaveStaff.id);
+          const allLeaves = att.leaveDates || [];
+          const staffName = leaveStaff.first_name ? `${leaveStaff.first_name} ${leaveStaff.last_name || ''}`.trim() : leaveStaff.username;
+
           return (
-            <div className="space-y-3 font-sans text-xs">
-              <div className="p-3.5 bg-rose-50 dark:bg-rose-950/40 rounded-2xl border border-rose-200 dark:border-rose-900/80 flex items-center justify-between">
-                <div>
-                  <p className="text-[11px] font-bold text-rose-700 dark:text-rose-300 uppercase tracking-wider">Total Logged Leaves</p>
-                  <h3 className="text-xl font-black text-rose-900 dark:text-rose-100">{leaves.length} Days / Dates Logged</h3>
-                </div>
-                <CalendarDays className="w-8 h-8 text-rose-500" />
+            <div className="space-y-4 font-sans text-xs">
+              {/* Option Selector Tabs */}
+              <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setLeaveTab('add')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg font-extrabold transition-all cursor-pointer ${
+                    leaveTab === 'add'
+                      ? 'bg-rose-500 text-white shadow-2xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Option 1: Add Leave</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setLeaveTab('view')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg font-extrabold transition-all cursor-pointer ${
+                    leaveTab === 'view'
+                      ? 'bg-rose-500 text-white shadow-2xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <CalendarDays className="w-3.5 h-3.5" />
+                  <span>Option 2: View All Leaves ({allLeaves.length})</span>
+                </button>
               </div>
 
-              {leaves.length === 0 ? (
-                <div className="p-6 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 text-center">
-                  <p className="text-slate-500 dark:text-slate-400 font-medium">No Raja dates logged for this employee yet.</p>
-                </div>
-              ) : (
-                <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-                  {leaves.map((l, idx) => (
-                    <div
-                      key={l.id || idx}
-                      className="p-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-700 flex items-center justify-between gap-3 hover:border-rose-300 dark:hover:border-rose-700 transition-colors shadow-2xs"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-8 h-8 rounded-xl bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 font-black text-xs flex items-center justify-center shrink-0">
-                          #{idx + 1}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono font-bold text-[#384959] dark:text-slate-100 text-sm">
-                              {l.date}
-                            </span>
-                            <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${
-                              l.type === 'FULL'
-                                ? 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-200 border border-rose-200 dark:border-rose-800'
-                                : 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-800'
-                            }`}>
-                              {l.type === 'FULL' ? 'Full Day Leave' : 'Half Day Leave'}
-                            </span>
-                          </div>
-                          {l.note && (
-                            <p className="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5 truncate">
-                              Note: {l.note}
-                            </p>
-                          )}
-                        </div>
-                      </div>
+              {/* Tab 1 Content: Add Leave */}
+              {leaveTab === 'add' ? (
+                <form onSubmit={handleAddLeaveSubmit} className="space-y-3.5">
+                  <div className="p-3 bg-rose-50/70 dark:bg-rose-950/30 rounded-2xl border border-rose-100 dark:border-rose-900/40 text-[11px] text-rose-800 dark:text-rose-300 flex items-center gap-2">
+                    <CalendarDays className="w-4 h-4 text-rose-500 shrink-0" />
+                    <span>Enter details to record a new leave for <strong>{staffName}</strong>.</span>
+                  </div>
 
-                      <button
-                        onClick={() => {
-                          handleRemoveLeave(rajaViewStaff.id, l.id);
-                        }}
-                        className="px-2.5 py-1 text-[10px] font-bold text-rose-600 hover:text-white bg-rose-50 hover:bg-rose-600 dark:bg-rose-950/60 dark:hover:bg-rose-600 rounded-xl border border-rose-200 dark:border-rose-800 transition-colors cursor-pointer shrink-0"
-                        title="Delete this leave entry"
-                      >
-                        Delete
-                      </button>
+                  {/* 1. Title */}
+                  <div>
+                    <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                      Title *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Sick Leave, Family Function, Personal Work"
+                      value={leaveForm.title}
+                      onChange={(e) => setLeaveForm({ ...leaveForm, title: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none"
+                    />
+                  </div>
+
+                  {/* 2. Reason */}
+                  <div>
+                    <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                      Reason
+                    </label>
+                    <textarea
+                      rows={2}
+                      placeholder="Specify detailed leave reason..."
+                      value={leaveForm.reason}
+                      onChange={(e) => setLeaveForm({ ...leaveForm, reason: e.target.value })}
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none resize-none"
+                    />
+                  </div>
+
+                  {/* Start Date, End Date, Num Days Leave Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {/* Start Date */}
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                        Start Date *
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={leaveForm.start_date}
+                        onChange={(e) => handleLeaveDateChange('start_date', e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono font-bold text-xs focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none"
+                      />
                     </div>
-                  ))}
+
+                    {/* End Date */}
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                        End Date *
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={leaveForm.end_date}
+                        onChange={(e) => handleLeaveDateChange('end_date', e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono font-bold text-xs focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none"
+                      />
+                    </div>
+
+                    {/* Num Days Leave */}
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                        Num Day Leave *
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        required
+                        value={leaveForm.num_days}
+                        onChange={(e) => setLeaveForm({ ...leaveForm, num_days: Math.max(1, parseInt(e.target.value || '1', 10)) })}
+                        className="w-full px-3 py-2 rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50/50 dark:bg-slate-800 text-rose-900 dark:text-rose-200 font-mono font-black text-xs text-center focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      size="md"
+                      className="w-full bg-rose-600 hover:bg-rose-700 text-white font-extrabold shadow-sm shadow-rose-900/20 rounded-xl cursor-pointer"
+                    >
+                      Save & Add Leave
+                    </Button>
+                  </div>
+                </form>
+              ) : (
+                /* Tab 2 Content: View All Leaves */
+                <div className="space-y-3">
+                  <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Leave Summary</p>
+                      <h4 className="text-sm font-black text-slate-900 dark:text-slate-100">
+                        {allLeaves.reduce((acc, l) => acc + Number(l.num_days || 1), 0)} Total Days Off ({allLeaves.length} Records)
+                      </h4>
+                    </div>
+                    <Button
+                      size="xs"
+                      onClick={() => setLeaveTab('add')}
+                      className="bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-lg cursor-pointer"
+                    >
+                      + Add Leave
+                    </Button>
+                  </div>
+
+                  {allLeaves.length === 0 ? (
+                    <div className="p-6 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 text-center">
+                      <CalendarDays className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                      <p className="text-slate-600 dark:text-slate-300 font-bold">No leave records logged yet</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Click "Option 1: Add Leave" above to record employee leaves.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                      {allLeaves.map((l, idx) => (
+                        <div
+                          key={l.id || idx}
+                          className="p-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-700 flex items-center justify-between gap-3 shadow-2xs hover:border-rose-300 transition-colors"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-black text-slate-900 dark:text-slate-100 text-sm">
+                                {l.title || 'Leave'}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200 font-extrabold text-[10px]">
+                                {l.num_days || 1} {Number(l.num_days || 1) === 1 ? 'Day' : 'Days'} Leave
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-500 font-mono">
+                              <span>📅 {l.start_date || l.date}</span>
+                              {l.end_date && l.end_date !== (l.start_date || l.date) && (
+                                <span>➔ {l.end_date}</span>
+                              )}
+                            </div>
+
+                            {(l.reason || l.note) && (
+                              <p className="text-slate-600 dark:text-slate-300 text-[11px] mt-1 italic">
+                                "{l.reason || l.note}"
+                              </p>
+                            )}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveLeaveItem(leaveStaff.id, l.id)}
+                            className="px-2.5 py-1 text-[10px] font-bold text-rose-600 hover:text-white bg-rose-50 hover:bg-rose-600 dark:bg-rose-950/60 dark:hover:bg-rose-600 rounded-xl border border-rose-200 dark:border-rose-800 transition-colors cursor-pointer shrink-0"
+                            title="Remove leave entry"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
+            </div>
+          );
+        })()}
+      </Modal>
+
+      {/* 9. View Staff All Detail Modal */}
+      <Modal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        title={`Staff Details: ${detailStaff ? (detailStaff.first_name ? `${detailStaff.first_name} ${detailStaff.last_name || ''}`.trim() : detailStaff.username) : ''}`}
+        subtitle="Complete employee profile, salary breakdown, advances, Raja dates & notes"
+        maxWidth="max-w-xl"
+        footer={
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-2">
+              {detailStaff && (
+                <>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    icon={IndianRupee}
+                    onClick={() => {
+                      setIsDetailModalOpen(false);
+                      handleOpenSalaryModal(detailStaff);
+                    }}
+                    className="bg-[#00695C] hover:bg-[#004D40] text-white font-bold"
+                  >
+                    Pay Salary
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={History}
+                    onClick={() => {
+                      setIsDetailModalOpen(false);
+                      handleOpenHistoryModal(detailStaff);
+                    }}
+                  >
+                    Salary History
+                  </Button>
+                </>
+              )}
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setIsDetailModalOpen(false)}>
+              Close
+            </Button>
+          </div>
+        }
+      >
+        {detailStaff && (() => {
+          const att = getStaffAttendance(detailStaff.id);
+          const monthlySalary = Number(detailStaff.salary || 0);
+          const perDay = Math.round(monthlySalary / 30);
+          const staffName = detailStaff.first_name ? `${detailStaff.first_name} ${detailStaff.last_name || ''}`.trim() : detailStaff.username;
+
+          return (
+            <div className="space-y-4 font-sans text-xs">
+              {/* Profile Card Header */}
+              <div className="p-4 bg-gradient-to-r from-teal-50 via-emerald-50 to-teal-50 dark:from-slate-800 dark:via-slate-850 dark:to-slate-800 rounded-2xl border border-teal-200/80 dark:border-slate-700 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#00695C] to-[#009688] text-white flex items-center justify-center font-black text-2xl shrink-0 shadow-md border border-white/20">
+                    {staffName ? staffName[0].toUpperCase() : 'S'}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900 dark:text-slate-100 font-heading">
+                      {staffName}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-slate-500 dark:text-slate-400 font-mono text-[11px]">@{detailStaff.username}</span>
+                      <span className="px-2 py-0.5 rounded-md bg-[#00695C] text-white text-[10px] font-extrabold">
+                        {detailStaff.role || 'Staff'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black ${
+                    detailStaff.is_staff_active
+                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                      : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                  }`}>
+                    <span className={`w-2 h-2 rounded-full ${detailStaff.is_staff_active ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+                    {detailStaff.is_staff_active ? 'Active Employee' : 'Disabled'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Grid Metrics & Info */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Phone Contact</span>
+                  <span className="text-sm font-bold font-mono text-slate-900 dark:text-slate-100 mt-0.5 block">
+                    {detailStaff.phone || 'No phone'}
+                  </span>
+                </div>
+
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Email Address</span>
+                  <span className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-0.5 block truncate">
+                    {detailStaff.email || 'No email registered'}
+                  </span>
+                </div>
+
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Monthly Base Salary</span>
+                  <span className="text-base font-black text-emerald-600 dark:text-emerald-400 mt-0.5 block">
+                    ₹{monthlySalary.toLocaleString('en-IN')}/mo <span className="text-[10px] font-normal text-slate-400">(~₹{perDay}/day)</span>
+                  </span>
+                </div>
+
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Advance Taken</span>
+                    <span className="text-base font-black text-amber-600 dark:text-amber-400 mt-0.5 block">
+                      ₹{(att.advanceTaken || 0).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setIsDetailModalOpen(false);
+                      handleOpenAdvanceModal(detailStaff);
+                    }}
+                    className="text-[10px] px-2 py-1 rounded-lg bg-amber-100 text-amber-800 hover:bg-amber-200 font-extrabold cursor-pointer"
+                  >
+                    + Advance
+                  </button>
+                </div>
+              </div>
+
             </div>
           );
         })()}

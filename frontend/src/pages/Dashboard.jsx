@@ -1,47 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useOutletContext } from 'react-router-dom';
-import { 
-  IndianRupee, 
-  ShoppingCart, 
-  ShoppingBag, 
-  Users, 
-  TrendingUp, 
-  AlertTriangle, 
-  ArrowUpRight, 
-  Plus, 
-  Layers, 
-  Truck, 
-  FileText, 
-  Receipt, 
-  Sparkles,
-  ArrowRight,
-  Eye,
-  CheckCircle2,
+import { useNavigate } from 'react-router-dom';
+import {
+  ShoppingBag,
+  Layers,
+  AlertTriangle,
+  Users,
   Clock,
-  Store,
-  Search,
-  Zap,
-  Tag,
-  ShieldCheck,
+  IndianRupee,
+  Plus,
   ChevronRight,
-  Flame,
-  Percent
+  ArrowRight,
+  ShieldCheck,
+  CheckCircle2,
+  AlertCircle,
+  RefreshCw,
+  Bell,
+  ChevronDown,
+  Package,
+  Truck,
+  FileText,
+  Boxes,
+  TrendingUp,
+  BarChart3,
+  Calendar,
+  Activity,
+  ArrowUpRight
 } from 'lucide-react';
 
-import { 
-  AreaChart, 
-  Area, 
-  BarChart, 
-  Bar, 
-  PieChart, 
-  Pie, 
-  Cell, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer, 
-  Legend 
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  ResponsiveContainer
 } from 'recharts';
 
 import { Card } from '../components/common/Card';
@@ -49,563 +40,647 @@ import { StatCard } from '../components/common/StatCard';
 import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
 import { EmptyState } from '../components/common/UiHelpers';
-import { ProductCard } from '../components/common/ProductCard';
-import { ProductDetailModal } from '../components/common/ProductDetailModal';
-import { analyticsApi, inventoryApi } from '../api';
+import { analyticsApi } from '../api';
 import { getCachedData, setCachedData } from '../utils/metaCache';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
-import InvoiceModal from '../components/invoices/InvoiceModal';
 import CartLoader from '../components/common/CartLoader';
 
 export const Dashboard = () => {
   const navigate = useNavigate();
-  const { openQuickOrder } = useOutletContext() || {};
-  const { user, storeSettings } = useAuth();
+  const { user } = useAuth();
   const { showToast } = useNotification();
 
-  const [dashboardData, setDashboardData] = useState(null);
-  const [popularProducts, setPopularProducts] = useState([]);
-  const [categoriesList, setCategoriesList] = useState([]);
+  const [dashData, setDashData] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  const [selectedOrderForInvoice, setSelectedOrderForInvoice] = useState(null);
-  const [selectedProductForModal, setSelectedProductForModal] = useState(null);
-
-  // Cart quantities state for quick adding straight from Home Screen
-  const [cartQuantities, setCartQuantities] = useState({});
-
-  // Active Promo Banner Carousel
-  const [activeBanner, setActiveBanner] = useState(0);
-
-  const banners = [
-    {
-      id: 1,
-      title: 'Fresh Organic Vegetables & Fruits',
-      subtitle: 'Handpicked daily from farms near you',
-      tag: 'UP TO 30% OFF',
-      code: 'FRESH30',
-      gradient: 'from-[#00695C] to-[#009688]',
-      buttonText: 'Shop Fresh Now'
-    },
-    {
-      id: 2,
-      title: 'Daily Essentials & Atta Instant Delivery',
-      subtitle: 'Chakki Atta, Pure Ghee & Dairy in 10 minutes',
-      tag: 'SUPER SAVINGS',
-      code: 'DAILY10',
-      gradient: 'from-emerald-800 to-teal-600',
-      buttonText: 'Order Essentials'
-    },
-    {
-      id: 3,
-      title: 'Tulsi Festival Grocery Dhamaka',
-      subtitle: 'Extra ₹100 Cashback on Orders over ₹499',
-      tag: 'FESTIVAL SPECIAL',
-      code: 'TULSI100',
-      gradient: 'from-[#004D40] to-[#00695C]',
-      buttonText: 'Claim Coupon'
-    }
-  ];
-
-  // Auto carousel rotation
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveBanner(prev => (prev + 1) % banners.length);
-    }, 4500);
-    return () => clearInterval(timer);
-  }, []);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    fetchDashboardAndCatalog();
+    fetchSuperAdminDashboard();
   }, []);
 
-  const fetchDashboardAndCatalog = async () => {
-    const cachedDash = getCachedData('dashboard_summary');
-    if (cachedDash && cachedDash.dashboardData && (cachedDash.dashboardData.kpis || cachedDash.dashboardData.total_products)) {
-      setDashboardData(cachedDash.dashboardData);
-      setPopularProducts(cachedDash.popularProducts || []);
-      setCategoriesList(cachedDash.categoriesList || []);
-      setLoading(false);
+  const fetchSuperAdminDashboard = async (isManualRefresh = false) => {
+    if (isManualRefresh) {
+      setRefreshing(true);
     } else {
-      setLoading(true);
+      const cached = getCachedData('super_admin_dashboard');
+      if (cached) {
+        setDashData(cached);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
     }
 
     try {
-      const [dashRes, prodRes, catRes] = await Promise.allSettled([
-        analyticsApi.getDashboardSummary(),
-        inventoryApi.getProducts({ page: 1 }),
-        inventoryApi.getCategories()
-      ]);
-
-      const rawDash = dashRes.status === 'fulfilled' ? dashRes.value.data : null;
-      const dashData = rawDash?.data || rawDash;
-
-      const rawProd = prodRes.status === 'fulfilled' ? prodRes.value.data : null;
-      const prodData = rawProd?.data || rawProd;
-
-      const rawCat = catRes.status === 'fulfilled' ? catRes.value.data : null;
-      const catData = rawCat?.data || rawCat;
-
-      const prods = prodData?.results || (Array.isArray(prodData) ? prodData : []);
-      const popular = Array.isArray(prods) && prods.length > 0 ? prods.slice(0, 8) : popularProducts;
-      const cats = catData?.results || (Array.isArray(catData) ? catData : []);
-      const catList = Array.isArray(cats) && cats.length > 0 ? cats : categoriesList;
-
-      if (dashData) setDashboardData(dashData);
-      if (popular.length > 0) setPopularProducts(popular);
-      if (catList.length > 0) setCategoriesList(catList);
-
-      if (dashData) {
-        setCachedData('dashboard_summary', {
-          dashboardData: dashData,
-          popularProducts: popular,
-          categoriesList: catList
-        }, 2 * 60 * 1000);
+      const res = await analyticsApi.getAdminDashboard();
+      const data = res?.data?.data || res?.data || res;
+      if (data) {
+        setDashData(data);
+        setCachedData('super_admin_dashboard', data, 60 * 1000); // 1 min cache
+        if (isManualRefresh) {
+          showToast('Dashboard data updated live', 'success');
+        }
       }
     } catch (err) {
-      console.warn('Failed to load dashboard summary', err);
+      console.error('Failed to fetch Super Admin Dashboard', err);
+      if (isManualRefresh) {
+        showToast('Failed to refresh dashboard', 'error');
+      }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const handleAddToCart = (product) => {
-    setCartQuantities(prev => ({
-      ...prev,
-      [product.id]: (prev[product.id] || 0) + 1
-    }));
-    showToast(`Added '${product.name}' to cart!`, 'success');
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
   };
 
-  const handleUpdateQuantity = (product, newQty) => {
-    if (newQty <= 0) {
-      setCartQuantities(prev => {
-        const copy = { ...prev };
-        delete copy[product.id];
-        return copy;
-      });
-      showToast(`Removed '${product.name}' from cart`, 'info');
-    } else {
-      setCartQuantities(prev => ({
-        ...prev,
-        [product.id]: newQty
-      }));
-    }
+  const formatTimeAgo = (isoString) => {
+    if (!isoString) return 'recently';
+    const date = new Date(isoString);
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+    if (seconds < 60) return 'Just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    const days = Math.floor(hours / 24);
+    return `${days} day${days > 1 ? 's' : ''} ago`;
   };
 
-  if (loading || !dashboardData) {
+  if (loading && !dashData) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <CartLoader text="Loading Tulsi Mart Home Screen..." size="lg" />
+        <CartLoader text="Loading Super Admin Dashboard..." size="lg" />
       </div>
     );
   }
 
-  const kpis = dashboardData?.kpis || {
-    today_sales: dashboardData?.total_sales || 0,
-    today_orders: dashboardData?.total_orders || 0,
-    total_orders: dashboardData?.total_orders || 0,
-    total_sales: dashboardData?.total_sales || 0,
-    low_stock_products: dashboardData?.low_stock_products || 0,
-    out_of_stock_products: 0,
-    total_products: dashboardData?.total_products || 0,
-    pending_orders: dashboardData?.pending_orders || 0,
-    total_customers: dashboardData?.total_customers || 0
+  // Extract real backend metrics safely with fallbacks
+  const productsCount = dashData?.products_count || 0;
+  const categoriesCount = dashData?.categories_count || 0;
+  const lowStockCount = dashData?.low_stock_count || 0;
+  const outOfStockCount = dashData?.out_of_stock_count || 0;
+  const expiringSoonCount = dashData?.expiring_soon_count || 0;
+  const totalSuppliers = dashData?.total_suppliers || 0;
+  const activeSuppliers = dashData?.active_suppliers || 0;
+  const pendingSuppliers = dashData?.pending_suppliers || 0;
+
+  const totalPosCount = dashData?.total_pos_count || 0;
+  const pendingPosCount = dashData?.pending_pos_count || 0;
+  const processingPosCount = dashData?.processing_pos_count || 0;
+  const deliveredPosCount = dashData?.delivered_pos_count || 0;
+
+  const inventoryValue = dashData?.inventory_value || 0;
+
+  const lowStockProducts = Array.isArray(dashData?.low_stock_products) ? dashData.low_stock_products : [];
+  const latestPurchaseOrders = Array.isArray(dashData?.latest_purchase_orders) ? dashData.latest_purchase_orders : [];
+  const suppliersSummary = Array.isArray(dashData?.suppliers_summary) ? dashData.suppliers_summary : [];
+  const categoriesSummary = Array.isArray(dashData?.categories_summary) ? dashData.categories_summary : [];
+  const topProducts = Array.isArray(dashData?.top_products) ? dashData.top_products : [];
+  const recentActivity = Array.isArray(dashData?.recent_admin_activity) ? dashData.recent_admin_activity : [];
+
+  const stockOverview = dashData?.stock_overview || {
+    in_stock: Math.max(0, productsCount - lowStockCount - outOfStockCount),
+    low_stock: lowStockCount,
+    out_of_stock: outOfStockCount
   };
 
-  const daily_trends = Array.isArray(dashboardData?.daily_trends) ? dashboardData.daily_trends : [];
-  const low_stock_items = Array.isArray(dashboardData?.low_stock_items) ? dashboardData.low_stock_items : [];
-  const recent_orders = Array.isArray(dashboardData?.recent_orders) ? dashboardData.recent_orders : [];
+  const pieChartData = [
+    { name: 'In Stock', value: stockOverview.in_stock, color: '#009688' },
+    { name: 'Low Stock', value: stockOverview.low_stock, color: '#FBC02D' },
+    { name: 'Out of Stock', value: stockOverview.out_of_stock, color: '#E53935' }
+  ].filter(item => item.value > 0);
 
+  const adminName = user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : 'Admin';
 
-  const PALETTE_COLORS = ['#00695C', '#009688', '#4DB6AC', '#80CBC4', '#E0F2F1', '#263238'];
-
-  const defaultCategoryIcons = [
-    { name: 'Atta & Flour', icon: '🌾', color: 'bg-amber-100 text-amber-800' },
-    { name: 'Dairy & Milk', icon: '🥛', color: 'bg-blue-100 text-blue-800' },
-    { name: 'Fresh Vegetables', icon: '🥦', color: 'bg-emerald-100 text-emerald-800' },
-    { name: 'Fruits', icon: '🍎', color: 'bg-rose-100 text-rose-800' },
-    { name: 'Pulses & Rice', icon: '🫘', color: 'bg-[#E0F2F1] text-[#00695C]' },
-    { name: 'Oil & Ghee', icon: '🛢️', color: 'bg-yellow-100 text-yellow-800' },
-    { name: 'Snacks & Munchies', icon: '🍿', color: 'bg-orange-100 text-orange-800' },
-    { name: 'Cold Drinks & Juice', icon: '🥤', color: 'bg-purple-100 text-purple-800' },
-    { name: 'Spices & Masala', icon: '🌶️', color: 'bg-red-100 text-red-800' },
-  ];
-
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
+  const defaultCategoryIcons = {
+    'Dairy & Bakery': '🥛',
+    'Fresh Vegetables & Fruits': '🥦',
+    'Groceries & Staples': '🌾',
+    'Beverages & Drinks': '🥤',
+    'Snacks & Munchies': '🍿',
+    'Personal Care': '🧼',
+    'Household Essentials': '🧹'
   };
 
   return (
-    <div className="space-y-6 font-sans">
-      {/* 1. APP TOP BAR & POS HEADER BANNER */}
-      <div className="-mx-3 -mt-3 sm:-mx-5 sm:-mt-5 lg:-mx-8 lg:-mt-8 mb-6 bg-gradient-to-r from-teal-50/90 via-emerald-50/60 to-teal-50/90 dark:from-slate-900 dark:via-slate-800/80 dark:to-slate-900 border-b border-teal-100/80 dark:border-slate-800 p-4 sm:p-6 lg:p-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-teal-600 text-white flex items-center justify-center shadow-md shadow-teal-600/20 shrink-0">
-              <Zap className="w-6 h-6 text-teal-200 fill-teal-200" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                  Tulsi Mart Store Dashboard
-                </h1>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-teal-100 dark:bg-teal-950/80 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800 uppercase tracking-wider">
-                  ⚡ 10 Min Delivery
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Real-time counter sales, popular grocery items, inventory alerts, and recent store bills.
-              </p>
-            </div>
+    <div className="space-y-6 font-sans pb-10">
+      
+      {/* 1. HEADER */}
+      <div className="bg-white dark:bg-slate-900 border border-[#B2DFDB]/80 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-xs flex items-center justify-between gap-3 sm:gap-4">
+        {/* Left Side: Shield Icon + Title + Subtitle */}
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#00695C] to-[#004D40] text-white flex items-center justify-center shadow-md shadow-[#00695C]/25 shrink-0">
+            <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-[#4DB6AC]" />
           </div>
 
-          <div className="flex items-center gap-2.5 self-start md:self-center">
-            <Button
-              variant="primary"
-              size="md"
-              icon={Store}
-              onClick={() => navigate('/billing')}
-              className="bg-teal-600 hover:bg-teal-700 text-white font-extrabold shadow-md shadow-teal-600/20"
-            >
-              Start Billing (POS)
-            </Button>
-            <Button
-              variant="outline"
-              size="md"
-              icon={ShoppingBag}
-              onClick={() => navigate('/products')}
-              className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold"
-            >
-              All Products
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. PROMOTIONAL HERO BANNER CAROUSEL */}
-      <div className="relative rounded-3xl overflow-hidden shadow-lg border border-[#B2DFDB]/60 dark:border-slate-800">
-        <div className={`p-6 sm:p-8 bg-gradient-to-r ${banners[activeBanner].gradient} text-white transition-all duration-500`}>
-          <div className="max-w-xl space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="bg-white/20 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider backdrop-blur-xs">
-                {banners[activeBanner].tag}
-              </span>
-              <span className="text-xs font-bold text-[#E0F2F1] flex items-center gap-1 font-mono">
-                <Tag className="w-3.5 h-3.5" /> CODE: {banners[activeBanner].code}
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-sm sm:text-xl font-black text-[#263238] dark:text-white tracking-tight font-heading whitespace-nowrap">
+                {getGreeting()}, {user?.first_name || 'Admin'}
+              </h1>
+              <span className="whitespace-nowrap px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#E0F2F1] dark:bg-[#00695C]/40 text-[#00695C] dark:text-[#4DB6AC] border border-[#4DB6AC]/40 uppercase tracking-wider">
+                SUPER ADMIN
               </span>
             </div>
-
-            <h2 className="text-xl sm:text-3xl font-black font-heading leading-tight tracking-tight">
-              {banners[activeBanner].title}
-            </h2>
-
-            <p className="text-xs sm:text-sm text-[#E0F2F1] font-medium">
-              {banners[activeBanner].subtitle}
+            <p className="text-[11px] sm:text-xs text-[#607D8B] dark:text-slate-400 mt-0.5 font-medium truncate">
+              Here's what's happening with your store today.
             </p>
-
-            <div className="pt-2">
-              <button
-                onClick={() => navigate('/products')}
-                className="px-5 py-2.5 bg-white text-[#00695C] hover:bg-[#E0F2F1] font-black text-xs rounded-xl transition-all shadow-md active:scale-95 cursor-pointer flex items-center gap-2"
-              >
-                <span>{banners[activeBanner].buttonText}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
           </div>
         </div>
 
-        {/* Carousel Slide Dots */}
-        <div className="absolute bottom-3 right-4 flex items-center gap-1.5">
-          {banners.map((_, idx) => (
-            <button
-              key={idx}
-              onClick={() => setActiveBanner(idx)}
-              className={`h-2 rounded-full transition-all cursor-pointer ${
-                activeBanner === idx ? 'w-6 bg-white' : 'w-2 bg-white/40'
-              }`}
-            />
-          ))}
-        </div>
-      </div>
-
-
-
-      {/* 4. POPULAR & TRENDING PRODUCTS GRID */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Flame className="w-5 h-5 text-amber-500 fill-amber-500" />
-            <h2 className="text-lg font-black text-[#263238] dark:text-slate-100 font-heading">
-              Popular Grocery Items
-            </h2>
-          </div>
+        {/* Right Side: Refresh Button */}
+        <div className="flex items-center gap-2 shrink-0">
           <button
-            onClick={() => navigate('/products')}
-            className="text-xs font-bold text-[#00695C] dark:text-[#4DB6AC] hover:underline flex items-center gap-1 cursor-pointer"
+            onClick={() => fetchSuperAdminDashboard(true)}
+            disabled={refreshing}
+            className="p-2 sm:p-2.5 rounded-xl border border-[#B2DFDB] dark:border-slate-800 bg-[#F0FAF9] dark:bg-slate-800 text-[#00695C] dark:text-[#4DB6AC] hover:bg-[#E0F2F1] transition-all cursor-pointer shadow-2xs"
+            title="Refresh Dashboard Data"
           >
-            View Full Catalogue <ChevronRight className="w-3.5 h-3.5" />
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-[#00695C]' : ''}`} />
           </button>
         </div>
-
-        {popularProducts.length === 0 ? (
-          <EmptyState
-            icon={ShoppingBag}
-            title="No Featured Products"
-            description="Add products to your catalogue to display them on the app home screen."
-            actionLabel="Add Product"
-            onAction={() => navigate('/products')}
-          />
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-3 sm:gap-4">
-            {popularProducts.map((p) => (
-              <ProductCard
-                key={p.id}
-                product={p}
-                cartQuantity={cartQuantities[p.id] || 0}
-                onAddToCart={handleAddToCart}
-                onUpdateQuantity={handleUpdateQuantity}
-                onOpenDetails={(prod) => setSelectedProductForModal(prod)}
-              />
-            ))}
-          </div>
-        )}
       </div>
 
-      {/* 5. STORE MANAGEMENT KPIS & DASHBOARD SUMMARY */}
-      <div className="pt-4 border-t border-[#B2DFDB]/60 dark:border-slate-800">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-black text-[#263238] dark:text-slate-100 font-heading flex items-center gap-2">
-            <Store className="w-4.5 h-4.5 text-[#00695C] dark:text-[#4DB6AC]" />
-            <span>Store Operations & Metrics</span>
-          </h2>
-          <span className="text-xs text-[#607D8B] font-semibold">{user?.first_name || 'Admin'} View</span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <StatCard
-            title="Today's Counter Revenue"
-            value={kpis.today_sales}
-            prefix="₹"
-            trendLabel="today so far"
-            icon={TrendingUp}
-            color="navy"
-            onClick={() => navigate('/orders')}
-          />
-          <StatCard
-            title="Today's Bills & Orders"
-            value={kpis.today_orders ?? kpis.total_orders}
-            suffix=" checkouts"
-            icon={ShoppingCart}
-            color="sky"
-            onClick={() => navigate('/orders')}
-          />
-          <StatCard
-            title="Urgent Low Stock Alert"
-            value={kpis.low_stock_products + kpis.out_of_stock_products}
-            suffix=" items to reorder"
-            icon={AlertTriangle}
-            color="slate"
-            onClick={() => navigate('/inventory')}
-          />
-          <StatCard
-            title="Active Grocery Items"
-            value={kpis.total_products}
-            suffix=" items live"
-            icon={ShoppingBag}
-            color="light"
-            onClick={() => navigate('/products')}
-          />
-        </div>
+      {/* 2. TOP STATISTICS CARDS */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <StatCard
+          title="TOTAL PRODUCTS"
+          value={productsCount}
+          icon={ShoppingBag}
+          color="navy"
+          onClick={() => navigate('/products')}
+        />
+        <StatCard
+          title="LOW STOCK"
+          value={lowStockCount}
+          icon={AlertTriangle}
+          color="slate"
+          onClick={() => navigate('/inventory')}
+        />
+        <StatCard
+          title="TOTAL SUPPLIERS"
+          value={totalSuppliers}
+          icon={Users}
+          color="light"
+          onClick={() => navigate('/suppliers')}
+        />
+        <StatCard
+          title="PENDING POs"
+          value={pendingPosCount}
+          icon={Clock}
+          color="sky"
+          onClick={() => navigate('/suppliers')}
+        />
       </div>
 
-      {/* 6. WEEKLY REVENUE TREND & RESTOCK WATCHLIST */}
+      {/* 3. INVENTORY OVERVIEW & INVENTORY STOCK CHART */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
+        
+        {/* Left: Inventory Overview */}
         <div className="lg:col-span-7">
           <Card
-            title="Weekly Sales Trend"
-            subtitle="Daily revenue collection over past 7 days"
+            title="Inventory Overview"
+            subtitle="Current stock levels and urgent reorder alerts"
             action={
-              <Button variant="ghost" size="sm" onClick={() => navigate('/sales-revenue')}>
-                Full Revenue View →
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/inventory')}
+                className="text-xs text-[#00695C] dark:text-[#4DB6AC] font-bold"
+              >
+                View Inventory →
               </Button>
             }
           >
-            <div className="h-72 w-full pt-2">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={daily_trends} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#009688" stopOpacity={0.5} />
-                      <stop offset="95%" stopColor="#009688" stopOpacity={0.0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#B2DFDB" className="dark:opacity-20" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#607D8B' }} axisLine={false} tickLine={false} />
-                  <YAxis
-                    width={50}
-                    tick={{ fontSize: 11, fill: '#607D8B' }}
-                    axisLine={false}
-                    tickLine={false}
-                    tickFormatter={(val) => val >= 1000 ? `₹${(val / 1000).toFixed(val % 1000 === 0 ? 0 : 1)}k` : `₹${val}`}
-                  />
-                  <Tooltip
-                    formatter={(val) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Daily Sales']}
-                    contentStyle={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #B2DFDB', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
-                    className="dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
-                  />
-                  <Area type="monotone" dataKey="sales" stroke="#00695C" strokeWidth={2.5} fillOpacity={1} fill="url(#salesGrad)" />
-                </AreaChart>
-              </ResponsiveContainer>
+            {/* 3 Status Summary Bar */}
+            <div className="grid grid-cols-3 gap-2.5 sm:gap-4 mb-5">
+              <div className="bg-amber-50/80 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-2xl p-3.5 text-center">
+                <span className="text-[11px] font-extrabold text-amber-800 dark:text-amber-400 uppercase tracking-wider block">
+                  LOW STOCK
+                </span>
+                <span className="text-xl sm:text-2xl font-black text-amber-900 dark:text-amber-300 font-heading mt-0.5 block">
+                  {lowStockCount} Products
+                </span>
+              </div>
+
+              <div className="bg-rose-50/80 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/40 rounded-2xl p-3.5 text-center">
+                <span className="text-[11px] font-extrabold text-rose-800 dark:text-rose-400 uppercase tracking-wider block">
+                  OUT OF STOCK
+                </span>
+                <span className="text-xl sm:text-2xl font-black text-rose-900 dark:text-rose-300 font-heading mt-0.5 block">
+                  {outOfStockCount} Products
+                </span>
+              </div>
+
+              <div className="bg-orange-50/80 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/40 rounded-2xl p-3.5 text-center">
+                <span className="text-[11px] font-extrabold text-orange-800 dark:text-orange-400 uppercase tracking-wider block">
+                  EXPIRING SOON
+                </span>
+                <span className="text-xl sm:text-2xl font-black text-orange-900 dark:text-orange-300 font-heading mt-0.5 block">
+                  {expiringSoonCount} Products
+                </span>
+              </div>
             </div>
-          </Card>
-        </div>
 
-        <div className="lg:col-span-5">
-          <Card
-            title="Urgent Restock Watchlist"
-            subtitle="Products that need immediate supplier reorder"
-            action={
-              <Button variant="ghost" size="sm" onClick={() => navigate('/inventory')}>
-                Inventory →
-              </Button>
-            }
-          >
-            <div className="divide-y divide-[#E0F2F1] dark:divide-slate-800">
-              {low_stock_items.length > 0 ? (
-                low_stock_items.slice(0, 5).map((item, idx) => (
-                  <div key={idx} className="py-2.5 flex items-center justify-between gap-3 first:pt-0 last:pb-0">
-                    <div className="overflow-hidden">
-                      <p className="text-xs font-bold text-[#263238] dark:text-slate-100 truncate">{item.name}</p>
-                      <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-[#607D8B]">
-                        <span className="font-mono">{item.sku}</span>
-                        {item.category_name && <span>• {item.category_name}</span>}
-                      </div>
-                    </div>
+            {/* Low Stock Table */}
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-[#607D8B] dark:text-slate-400 mb-3">
+                Low Stock Products
+              </h4>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      <div className="text-right">
-                        <span className={`text-xs font-extrabold ${item.stock_quantity <= 0 ? 'text-[#E53935]' : 'text-[#FBC02D]'}`}>
-                          {item.stock_quantity <= 0 ? 'Out of stock' : `${item.stock_quantity} left`}
-                        </span>
-                      </div>
-                      <Button
-                        variant="light"
-                        size="sm"
-                        onClick={() => navigate('/suppliers')}
-                      >
-                        Reorder
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              ) : (
+              {lowStockProducts.length === 0 ? (
                 <EmptyState
                   variant="compact"
                   icon={CheckCircle2}
-                  title="Inventory Healthy"
-                  description="All stock items are currently above minimum levels."
+                  title="Stock Levels Healthy"
+                  description="All products are currently above minimum threshold levels."
                 />
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 uppercase font-bold text-[11px]">
+                        <th className="py-2.5 px-3">Product</th>
+                        <th className="py-2.5 px-3 text-center">Stock</th>
+                        <th className="py-2.5 px-3 text-right">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                      {lowStockProducts.map((p) => (
+                        <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                          <td className="py-2.5 px-3">
+                            <p className="font-bold text-[#263238] dark:text-slate-100">{p.name}</p>
+                            <p className="text-[10px] text-[#607D8B] font-mono">{p.sku} • {p.category_name}</p>
+                          </td>
+                          <td className="py-2.5 px-3 text-center font-bold font-mono">
+                            {p.stock_quantity}
+                          </td>
+                          <td className="py-2.5 px-3 text-right">
+                            <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              p.stock_quantity <= 0 
+                                ? 'bg-red-100 text-red-800 dark:bg-red-950/80 dark:text-red-300' 
+                                : p.stock_quantity <= 3 
+                                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300'
+                                  : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/80 dark:text-yellow-300'
+                            }`}>
+                              {p.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
+            </div>
+          </Card>
+        </div>
+
+        {/* Right: Stock Chart */}
+        <div className="lg:col-span-5">
+          <Card
+            title="Inventory Stock Overview"
+            subtitle="Overall stock distribution ratio"
+          >
+            <div className="h-56 w-full flex items-center justify-center">
+              {productsCount === 0 ? (
+                <EmptyState
+                  variant="compact"
+                  icon={Boxes}
+                  title="No Inventory Data"
+                  description="Add products to visualize stock health."
+                />
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pieChartData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={80}
+                      paddingAngle={4}
+                      dataKey="value"
+                    >
+                      {pieChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(val, name) => [`${val} Products`, name]}
+                      contentStyle={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #B2DFDB' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+
+            {/* Custom Legend */}
+            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 grid grid-cols-3 gap-2 text-center">
+              <div>
+                <div className="flex items-center justify-center gap-1.5 text-xs text-[#607D8B]">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#009688]" />
+                  <span>In Stock</span>
+                </div>
+                <p className="text-base font-bold text-[#263238] dark:text-slate-100 mt-1 font-mono">
+                  {stockOverview.in_stock}
+                </p>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-center gap-1.5 text-xs text-[#607D8B]">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#FBC02D]" />
+                  <span>Low Stock</span>
+                </div>
+                <p className="text-base font-bold text-[#263238] dark:text-slate-100 mt-1 font-mono">
+                  {stockOverview.low_stock}
+                </p>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-center gap-1.5 text-xs text-[#607D8B]">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#E53935]" />
+                  <span>Out of Stock</span>
+                </div>
+                <p className="text-base font-bold text-[#263238] dark:text-slate-100 mt-1 font-mono">
+                  {stockOverview.out_of_stock}
+                </p>
+              </div>
             </div>
           </Card>
         </div>
       </div>
 
-      {/* 7. RECENT STORE BILLS */}
+      {/* 4. PURCHASE ORDERS & SUPPLIER OVERVIEW */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
+        
+        {/* Purchase Orders */}
+        <div className="lg:col-span-6">
+          <Card
+            title="Purchase Orders"
+            subtitle="Supplier PO pipeline and status metrics"
+            action={
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/suppliers')}
+                className="text-xs text-[#00695C] dark:text-[#4DB6AC] font-bold"
+              >
+                View All Purchase Orders →
+              </Button>
+            }
+          >
+            {/* Counter Summary Pills */}
+            <div className="grid grid-cols-4 gap-2 mb-4 bg-[#F0FAF9] dark:bg-slate-800/60 p-3 rounded-2xl border border-[#B2DFDB]/60 dark:border-slate-800 text-center">
+              <div>
+                <span className="text-[10px] text-[#607D8B] font-extrabold uppercase">Total PO</span>
+                <p className="text-base font-black text-[#263238] dark:text-slate-100 font-mono">{totalPosCount}</p>
+              </div>
+              <div>
+                <span className="text-[10px] text-amber-700 font-extrabold uppercase">Pending</span>
+                <p className="text-base font-black text-amber-800 dark:text-amber-400 font-mono">{pendingPosCount}</p>
+              </div>
+              <div>
+                <span className="text-[10px] text-blue-700 font-extrabold uppercase">Processing</span>
+                <p className="text-base font-black text-blue-800 dark:text-blue-400 font-mono">{processingPosCount}</p>
+              </div>
+              <div>
+                <span className="text-[10px] text-emerald-700 font-extrabold uppercase">Delivered</span>
+                <p className="text-base font-black text-emerald-800 dark:text-emerald-400 font-mono">{deliveredPosCount}</p>
+              </div>
+            </div>
+
+            {/* Purchase Orders Table */}
+            {latestPurchaseOrders.length === 0 ? (
+              <EmptyState
+                variant="compact"
+                icon={FileText}
+                title="No Purchase Orders Yet"
+                description="Create your first purchase order to see it here."
+                actionLabel="+ Create Purchase Order"
+                onAction={() => navigate('/suppliers')}
+              />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 uppercase font-bold text-[11px]">
+                      <th className="py-2.5 px-3">PO Number</th>
+                      <th className="py-2.5 px-3">Supplier</th>
+                      <th className="py-2.5 px-3 text-right">Amount</th>
+                      <th className="py-2.5 px-3 text-right">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                    {latestPurchaseOrders.slice(0, 5).map((po) => (
+                      <tr key={po.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                        <td className="py-2.5 px-3 font-mono font-bold text-[#00695C] dark:text-[#4DB6AC]">
+                          {po.po_number}
+                        </td>
+                        <td className="py-2.5 px-3 text-[#263238] dark:text-slate-200 font-semibold">
+                          {po.supplier_name}
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-mono font-bold">
+                          ₹{Number(po.total_amount).toLocaleString('en-IN')}
+                        </td>
+                        <td className="py-2.5 px-3 text-right">
+                          <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            po.status === 'RECEIVED' || po.status === 'DELIVERED'
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
+                              : po.status === 'PROCESSING'
+                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300'
+                                : 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300'
+                          }`}>
+                            {po.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        </div>
+
+        {/* Suppliers Overview */}
+        <div className="lg:col-span-6">
+          <Card
+            title="Supplier Overview"
+            subtitle="Registered suppliers & vendor partnerships"
+            action={
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/suppliers')}
+                className="text-xs text-[#00695C] dark:text-[#4DB6AC] font-bold"
+              >
+                Manage Suppliers →
+              </Button>
+            }
+          >
+            {/* Supplier Stats */}
+            <div className="grid grid-cols-3 gap-2 mb-4 bg-[#F0FAF9] dark:bg-slate-800/60 p-3 rounded-2xl border border-[#B2DFDB]/60 dark:border-slate-800 text-center">
+              <div>
+                <span className="text-[10px] text-[#607D8B] font-extrabold uppercase">Total</span>
+                <p className="text-base font-black text-[#263238] dark:text-slate-100 font-mono">{totalSuppliers}</p>
+              </div>
+              <div>
+                <span className="text-[10px] text-emerald-700 font-extrabold uppercase">Active</span>
+                <p className="text-base font-black text-emerald-800 dark:text-emerald-400 font-mono">{activeSuppliers}</p>
+              </div>
+              <div>
+                <span className="text-[10px] text-amber-700 font-extrabold uppercase">Pending</span>
+                <p className="text-base font-black text-amber-800 dark:text-amber-400 font-mono">{pendingSuppliers}</p>
+              </div>
+            </div>
+
+            {/* Supplier Table */}
+            {suppliersSummary.length === 0 ? (
+              <EmptyState
+                variant="compact"
+                icon={Users}
+                title="No Suppliers Registered"
+                description="Add suppliers to create purchase orders and manage stock."
+                actionLabel="+ Add Supplier"
+                onAction={() => navigate('/suppliers')}
+              />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 uppercase font-bold text-[11px]">
+                      <th className="py-2.5 px-3">Supplier</th>
+                      <th className="py-2.5 px-3 text-center">Products</th>
+                      <th className="py-2.5 px-3 text-center">Purchase Orders</th>
+                      <th className="py-2.5 px-3 text-right">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                    {suppliersSummary.map((s) => (
+                      <tr key={s.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                        <td className="py-2.5 px-3">
+                          <p className="font-bold text-[#263238] dark:text-slate-100">{s.name}</p>
+                          <p className="text-[10px] text-[#607D8B]">{s.company_name}</p>
+                        </td>
+                        <td className="py-2.5 px-3 text-center font-mono font-bold">{s.products_count}</td>
+                        <td className="py-2.5 px-3 text-center font-mono font-bold">{s.po_count}</td>
+                        <td className="py-2.5 px-3 text-right">
+                          <Badge variant={s.status === 'Active' ? 'success' : 'warning'} size="xs">
+                            {s.status}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        </div>
+      </div>
+
+      {/* 5. QUICK ACTIONS */}
       <Card
-        title="Recent Store Bills & Invoices"
-        subtitle="Latest customer transactions created via POS billing counter"
-        action={
-          <Button variant="outline" size="sm" onClick={() => navigate('/orders')}>
-            View All Bills ({kpis.total_orders}) →
-          </Button>
-        }
+        title="Quick Actions"
+        subtitle="Super Admin operational shortcuts"
       >
-        <div className="overflow-x-auto touch-pan">
-          <table className="w-full min-w-[700px] text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 uppercase font-bold text-[11px] tracking-wider whitespace-nowrap bg-slate-50/70 dark:bg-slate-800/60">
-                <th className="py-3 px-4">Order ID</th>
-                <th className="py-3 px-4">Customer</th>
-                <th className="py-3 px-4">Amount</th>
-                <th className="py-3 px-4">Payment</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4">Date</th>
-                <th className="py-3 px-4 text-right">Invoice</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-              {recent_orders.length === 0 ? (
-                <EmptyState
-                  variant="table"
-                  colSpan={7}
-                  icon={ShoppingCart}
-                  title="No Recent Orders"
-                  description="New orders created via POS checkout or billing counter will be displayed here."
-                />
-              ) : (
-                recent_orders.map((o) => (
-                  <tr key={o.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/60 transition-colors whitespace-nowrap">
-                    <td className="py-3 px-4 font-mono font-bold text-slate-900 dark:text-slate-100">{o.order_number}</td>
-                    <td className="py-3 px-4 font-semibold text-slate-800 dark:text-slate-200">{o.customer_name}</td>
-                    <td className="py-3 px-4 font-extrabold text-teal-700 dark:text-teal-400">₹{Number(o.total_amount).toFixed(2)}</td>
-                    <td className="py-3 px-4">
-                      <span className="inline-flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-semibold">
-                        {o.payment_method}
-                        <span className={`w-1.5 h-1.5 rounded-full ${o.payment_status === 'PAID' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <Badge variant="default" size="xs">{o.status}</Badge>
-                    </td>
-                    <td className="py-3 px-4 text-slate-500 dark:text-slate-400">
-                      {new Date(o.created_at).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <button
-                        onClick={() => setSelectedOrderForInvoice(o)}
-                        className="p-1.5 text-slate-500 hover:text-teal-700 dark:hover:text-white hover:bg-teal-50 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-                        title="View Tax Invoice"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <button
+            onClick={() => navigate('/products')}
+            className="p-3.5 rounded-2xl bg-[#00695C] text-white hover:bg-[#004D40] font-bold text-xs transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Product</span>
+          </button>
+
+          <button
+            onClick={() => navigate('/products')}
+            className="p-3.5 rounded-2xl bg-[#009688] text-white hover:bg-[#00796B] font-bold text-xs transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Category</span>
+          </button>
+
+          <button
+            onClick={() => navigate('/suppliers')}
+            className="p-3.5 rounded-2xl bg-[#4DB6AC] text-[#263238] hover:bg-[#26A69A] hover:text-white font-bold text-xs transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Supplier</span>
+          </button>
+
+          <button
+            onClick={() => navigate('/suppliers')}
+            className="p-3.5 rounded-2xl bg-white dark:bg-slate-800 text-[#00695C] dark:text-[#4DB6AC] border border-[#00695C]/40 dark:border-slate-700 hover:bg-[#E0F2F1] font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Create PO</span>
+          </button>
+
+          <button
+            onClick={() => navigate('/inventory')}
+            className="p-3.5 rounded-2xl bg-white dark:bg-slate-800 text-[#263238] dark:text-slate-100 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+          >
+            <Boxes className="w-4 h-4 text-[#00695C]" />
+            <span>View Inventory</span>
+          </button>
+
+          <button
+            onClick={() => navigate('/suppliers')}
+            className="p-3.5 rounded-2xl bg-white dark:bg-slate-800 text-[#263238] dark:text-slate-100 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+          >
+            <FileText className="w-4 h-4 text-[#009688]" />
+            <span>View POs</span>
+          </button>
         </div>
       </Card>
 
-      {/* Product Detail Modal */}
-      {selectedProductForModal && (
-        <ProductDetailModal
-          isOpen={!!selectedProductForModal}
-          onClose={() => setSelectedProductForModal(null)}
-          product={selectedProductForModal}
-          cartQuantity={cartQuantities[selectedProductForModal.id] || 0}
-          onAddToCart={handleAddToCart}
-          onUpdateQuantity={handleUpdateQuantity}
-          onBuyNow={() => navigate('/billing')}
-        />
-      )}
+      {/* 8. RECENT ADMIN ACTIVITY */}
+      <Card
+        title="Recent Admin Activity"
+        subtitle="System audit log of Super Admin operational actions"
+      >
+        {recentActivity.length === 0 ? (
+          <EmptyState
+            variant="compact"
+            icon={Activity}
+            title="No Recent Admin Activity"
+            description="Operational actions performed by super admin will be logged here."
+          />
+        ) : (
+          <div className="relative pl-6 space-y-4 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#B2DFDB] dark:before:bg-slate-800">
+            {recentActivity.map((act) => (
+              <div key={act.id} className="relative flex items-start justify-between gap-4">
+                {/* Dot */}
+                <div className="absolute -left-6 top-1.5 w-2 h-2 rounded-full bg-[#00695C] ring-4 ring-white dark:ring-slate-900" />
+                
+                <div>
+                  <p className="text-xs font-bold text-[#263238] dark:text-slate-100">
+                    {act.title}
+                  </p>
+                  <span className="text-[10px] font-semibold text-[#009688] dark:text-[#4DB6AC]">
+                    {act.type}
+                  </span>
+                </div>
 
-      {/* Invoice Viewer Modal */}
-      {selectedOrderForInvoice && (
-        <InvoiceModal
-          isOpen={!!selectedOrderForInvoice}
-          onClose={() => setSelectedOrderForInvoice(null)}
-          order={selectedOrderForInvoice}
-          store={storeSettings}
-        />
-      )}
+                <span className="text-[11px] font-medium text-[#607D8B] dark:text-slate-400 shrink-0 font-mono">
+                  {formatTimeAgo(act.timestamp)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
     </div>
   );
 };

@@ -18,6 +18,17 @@ from app.utils.pagination import get_pagination_meta
 
 router = APIRouter(tags=["Store Admin & Cash Operations"])
 
+# --- SUPER ADMIN DASHBOARD ---
+
+@router.get("/admin/dashboard/")
+@router.get("/dashboard/")
+def get_super_admin_dashboard(db: Session = Depends(get_db)):
+    from app.services.analytics_service import AnalyticsService
+    service = AnalyticsService(db)
+    data = service.get_admin_dashboard_summary()
+    return success_response(data=data, message="Super Admin dashboard fetched successfully")
+
+
 # --- STORE SETTINGS ---
 
 @router.get("/core/settings/")

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/common/Button';
-import { Badge } from '../../components/common/Badge';
 import { useNotification } from '../../context/NotificationContext';
 
 // Icons
@@ -9,16 +8,15 @@ import {
   Building2, 
   Plus, 
   FileText, 
-  Package, 
   Receipt, 
-  BarChart3, 
-  RefreshCw,
-  Wallet,
   Truck,
   ArrowLeft,
   LayoutGrid,
   List,
-  ShoppingCart
+  ShoppingCart,
+  PackageCheck,
+  Calendar,
+  Filter
 } from 'lucide-react';
 
 import { SearchInput } from '../../components/common/UiHelpers';
@@ -28,18 +26,15 @@ import { suppliersApi, inventoryApi, gullaApi } from '../../api';
 import { extractList } from '../../utils/apiHelpers';
 
 // Sub-components
-import ProcurementKpiCards from './components/ProcurementKpiCards';
 import SuppliersDirectoryTab from './components/SuppliersDirectoryTab';
 import PurchaseOrdersTab from './components/PurchaseOrdersTab';
-import GrnLedgerTab from './components/GrnLedgerTab';
+import ReceivedOrdersTab from './components/ReceivedOrdersTab';
 import PaymentsLedgerTab from './components/PaymentsLedgerTab';
-import ProcurementAnalyticsTab from './components/ProcurementAnalyticsTab';
 
 // Modals
 import SupplierFormModal from './modals/SupplierFormModal';
 import SupplierProfileDrawer from './modals/SupplierProfileDrawer';
 import PurchaseOrderModal from './modals/PurchaseOrderModal';
-import GoodsReceiveModal from './modals/GoodsReceiveModal';
 import SupplierPaymentModal from './modals/SupplierPaymentModal';
 
 const SUPPLIER_CATEGORIES = [
@@ -53,13 +48,20 @@ const SUPPLIER_CATEGORIES = [
   'Packaging & Store Supplies'
 ];
 
+const getTodayDateString = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export const SupplierList = () => {
   const navigate = useNavigate();
   const { showToast } = useNotification();
   const [activeTab, setActiveTab] = useState('suppliers');
   const [suppliers, setSuppliers] = useState([]);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
-  const [grnList, setGrnList] = useState([]);
   const [paymentsList, setPaymentsList] = useState([]);
   const [products, setProducts] = useState([]);
   const [gullaSummary, setGullaSummary] = useState(null);
@@ -67,12 +69,16 @@ export const SupplierList = () => {
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [directoryViewMode, setDirectoryViewMode] = useState('grid');
 
+  const todayStr = getTodayDateString();
+
   // Controls state for other tabs
   const [poSearch, setPoSearch] = useState('');
   const [poStatusFilter, setPoStatusFilter] = useState('ALL');
   const [poViewMode, setPoViewMode] = useState('grid');
 
-  const [grnSearch, setGrnSearch] = useState('');
+  const [receivedSearch, setReceivedSearch] = useState('');
+  const [filterDateInput, setFilterDateInput] = useState(todayStr);
+  const [appliedDate, setAppliedDate] = useState(todayStr);
 
   const [paymentSearch, setPaymentSearch] = useState('');
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('ALL');
@@ -84,8 +90,6 @@ export const SupplierList = () => {
   const [isPoModalOpen, setIsPoModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [payingSupplier, setPayingSupplier] = useState(null);
-  const [isReceiveModalOpen, setIsReceiveModalOpen] = useState(false);
-  const [selectedPOForReceive, setSelectedPOForReceive] = useState(null);
 
   // Forms state
   const [supplierForm, setSupplierForm] = useState({
@@ -95,7 +99,7 @@ export const SupplierList = () => {
   });
 
   const [poForm, setPoForm] = useState({
-    po_number: `PO-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+    po_number: `PO-${new Date().getFullYear()}-0001`,
     supplier: '', expected_delivery: '', gst_mode: 'EXCLUSIVE', tax_type: 'INTRA_STATE',
     items: [{ product: '', product_name: '', quantity: 10, unit_cost: 0, discount_rate: 0, tax_rate: 0 }]
   });
@@ -105,7 +109,6 @@ export const SupplierList = () => {
     payment_date: new Date().toISOString().split('T')[0], notes: ''
   });
 
-  const [receiveItems, setReceiveItems] = useState([]);
   const [showDenominations, setShowDenominations] = useState(false);
   const [denominations, setDenominations] = useState({
     500: 0, 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, coins: 0
@@ -135,69 +138,38 @@ export const SupplierList = () => {
       setPaymentsList(fetchedPayments);
       setProducts(fetchedProducts);
       if (gullaRes) setGullaSummary(gullaRes.data || gullaRes);
-
-      // Generate GRN records
-      const grns = fetchedPOs
-        .filter(po => po && po.status === 'RECEIVED')
-        .map(po => ({
-          id: `GRN-${po.id}`,
-          grn_number: `GRN-${po.po_number ? po.po_number.replace('PO-', '') : po.id}`,
-          po_number: po.po_number || `PO-${po.id}`,
-          supplier_name: po.supplier_name || 'N/A',
-          received_date: po.updated_at ? po.updated_at.split('T')[0] : (po.order_date || 'N/A'),
-          total_items: po.items?.length || 1,
-          total_valuation: po.total_amount || 0,
-          status: 'VERIFIED'
-        }));
-      setGrnList(grns);
     } catch (err) {
       console.error('Failed to load procurement data:', err);
       showToast('Error loading procurement data from backend', 'error');
     }
   };
 
-  // KPI calculations
-  const kpis = useMemo(() => {
-    const suppArray = Array.isArray(suppliers) ? suppliers : [];
-    const poArray = Array.isArray(purchaseOrders) ? purchaseOrders : [];
-    const prodArray = Array.isArray(products) ? products : [];
+  const handleApplyDateFilter = () => {
+    setAppliedDate(filterDateInput);
+  };
 
-    const totalSuppliers = suppArray.length;
-    const activeSuppliers = suppArray.filter(s => s && s.is_active !== false).length;
-    const pendingPOs = poArray.filter(po => po && (po.status === 'ORDERED' || po.status === 'DRAFT')).length;
-    
-    const today = new Date().toISOString().split('T')[0];
-    const currentMonth = today.substring(0, 7);
+  const handleSelectToday = () => {
+    const today = getTodayDateString();
+    setFilterDateInput(today);
+    setAppliedDate(today);
+  };
 
-    const todayPurchases = poArray
-      .filter(po => po && po.order_date === today)
-      .reduce((sum, po) => sum + parseFloat(po.total_amount || 0), 0);
-
-    const monthlyPurchases = poArray
-      .filter(po => po && po.order_date && po.order_date.startsWith(currentMonth))
-      .reduce((sum, po) => sum + parseFloat(po.total_amount || 0), 0);
-
-    const pendingPayments = suppArray.reduce((sum, s) => sum + parseFloat(s?.pending_balance || 0), 0);
-    const overduePayments = suppArray.filter(s => s && (s.payment_terms === 'Net 7' || s.payment_terms === 'Net 15'))
-      .reduce((sum, s) => sum + parseFloat(s?.pending_balance || 0) * 0.4, 0);
-
-    const productsOnOrder = poArray
-      .filter(po => po && po.status === 'ORDERED')
-      .reduce((acc, po) => acc + (po.items?.length || 1), 0);
-
-    const lowStockReorderCount = prodArray.filter(p => p && p.stock_quantity <= (p.reorder_level || 10)).length;
-
-    return {
-      totalSuppliers, activeSuppliers, pendingPOs, todayPurchases,
-      monthlyPurchases, pendingPayments, overduePayments, productsOnOrder, lowStockReorderCount
-    };
-  }, [suppliers, purchaseOrders, products]);
+  const handleClearDateFilter = () => {
+    setFilterDateInput('');
+    setAppliedDate('');
+  };
 
   // Filtered Purchase Orders
   const filteredPurchaseOrders = useMemo(() => {
     let list = Array.isArray(purchaseOrders) ? purchaseOrders : [];
     if (poStatusFilter !== 'ALL') {
       list = list.filter(po => po && po.status === poStatusFilter);
+    }
+    if (appliedDate) {
+      list = list.filter(po => {
+        const poDate = po.order_date || (po.created_at ? po.created_at.split('T')[0] : '');
+        return poDate === appliedDate;
+      });
     }
     if (poSearch.trim()) {
       const q = poSearch.toLowerCase();
@@ -209,27 +181,40 @@ export const SupplierList = () => {
       );
     }
     return list;
-  }, [purchaseOrders, poStatusFilter, poSearch]);
+  }, [purchaseOrders, poStatusFilter, appliedDate, poSearch]);
 
-  // Filtered GRNs
-  const filteredGrnList = useMemo(() => {
-    let list = Array.isArray(grnList) ? grnList : [];
-    if (grnSearch.trim()) {
-      const q = grnSearch.toLowerCase();
-      list = list.filter(g => 
-        (g.grn_number && g.grn_number.toLowerCase().includes(q)) ||
-        (g.po_number && g.po_number.toLowerCase().includes(q)) ||
-        (g.supplier_name && g.supplier_name.toLowerCase().includes(q))
+  // Filtered Received Orders
+  const filteredReceivedOrders = useMemo(() => {
+    let list = Array.isArray(purchaseOrders) ? purchaseOrders : [];
+    list = list.filter(po => po && (po.status?.toUpperCase() === 'RECEIVED' || po.is_received));
+    if (appliedDate) {
+      list = list.filter(po => {
+        const rDate = po.received_date || (po.updated_at ? po.updated_at.split('T')[0] : po.order_date);
+        return rDate === appliedDate;
+      });
+    }
+    if (receivedSearch.trim()) {
+      const q = receivedSearch.toLowerCase();
+      list = list.filter(po => 
+        (po.po_number && po.po_number.toLowerCase().includes(q)) ||
+        (po.supplier_name && po.supplier_name.toLowerCase().includes(q)) ||
+        (po.supplier_company && po.supplier_company.toLowerCase().includes(q))
       );
     }
     return list;
-  }, [grnList, grnSearch]);
+  }, [purchaseOrders, appliedDate, receivedSearch]);
 
   // Filtered Payments
   const filteredPaymentsList = useMemo(() => {
     let list = Array.isArray(paymentsList) ? paymentsList : [];
     if (paymentMethodFilter !== 'ALL') {
       list = list.filter(p => p && p.payment_method === paymentMethodFilter);
+    }
+    if (appliedDate) {
+      list = list.filter(p => {
+        const pDate = p.payment_date || (p.created_at ? p.created_at.split('T')[0] : '');
+        return pDate === appliedDate;
+      });
     }
     if (paymentSearch.trim()) {
       const q = paymentSearch.toLowerCase();
@@ -241,7 +226,7 @@ export const SupplierList = () => {
       );
     }
     return list;
-  }, [paymentsList, paymentMethodFilter, paymentSearch]);
+  }, [paymentsList, paymentMethodFilter, appliedDate, paymentSearch]);
 
   // PO Totals Calculation Helper
   const calculatePOTotals = (items, gstMode = 'EXCLUSIVE', taxType = 'INTRA_STATE') => {
@@ -318,13 +303,16 @@ export const SupplierList = () => {
       const totals = calculatePOTotals(poForm.items, poForm.gst_mode, poForm.tax_type);
       const payload = {
         po_number: poForm.po_number,
+        supplier_id: parseInt(poForm.supplier, 10),
         supplier: parseInt(poForm.supplier, 10),
+        order_date: new Date().toISOString().split('T')[0],
         expected_delivery: poForm.expected_delivery || null,
         gst_mode: poForm.gst_mode,
         tax_type: poForm.tax_type,
         status: 'ORDERED',
         total_amount: totals.grandTotal,
         items: poForm.items.map(it => ({
+          product_id: it.product ? parseInt(it.product, 10) : null,
           product: it.product ? parseInt(it.product, 10) : null,
           product_name: it.product_name || 'Generic Item',
           quantity: parseInt(it.quantity || 1, 10),
@@ -342,39 +330,6 @@ export const SupplierList = () => {
     } catch (err) {
       console.error('Error creating PO:', err);
       showToast('Failed to create purchase order', 'error');
-    }
-  };
-
-  // Open Receive PO Modal
-  const handleOpenReceiveModal = (po) => {
-    setSelectedPOForReceive(po);
-    const itemsPrep = (po.items || []).map(i => ({
-      id: i.id,
-      product_id: i.product,
-      product_name: i.product_name,
-      ordered_quantity: i.quantity,
-      received_quantity: i.quantity,
-      unit_cost: i.unit_cost,
-      damaged_quantity: 0,
-      batch_number: `BAT-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
-      mfg_date: new Date().toISOString().split('T')[0],
-      expiry_date: ''
-    }));
-    setReceiveItems(itemsPrep);
-    setIsReceiveModalOpen(true);
-  };
-
-  // Confirm Goods Receipt & Restock
-  const handleConfirmManualReceive = async () => {
-    if (!selectedPOForReceive) return;
-    try {
-      await suppliersApi.updatePOStatus(selectedPOForReceive.id, 'RECEIVED', receiveItems);
-      showToast(`PO #${selectedPOForReceive.po_number} marked Received & Store Stock updated!`);
-      setIsReceiveModalOpen(false);
-      fetchProcurementData();
-    } catch (err) {
-      console.error('Error receiving PO:', err);
-      showToast('Failed to receive purchase order', 'error');
     }
   };
 
@@ -441,6 +396,30 @@ export const SupplierList = () => {
     }
   };
 
+  // Mark PO as Received & Move to Received Orders tab
+  const handleMarkPOAsReceived = async (po) => {
+    try {
+      const todayStr = new Date().toISOString().split('T')[0];
+      // Optimistic update
+      setPurchaseOrders(prevPOs => 
+        prevPOs.map(p => 
+          String(p.id) === String(po.id) 
+            ? { ...p, status: 'RECEIVED', received_date: todayStr } 
+            : p
+        )
+      );
+
+      await suppliersApi.updatePOStatus(po.id, 'RECEIVED');
+      showToast(`Purchase Order ${po.po_number} marked as Received! Moved to Received Orders tab.`, 'success');
+      setActiveTab('received');
+      fetchProcurementData();
+    } catch (err) {
+      console.error('Error marking PO as received:', err);
+      showToast('Failed to mark PO as received', 'error');
+      fetchProcurementData();
+    }
+  };
+
   // Handle direct Order-wise Pay PO button from PurchaseOrdersTab
   const handlePaySpecificPO = (po) => {
     const supp = suppliers.find(s => s.id === po.supplier || s.name === po.supplier_name);
@@ -469,6 +448,25 @@ export const SupplierList = () => {
   };
 
   const handleOpenPurchaseProduct = () => {
+    const year = new Date().getFullYear();
+    const prefix = `PO-${year}-`;
+    let maxSeq = 0;
+    (purchaseOrders || []).forEach(po => {
+      if (po && po.po_number && String(po.po_number).startsWith(prefix)) {
+        const seqStr = String(po.po_number).replace(prefix, '');
+        const seqNum = parseInt(seqStr, 10);
+        if (!isNaN(seqNum) && seqNum > maxSeq) {
+          maxSeq = seqNum;
+        }
+      }
+    });
+    const nextSeq = maxSeq + 1;
+    const autoPoNumber = `${prefix}${String(nextSeq).padStart(4, '0')}`;
+
+    setPoForm(prev => ({
+      ...prev,
+      po_number: autoPoNumber
+    }));
     setIsPoModalOpen(true);
   };
 
@@ -476,39 +474,8 @@ export const SupplierList = () => {
     <div className="space-y-4 sm:space-y-6 pb-12 animate-fade-in font-sans">
       {/* 📱 MOBILE / TABLET COMPACT PASTEL MINT HEADER */}
       <div className="lg:hidden sticky top-0 z-30 bg-[#E3F6F4] dark:bg-slate-900 text-slate-900 dark:text-white px-3.5 py-2.5 sm:px-5 sm:py-3.5 rounded-b-[18px] shadow-xs border-b border-teal-200/50 dark:border-slate-800 relative overflow-hidden min-h-[72px] sm:min-h-[82px] flex items-center -mx-3 -mt-3 sm:-mx-5 sm:-mt-5 mb-3">
-        {/* SVG Decorative Bottom-Left Wave */}
-        <svg
-          className="absolute bottom-0 left-0 w-36 sm:w-52 h-auto pointer-events-none text-[#C4EFE9]/70 dark:text-teal-950/40"
-          viewBox="0 0 200 80"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M0 40C50 60 120 70 200 45V80H0V40Z"
-            fill="currentColor"
-          />
-        </svg>
-
-        {/* SVG Decorative Bottom-Right Mound Curve */}
-        <svg
-          className="absolute bottom-0 right-0 w-28 sm:w-40 h-auto pointer-events-none text-[#B5ECE5]/80 dark:text-teal-900/40"
-          viewBox="0 0 160 90"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M20 90C40 40 100 20 160 30V90H20Z"
-            fill="currentColor"
-          />
-        </svg>
-
-        {/* Decorative Floating Mint Dots */}
-        <div className="absolute top-2 right-6 w-1.5 h-1.5 rounded-full bg-[#83D9CC] opacity-60 pointer-events-none" />
-        <div className="absolute bottom-4 right-20 w-2 h-2 rounded-full bg-[#83D9CC] opacity-50 pointer-events-none" />
-
         <div className="w-full max-w-full flex items-center justify-between gap-2 relative z-10">
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
-            {/* 1. Pure White Circular Back Button */}
             <button
               type="button"
               onClick={() => navigate('/dashboard')}
@@ -518,7 +485,6 @@ export const SupplierList = () => {
               <ArrowLeft className="w-4 h-4 stroke-[2.6]" />
             </button>
 
-            {/* 2. Title & Subtitle */}
             <div className="min-w-0 flex-1">
               <h1 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight font-heading leading-tight truncate">
                 Supplier & <span className="text-[#00695C] dark:text-[#4DB6AC]">Procurement</span>
@@ -526,7 +492,6 @@ export const SupplierList = () => {
             </div>
           </div>
 
-          {/* 3. Action Buttons */}
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={handleOpenPurchaseProduct}
@@ -551,12 +516,7 @@ export const SupplierList = () => {
 
       {/* 🌟 Tulsi Mart POS Top Header Banner (Desktop Only) */}
       <div className="hidden lg:block -mx-8 -mt-8 mb-6 bg-gradient-to-r from-teal-50/90 via-emerald-50/60 to-teal-50/90 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 text-slate-800 dark:text-white p-5 lg:px-8 border-b border-teal-200/70 dark:border-slate-800 relative overflow-hidden shadow-2xs">
-        {/* Subtle Decorative Background Glow */}
-        <div className="absolute -top-12 -left-12 w-40 h-40 bg-teal-300/20 dark:bg-teal-900/10 rounded-full blur-2xl pointer-events-none" />
-        
-        {/* Banner Grid Layout */}
         <div className="flex items-center justify-between gap-4 relative z-10">
-          {/* Left: Truck Icon & Title with Status Badge */}
           <div className="flex items-center gap-3 sm:gap-4 min-w-0">
             <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-[#00796b] to-[#004d40] text-white p-2.5 sm:p-3 border border-[#004d40]/20 flex items-center justify-center shrink-0 shadow-md shadow-teal-900/10">
               <Truck className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
@@ -573,12 +533,11 @@ export const SupplierList = () => {
                 </span>
               </div>
               <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
-                Wholesale vendor management, Purchase Orders, Gulla Cash payouts & GRN Stock receiving
+                Wholesale vendor management, Purchase Orders & Gulla Cash payouts
               </p>
             </div>
           </div>
 
-          {/* Right: Action Buttons */}
           <div className="flex items-center gap-2.5 shrink-0">
             <Button 
               variant="primary" 
@@ -602,17 +561,16 @@ export const SupplierList = () => {
         </div>
       </div>
 
-      {/* 🌟 Unified Single Control Box (Tabs + Search + Filters in ONE Box) */}
+      {/* 🌟 Unified Single Control Box (Tabs + Search + Filters) */}
       <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-teal-100 dark:border-slate-800 shadow-xs space-y-3.5">
         
         {/* Navigation Tabs Bar */}
         <div className={`flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 min-w-0 ${activeTab === 'suppliers' ? 'pb-3 border-b border-slate-100 dark:border-slate-800/80' : ''}`}>
           {[
             { id: 'suppliers', label: 'Suppliers Directory', icon: Building2, count: suppliers.length },
-            { id: 'orders', label: 'Purchase Orders', icon: FileText, count: purchaseOrders.length },
-            { id: 'grn', label: 'Goods Receiving (GRN)', icon: Package, count: grnList.length },
-            { id: 'payments', label: 'Supplier Payments', icon: Receipt, count: paymentsList.length },
-            { id: 'analytics', label: 'Procurement Analytics', icon: BarChart3 }
+            { id: 'orders', label: 'Purchase Orders', icon: FileText, count: purchaseOrders.filter(po => po.status !== 'RECEIVED').length },
+            { id: 'received', label: 'Received Orders', icon: PackageCheck, count: purchaseOrders.filter(po => po.status === 'RECEIVED').length },
+            { id: 'payments', label: 'Supplier Payments', icon: Receipt, count: paymentsList.length }
           ].map(tab => {
             const isActive = activeTab === tab.id;
             return (
@@ -703,11 +661,51 @@ export const SupplierList = () => {
               />
             </div>
 
-            <div className="flex items-center gap-2.5 justify-between sm:justify-end shrink-0">
+            <div className="flex items-center gap-2.5 justify-between sm:justify-end shrink-0 flex-wrap sm:flex-nowrap">
+              {/* 📅 Bill Management Style Date Filter Strip */}
+              <div className="flex items-center gap-1.5 shrink-0 flex-wrap sm:flex-nowrap">
+                <input
+                  type="date"
+                  value={filterDateInput}
+                  onChange={(e) => setFilterDateInput(e.target.value)}
+                  className="min-w-[120px] px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-teal-200/80 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 font-bold focus:outline-hidden focus:border-[#00796b] cursor-pointer h-[36px]"
+                  title="Select Date"
+                />
+
+                <button
+                  type="button"
+                  onClick={handleApplyDateFilter}
+                  className="px-3 py-1.5 bg-[#00796b] hover:bg-[#004d40] text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-2xs hover:shadow-xs flex items-center gap-1 shrink-0 h-[36px]"
+                >
+                  <Filter className="w-3.5 h-3.5" />
+                  <span>Filter</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSelectToday}
+                  className="px-2.5 py-1.5 bg-teal-50 dark:bg-slate-800 text-[#00796b] dark:text-[#80cbc4] hover:bg-teal-100 dark:hover:bg-slate-700 text-xs font-extrabold rounded-xl transition-colors cursor-pointer shrink-0 border border-teal-200 dark:border-slate-700 h-[36px]"
+                  title="Show Today's items"
+                >
+                  Today
+                </button>
+
+                {appliedDate && (
+                  <button
+                    type="button"
+                    onClick={handleClearDateFilter}
+                    className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 text-xs font-bold rounded-xl transition-colors cursor-pointer shrink-0 h-[36px]"
+                    title="Show All Dates"
+                  >
+                    All Dates
+                  </button>
+                )}
+              </div>
+
               <select
                 value={poStatusFilter}
                 onChange={(e) => setPoStatusFilter(e.target.value)}
-                className="flex-1 sm:flex-none px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-[#00796b]/20 cursor-pointer"
+                className="flex-1 sm:flex-none px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-[#00796b]/20 cursor-pointer h-[36px]"
               >
                 <option value="ALL">All PO Statuses</option>
                 <option value="ORDERED">ORDERED</option>
@@ -743,21 +741,82 @@ export const SupplierList = () => {
           </div>
         )}
 
-        {/* 3️⃣ Goods Receiving (GRN) Controls */}
-        {activeTab === 'grn' && (
+        {/* 3️⃣ Received Orders Controls */}
+        {activeTab === 'received' && (
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-0.5">
             <div className="flex-1 min-w-0">
               <SearchInput
-                value={grnSearch}
-                onChange={setGrnSearch}
-                placeholder="Search GRN number, PO ref, supplier..."
+                value={receivedSearch}
+                onChange={setReceivedSearch}
+                placeholder="Search received PO, vendor name..."
               />
             </div>
 
-            <div className="flex items-center gap-2.5 justify-between sm:justify-end shrink-0">
-              <span className="text-xs font-bold text-[#00796b] dark:text-[#80cbc4] bg-teal-50 dark:bg-teal-950/60 px-3 py-2 rounded-xl border border-teal-200/60 dark:border-teal-800/40">
-                Verified GRN Ledgers ({filteredGrnList.length})
-              </span>
+            <div className="flex items-center gap-2.5 justify-between sm:justify-end shrink-0 flex-wrap sm:flex-nowrap">
+              {/* 📅 Bill Management Style Date Filter Strip */}
+              <div className="flex items-center gap-1.5 shrink-0 flex-wrap sm:flex-nowrap">
+                <input
+                  type="date"
+                  value={filterDateInput}
+                  onChange={(e) => setFilterDateInput(e.target.value)}
+                  className="min-w-[120px] px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-teal-200/80 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 font-bold focus:outline-hidden focus:border-[#00796b] cursor-pointer h-[36px]"
+                  title="Select Date"
+                />
+
+                <button
+                  type="button"
+                  onClick={handleApplyDateFilter}
+                  className="px-3 py-1.5 bg-[#00796b] hover:bg-[#004d40] text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-2xs hover:shadow-xs flex items-center gap-1 shrink-0 h-[36px]"
+                >
+                  <Filter className="w-3.5 h-3.5" />
+                  <span>Filter</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSelectToday}
+                  className="px-2.5 py-1.5 bg-teal-50 dark:bg-slate-800 text-[#00796b] dark:text-[#80cbc4] hover:bg-teal-100 dark:hover:bg-slate-700 text-xs font-extrabold rounded-xl transition-colors cursor-pointer shrink-0 border border-teal-200 dark:border-slate-700 h-[36px]"
+                  title="Show Today's items"
+                >
+                  Today
+                </button>
+
+                {appliedDate && (
+                  <button
+                    type="button"
+                    onClick={handleClearDateFilter}
+                    className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 text-xs font-bold rounded-xl transition-colors cursor-pointer shrink-0 h-[36px]"
+                    title="Show All Dates"
+                  >
+                    All Dates
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700 shrink-0">
+                <button
+                  onClick={() => setPoViewMode('grid')}
+                  title="Grid View (Cards)"
+                  className={`p-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    poViewMode === 'grid'
+                      ? 'bg-white dark:bg-slate-700 text-[#00796b] dark:text-[#80cbc4] shadow-xs font-bold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setPoViewMode('table')}
+                  title="Table View (List)"
+                  className={`p-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    poViewMode === 'table'
+                      ? 'bg-white dark:bg-slate-700 text-[#00796b] dark:text-[#80cbc4] shadow-xs font-bold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -773,11 +832,51 @@ export const SupplierList = () => {
               />
             </div>
 
-            <div className="flex items-center gap-2.5 justify-between sm:justify-end shrink-0">
+            <div className="flex items-center gap-2.5 justify-between sm:justify-end shrink-0 flex-wrap sm:flex-nowrap">
+              {/* 📅 Bill Management Style Date Filter Strip */}
+              <div className="flex items-center gap-1.5 shrink-0 flex-wrap sm:flex-nowrap">
+                <input
+                  type="date"
+                  value={filterDateInput}
+                  onChange={(e) => setFilterDateInput(e.target.value)}
+                  className="min-w-[120px] px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-teal-200/80 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 font-bold focus:outline-hidden focus:border-[#00796b] cursor-pointer h-[36px]"
+                  title="Select Date"
+                />
+
+                <button
+                  type="button"
+                  onClick={handleApplyDateFilter}
+                  className="px-3 py-1.5 bg-[#00796b] hover:bg-[#004d40] text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-2xs hover:shadow-xs flex items-center gap-1 shrink-0 h-[36px]"
+                >
+                  <Filter className="w-3.5 h-3.5" />
+                  <span>Filter</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSelectToday}
+                  className="px-2.5 py-1.5 bg-teal-50 dark:bg-slate-800 text-[#00796b] dark:text-[#80cbc4] hover:bg-teal-100 dark:hover:bg-slate-700 text-xs font-extrabold rounded-xl transition-colors cursor-pointer shrink-0 border border-teal-200 dark:border-slate-700 h-[36px]"
+                  title="Show Today's items"
+                >
+                  Today
+                </button>
+
+                {appliedDate && (
+                  <button
+                    type="button"
+                    onClick={handleClearDateFilter}
+                    className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 text-xs font-bold rounded-xl transition-colors cursor-pointer shrink-0 h-[36px]"
+                    title="Show All Dates"
+                  >
+                    All Dates
+                  </button>
+                )}
+              </div>
+
               <select
                 value={paymentMethodFilter}
                 onChange={(e) => setPaymentMethodFilter(e.target.value)}
-                className="flex-1 sm:flex-none px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-[#00796b]/20 cursor-pointer"
+                className="flex-1 sm:flex-none px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-[#00796b]/20 cursor-pointer h-[36px]"
               >
                 <option value="ALL">All Payment Methods</option>
                 <option value="BANK_TRANSFER">BANK TRANSFER</option>
@@ -789,31 +888,13 @@ export const SupplierList = () => {
           </div>
         )}
 
-        {/* 5️⃣ Procurement Analytics Controls */}
-        {activeTab === 'analytics' && (
-          <div className="flex items-center justify-between gap-3 pt-0.5">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-[#00796b] dark:text-[#80cbc4]" />
-              <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
-                Procurement & Vendor Performance Overview
-              </span>
-            </div>
-            <button
-              onClick={fetchProcurementData}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl transition-all cursor-pointer border border-slate-200 dark:border-slate-700"
-            >
-              <RefreshCw className="w-3.5 h-3.5 text-[#00796b]" />
-              <span>Refresh Data</span>
-            </button>
-          </div>
-        )}
-
       </div>
 
       {/* Main Tab Views */}
       {activeTab === 'suppliers' && (
         <SuppliersDirectoryTab
           suppliers={suppliers}
+          purchaseOrders={purchaseOrders}
           search={search}
           setSearch={setSearch}
           categoryFilter={categoryFilter}
@@ -857,25 +938,22 @@ export const SupplierList = () => {
         <PurchaseOrdersTab
           purchaseOrders={filteredPurchaseOrders}
           onCreatePO={handleOpenPurchaseProduct}
-          onOpenReceiveModal={handleOpenReceiveModal}
+          onMarkAsReceived={handleMarkPOAsReceived}
           onPayPO={handlePaySpecificPO}
           viewMode={poViewMode}
         />
       )}
 
-      {activeTab === 'grn' && (
-        <GrnLedgerTab grnList={filteredGrnList} />
+      {activeTab === 'received' && (
+        <ReceivedOrdersTab
+          purchaseOrders={filteredReceivedOrders}
+          onPayPO={handlePaySpecificPO}
+          viewMode={poViewMode}
+        />
       )}
 
       {activeTab === 'payments' && (
         <PaymentsLedgerTab paymentsList={filteredPaymentsList} />
-      )}
-
-      {activeTab === 'analytics' && (
-        <ProcurementAnalyticsTab
-          suppliers={suppliers}
-          onShowToast={(msg) => showToast(msg)}
-        />
       )}
 
       {/* Modals */}
@@ -904,15 +982,6 @@ export const SupplierList = () => {
         products={products}
         calculatePOTotals={calculatePOTotals}
         onSavePO={handleSavePO}
-      />
-
-      <GoodsReceiveModal
-        isOpen={isReceiveModalOpen}
-        onClose={() => setIsReceiveModalOpen(false)}
-        selectedPOForReceive={selectedPOForReceive}
-        receiveItems={receiveItems}
-        setReceiveItems={setReceiveItems}
-        onConfirmManualReceive={handleConfirmManualReceive}
       />
 
       <SupplierPaymentModal

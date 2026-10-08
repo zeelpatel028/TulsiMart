@@ -1,26 +1,21 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '../../../components/common/Button';
 import { Badge } from '../../../components/common/Badge';
-import { SearchInput, EmptyState } from '../../../components/common/UiHelpers';
+import { EmptyState } from '../../../components/common/UiHelpers';
 import { 
   Building2, 
   Plus, 
   Phone, 
-  Tag, 
-  MapPin, 
-  Star, 
   Eye, 
   Edit, 
   Trash2,
-  CreditCard,
-  Building,
-  LayoutGrid,
-  List
+  CreditCard
 } from 'lucide-react';
 import { Card } from '../../../components/common/Card';
 
 export const SuppliersDirectoryTab = ({
-  suppliers,
+  suppliers = [],
+  purchaseOrders = [],
   search,
   setSearch,
   categoryFilter,
@@ -72,108 +67,139 @@ export const SuppliersDirectoryTab = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredSuppliers.map((s) => {
             const pendingBal = Number(s.pending_balance || 0);
-            const supName = s.company_name || s.name || '';
+            const martName = s.company_name || s.name || 'Vendor Mart';
+            const contactName = s.name || 'N/A';
+
+            // Calculate PO/Bill counts for this supplier
+            const supplierPOs = (purchaseOrders || []).filter(po => 
+              po && (
+                String(po.supplier) === String(s.id) || 
+                String(po.supplier_id) === String(s.id) ||
+                (s.name && po.supplier_name === s.name) ||
+                (s.company_name && po.supplier_company === s.company_name)
+              )
+            );
+            const totalBillCount = supplierPOs.length || s.total_pos || s.total_bills || 0;
+            const pendingBillCount = supplierPOs.filter(po => 
+              po.status === 'ORDERED' || po.status === 'PARTIAL' || (parseFloat(po.total_amount || 0) > parseFloat(po.paid_amount || 0))
+            ).length || s.pending_pos || s.pending_bills || (pendingBal > 0 ? 1 : 0);
 
             return (
               <div
                 key={s.id}
-                className="group bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-5 hover:border-teal-300 dark:hover:border-teal-700/60 hover:shadow-xl transition-all duration-300 flex flex-col justify-between relative overflow-hidden"
+                className="group bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/90 dark:border-slate-800 p-5 hover:border-teal-400 dark:hover:border-teal-600 hover:shadow-lg transition-all duration-200 flex flex-col justify-between relative overflow-hidden"
               >
-                {/* Top Ambient Glow */}
-                <div className="absolute -top-12 -right-12 w-24 h-24 bg-teal-500/10 rounded-full blur-xl group-hover:bg-teal-500/20 transition-all pointer-events-none"></div>
+                {/* Top Ambient Glow Accent */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-teal-500 to-emerald-500 opacity-80 group-hover:opacity-100 transition-opacity"></div>
 
                 <div>
-                  {/* Header Row */}
+                  {/* Header Row: Initials Avatar, Supplier Mart Name, Supplier Name, Active Status */}
                   <div className="flex items-start justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-                    <div className="flex items-start gap-3">
-                      <div className="w-11 h-11 rounded-2xl bg-teal-600 text-white font-black flex items-center justify-center text-sm shadow-md shadow-teal-600/20 shrink-0 tracking-wider">
-                        {getInitials(supName)}
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="w-11 h-11 rounded-2xl bg-[#00796b] text-white font-black flex items-center justify-center text-sm shadow-md shadow-teal-700/20 shrink-0 tracking-wider">
+                        {getInitials(martName)}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h3 className="font-extrabold text-sm text-[#263238] dark:text-slate-100 font-heading group-hover:text-[#00796b] dark:group-hover:text-[#80cbc4] transition-colors truncate">
-                          {s.company_name || s.name}
+                        {/* Supplier Mart Name */}
+                        <h3 className="font-extrabold text-base text-slate-900 dark:text-slate-100 font-heading group-hover:text-[#00796b] dark:group-hover:text-teal-400 transition-colors truncate leading-snug">
+                          {martName}
                         </h3>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold mt-0.5">Contact: {s.name}</p>
+                        {/* Supplier Name */}
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5 truncate">
+                          Contact: <span className="text-slate-800 dark:text-slate-200 font-bold">{contactName}</span>
+                        </p>
                       </div>
                     </div>
-                    <Badge variant={s.is_active !== false ? 'success' : 'secondary'} size="xs">
+                    <Badge variant={s.is_active !== false ? 'success' : 'secondary'} size="xs" className="shrink-0">
                       {s.is_active !== false ? 'Active' : 'Inactive'}
                     </Badge>
                   </div>
 
-                  {/* Info Meta */}
-                  <div className="mt-3.5 space-y-2 text-xs text-slate-600 dark:text-slate-300">
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
-                      <span className="font-mono font-bold text-slate-800 dark:text-slate-100">{s.phone}</span>
+                  {/* Phone Number Row */}
+                  <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <div className="p-1 rounded-lg bg-teal-50 dark:bg-teal-950 text-[#00796b] dark:text-teal-400 shrink-0">
+                      <Phone className="w-3.5 h-3.5" />
                     </div>
-                    {s.gstin && (
-                      <div className="flex items-center gap-2 text-[11px]">
-                        <Tag className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span className="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md font-bold text-slate-600 dark:text-slate-300">
-                          GST: {s.gstin}
-                        </span>
-                      </div>
-                    )}
-                    {s.address && (
-                      <div className="flex items-center gap-2 text-[11px] truncate">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span className="truncate">{s.address}, {s.city}</span>
-                      </div>
-                    )}
+                    <span className="font-mono font-bold text-slate-800 dark:text-slate-100 text-sm tracking-wide">
+                      {s.phone || 'N/A'}
+                    </span>
                   </div>
 
-                  {/* Financial Balance Summary */}
-                  <div className="mt-4 p-3 rounded-2xl bg-slate-50/80 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Pending Balance</p>
-                      <p className={`font-black text-sm font-mono mt-0.5 ${pendingBal > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                  {/* Metrics Row: Pending Balance, Pending Bill Count, Total Bill Count */}
+                  <div className="mt-4 p-3.5 rounded-2xl bg-slate-50/90 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 grid grid-cols-3 gap-2 text-center">
+                    {/* Pending Balance */}
+                    <div className="text-left border-r border-slate-200/60 dark:border-slate-700/60 pr-1">
+                      <p className="text-[10px] text-slate-400 dark:text-slate-400 font-extrabold uppercase tracking-wider truncate">
+                        Pending Bal
+                      </p>
+                      <p className={`font-black text-sm font-mono mt-0.5 truncate ${pendingBal > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                         ₹{pendingBal.toLocaleString('en-IN')}
                       </p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Vendor Rating</p>
-                      <div className="flex items-center gap-0.5 text-amber-500 mt-1">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <Star key={i} className={`w-3 h-3 ${i < (s.rating || 5) ? 'fill-amber-400 text-amber-400' : 'text-slate-300 dark:text-slate-700'}`} />
-                        ))}
-                      </div>
+
+                    {/* Pending Bill Count */}
+                    <div className="border-r border-slate-200/60 dark:border-slate-700/60 px-1">
+                      <p className="text-[10px] text-slate-400 dark:text-slate-400 font-extrabold uppercase tracking-wider truncate">
+                        Pending Bills
+                      </p>
+                      <p className="font-black text-sm font-mono text-amber-600 dark:text-amber-400 mt-0.5 truncate">
+                        {pendingBillCount} <span className="text-[10px] font-normal text-slate-400">Bills</span>
+                      </p>
+                    </div>
+
+                    {/* Total Bill Count */}
+                    <div className="text-right pl-1">
+                      <p className="text-[10px] text-slate-400 dark:text-slate-400 font-extrabold uppercase tracking-wider truncate">
+                        Total Bills
+                      </p>
+                      <p className="font-black text-sm font-mono text-slate-800 dark:text-slate-200 mt-0.5 truncate">
+                        {totalBillCount} <span className="text-[10px] font-normal text-slate-400">Bills</span>
+                      </p>
                     </div>
                   </div>
                 </div>
 
-                {/* Footer Actions */}
+                {/* Footer Action Buttons: View Profile (Eye), Edit Profile (Edit), Delete (Trash2), Pay Supplier / Bill Pay */}
                 <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1">
+                    {/* View Profile */}
                     <button
+                      type="button"
                       onClick={() => onViewProfile(s)}
-                      className="p-2 text-slate-500 hover:text-teal-600 dark:hover:text-teal-400 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                      title="View Profile Dashboard"
+                      className="p-2 text-slate-500 hover:text-[#00796b] dark:hover:text-teal-400 rounded-xl hover:bg-teal-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                      title="View Profile"
                     >
                       <Eye className="w-4 h-4" />
                     </button>
+
+                    {/* Edit Profile */}
                     <button
+                      type="button"
                       onClick={() => onEditSupplier(s)}
-                      className="p-2 text-slate-500 hover:text-teal-600 dark:hover:text-teal-400 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                      title="Edit Supplier"
+                      className="p-2 text-slate-500 hover:text-[#00796b] dark:hover:text-teal-400 rounded-xl hover:bg-teal-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                      title="Edit Profile"
                     >
                       <Edit className="w-4 h-4" />
                     </button>
+
+                    {/* Delete */}
                     <button
+                      type="button"
                       onClick={() => onDeleteSupplier(s.id, s.company_name || s.name)}
-                      className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-colors cursor-pointer"
+                      className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-colors cursor-pointer"
                       title="Delete Supplier"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
 
+                  {/* Pay Supplier / Bill Pay */}
                   <Button
                     variant="primary"
                     size="sm"
                     icon={CreditCard}
                     onClick={() => onPaySupplier(s)}
-                    className="bg-[#00796b] hover:bg-[#004d40] text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer"
+                    className="bg-[#00796b] hover:bg-[#004d40] text-white font-extrabold text-xs rounded-xl shadow-xs cursor-pointer px-3.5 py-2"
                   >
                     Pay Supplier
                   </Button>
@@ -189,10 +215,10 @@ export const SuppliersDirectoryTab = ({
             <table className="w-full min-w-[750px] text-left text-xs border-collapse">
               <thead className="sticky top-0 z-10 bg-teal-50/90 dark:bg-slate-800 shadow-2xs">
                 <tr className="border-b border-teal-200/80 dark:border-slate-800 text-[#00796b] dark:text-teal-300 font-extrabold uppercase tracking-wider text-[11px] whitespace-nowrap">
-                  <th className="py-3.5 px-4">Supplier / Company</th>
-                  <th className="py-3.5 px-4">Category</th>
-                  <th className="py-3.5 px-4">Phone / GSTIN</th>
-                  <th className="py-3.5 px-4 text-right">Credit Limit</th>
+                  <th className="py-3.5 px-4">Supplier Mart / Name</th>
+                  <th className="py-3.5 px-4">Phone Number</th>
+                  <th className="py-3.5 px-4 text-center">Pending Bills</th>
+                  <th className="py-3.5 px-4 text-center">Total Bills</th>
                   <th className="py-3.5 px-4 text-right">Pending Balance</th>
                   <th className="py-3.5 px-4 text-center">Status</th>
                   <th className="py-3.5 px-4 text-right">Actions</th>
@@ -201,31 +227,43 @@ export const SuppliersDirectoryTab = ({
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
                 {filteredSuppliers.map((s) => {
                   const pendingBal = Number(s.pending_balance || 0);
-                  const supName = s.company_name || s.name || '';
+                  const martName = s.company_name || s.name || '';
+                  const contactName = s.name || 'N/A';
+
+                  const supplierPOs = (purchaseOrders || []).filter(po => 
+                    po && (
+                      String(po.supplier) === String(s.id) || 
+                      String(po.supplier_id) === String(s.id) ||
+                      (s.name && po.supplier_name === s.name) ||
+                      (s.company_name && po.supplier_company === s.company_name)
+                    )
+                  );
+                  const totalBillCount = supplierPOs.length || s.total_pos || s.total_bills || 0;
+                  const pendingBillCount = supplierPOs.filter(po => 
+                    po.status === 'ORDERED' || po.status === 'PARTIAL' || (parseFloat(po.total_amount || 0) > parseFloat(po.paid_amount || 0))
+                  ).length || s.pending_pos || s.pending_bills || (pendingBal > 0 ? 1 : 0);
+
                   return (
                     <tr key={s.id} className="hover:bg-teal-50/40 dark:hover:bg-slate-800/60 transition-colors whitespace-nowrap">
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
-                            {getInitials(supName)}
+                          <div className="w-9 h-9 rounded-xl bg-[#00796b] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                            {getInitials(martName)}
                           </div>
                           <div>
-                            <p className="font-bold text-slate-900 dark:text-slate-100">{s.company_name || s.name}</p>
-                            <p className="text-[11px] text-slate-500">Contact: {s.name}</p>
+                            <p className="font-bold text-slate-900 dark:text-slate-100">{martName}</p>
+                            <p className="text-[11px] text-slate-500">Contact: {contactName}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-slate-700 dark:text-slate-300">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                          {s.category || 'General Grocery'}
-                        </span>
+                      <td className="py-3 px-4 font-mono font-bold text-slate-800 dark:text-slate-200">
+                        {s.phone || 'N/A'}
                       </td>
-                      <td className="py-3 px-4">
-                        <p className="font-mono font-bold text-slate-800 dark:text-slate-200">{s.phone}</p>
-                        {s.gstin && <p className="text-[10px] font-mono text-slate-400">GST: {s.gstin}</p>}
+                      <td className="py-3 px-4 text-center font-mono font-bold text-amber-600 dark:text-amber-400">
+                        {pendingBillCount}
                       </td>
-                      <td className="py-3 px-4 text-right font-mono font-bold text-slate-600 dark:text-slate-400">
-                        ₹{Number(s.credit_limit || 0).toLocaleString('en-IN')}
+                      <td className="py-3 px-4 text-center font-mono font-bold text-slate-700 dark:text-slate-300">
+                        {totalBillCount}
                       </td>
                       <td className="py-3 px-4 text-right font-black font-mono">
                         <span className={pendingBal > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}>
@@ -238,34 +276,42 @@ export const SuppliersDirectoryTab = ({
                         </Badge>
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => onViewProfile(s)}
+                            className="p-1.5 text-slate-500 hover:text-[#00796b] hover:bg-teal-50 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                            title="View Profile"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onEditSupplier(s)}
+                            className="p-1.5 text-slate-500 hover:text-[#00796b] hover:bg-teal-50 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                            title="Edit Profile"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onDeleteSupplier(s.id, s.company_name || s.name)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer"
+                            title="Delete Supplier"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                           {onPaySupplier && (
                             <Button
                               variant="primary"
                               size="xs"
                               icon={CreditCard}
                               onClick={() => onPaySupplier(s)}
-                              className="bg-[#00796b] hover:bg-[#004d40] text-white font-bold cursor-pointer"
+                              className="bg-[#00796b] hover:bg-[#004d40] text-white font-bold cursor-pointer ml-1"
                             >
                               Pay
                             </Button>
                           )}
-                          <Button
-                            variant="light"
-                            size="xs"
-                            icon={Eye}
-                            onClick={() => onViewProfile(s)}
-                            className="font-bold cursor-pointer"
-                          >
-                            Ledger
-                          </Button>
-                          <button
-                            onClick={() => onEditSupplier(s)}
-                            className="p-1 text-slate-400 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-                            title="Edit"
-                          >
-                            <Edit className="w-3.5 h-3.5" />
-                          </button>
                         </div>
                       </td>
                     </tr>

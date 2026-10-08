@@ -1,4 +1,6 @@
 from typing import List, Tuple, Optional
+from datetime import date
+from decimal import Decimal
 import time, random
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
@@ -58,13 +60,16 @@ class SupplierService:
         return self.repo.list_purchase_orders(supplier_id=supplier_id, page=page, limit=limit)
 
     def create_purchase_order(self, data: PurchaseOrderCreate) -> PurchaseOrder:
-        po_number = f"PO-{int(time.time())}-{random.randint(10,99)}"
+        supplier_id = data.supplier_id or data.supplier
+        if not supplier_id:
+            raise HTTPException(status_code=400, detail="supplier_id is required")
 
+        po_number = data.po_number or f"PO-{int(time.time())}-{random.randint(10,99)}"
         total_amount = sum(item.subtotal for item in data.items)
 
         po = PurchaseOrder(
             po_number=po_number,
-            supplier_id=data.supplier_id,
+            supplier_id=supplier_id,
             order_date=data.order_date,
             expected_delivery=data.expected_delivery,
             status=data.status or "ORDERED",
@@ -76,7 +81,7 @@ class SupplierService:
 
         items = [
             PurchaseOrderItem(
-                product_id=item.product_id,
+                product_id=item.product_id or item.product,
                 product_name=item.product_name,
                 unit_cost=item.unit_cost,
                 quantity=item.quantity,
@@ -93,7 +98,10 @@ class SupplierService:
         if not po:
             raise HTTPException(status_code=404, detail="Purchase order not found")
         po.status = status
-        self.db.flush()
+        if status.upper() == "RECEIVED" and not po.received_date:
+            po.received_date = date.today()
+        self.db.commit()
+        self.db.refresh(po)
         return po
 
     def create_supplier_payment(self, data: SupplierPaymentCreate) -> SupplierPayment:
@@ -110,9 +118,15 @@ class SupplierService:
         if data.purchase_order_id:
             po = self.repo.get_po_by_id(data.purchase_order_id)
             if po:
-                po.paid_amount += data.amount
-                if po.paid_amount >= po.total_amount:
+                current_paid = Decimal(str(po.paid_amount or 0))
+                payment_amt = Decimal(str(data.amount or 0))
+                total_amt = Decimal(str(po.total_amount or 0))
+                
+                po.paid_amount = current_paid + payment_amt
+                if po.paid_amount >= total_amt:
                     po.status = "RECEIVED"
+                    if not po.received_date:
+                        po.received_date = date.today()
 
         return self.repo.create_supplier_payment(payment)
 

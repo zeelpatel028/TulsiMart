@@ -33,11 +33,23 @@ class UserRepository:
         self.db.refresh(account)
         return account
 
-    def list_staff(self, page: int = 1, limit: int = 20) -> Tuple[List[Staff], int]:
+    def list_staff(self, page: int = 1, limit: int = 20, search: Optional[str] = None) -> Tuple[List[Staff], int]:
+        from sqlalchemy import or_
+        query = self.db.query(Staff)
+        if search and search.strip():
+            pattern = f"%{search.strip()}%"
+            query = query.filter(
+                or_(
+                    Staff.name.ilike(pattern),
+                    Staff.phone.ilike(pattern),
+                    Staff.email.ilike(pattern),
+                    Staff.role.ilike(pattern)
+                )
+            )
+        total = query.count()
         offset = (page - 1) * limit
-        total = self.db.query(func.count(Staff.id)).scalar() or 0
         staff_list = (
-            self.db.query(Staff)
+            query
             .order_by(Staff.id.desc())
             .offset(offset)
             .limit(limit)

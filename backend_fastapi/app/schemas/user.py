@@ -102,5 +102,8 @@ class StaffResponse(BaseModel):
     role: str
     salary: float
     is_active: bool
+    is_staff_active: bool = True
+    first_name: Optional[str] = None
+    username: Optional[str] = None
     attendance_data: Optional[Dict[str, Any]] = None
     created_at: datetime

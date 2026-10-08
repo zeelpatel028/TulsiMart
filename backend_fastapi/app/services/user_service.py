@@ -50,7 +50,8 @@ class UserService:
         if data.password:
             account.password = get_password_hash(data.password)
 
-        self.db.flush()
+        self.db.commit()
+        self.db.refresh(account)
         return account
 
     def delete_account(self, account_id: int) -> None:
@@ -58,14 +59,15 @@ class UserService:
         if not account:
             raise HTTPException(status_code=404, detail="Account not found")
         self.db.delete(account)
-        self.db.flush()
+        self.db.commit()
 
     def toggle_status(self, account_id: int) -> LoginAccount:
         account = self.repo.get_by_id(account_id)
         if not account:
             raise HTTPException(status_code=404, detail="Account not found")
         account.is_active = not account.is_active
-        self.db.flush()
+        self.db.commit()
+        self.db.refresh(account)
         return account
 
     def toggle_otp(self, account_id: int) -> LoginAccount:
@@ -73,12 +75,13 @@ class UserService:
         if not account:
             raise HTTPException(status_code=404, detail="Account not found")
         account.require_otp = not account.require_otp
-        self.db.flush()
+        self.db.commit()
+        self.db.refresh(account)
         return account
 
     # Staff
-    def list_staff(self, page: int = 1, limit: int = 20) -> Tuple[List[Staff], int]:
-        return self.repo.list_staff(page=page, limit=limit)
+    def list_staff(self, page: int = 1, limit: int = 20, search: Optional[str] = None) -> Tuple[List[Staff], int]:
+        return self.repo.list_staff(page=page, limit=limit, search=search)
 
     def create_staff(self, data: StaffCreate) -> Staff:
         staff = Staff(
@@ -98,7 +101,8 @@ class UserService:
         for key, value in data.model_dump(exclude_unset=True).items():
             setattr(staff, key, value)
 
-        self.db.flush()
+        self.db.commit()
+        self.db.refresh(staff)
         return staff
 
     def delete_staff(self, staff_id: int) -> None:
@@ -106,12 +110,13 @@ class UserService:
         if not staff:
             raise HTTPException(status_code=404, detail="Staff member not found")
         self.db.delete(staff)
-        self.db.flush()
+        self.db.commit()
 
     def toggle_staff_status(self, staff_id: int) -> Staff:
         staff = self.repo.get_staff_by_id(staff_id)
         if not staff:
             raise HTTPException(status_code=404, detail="Staff member not found")
         staff.is_active = not staff.is_active
-        self.db.flush()
+        self.db.commit()
+        self.db.refresh(staff)
         return staff

@@ -41,24 +41,26 @@ export const StatCard = ({
   return (
     <div 
       onClick={onClick}
-      className={`p-5 rounded-3xl border border-[#B2DFDB] dark:border-slate-800 shadow-xs hover:shadow-md transition-all duration-200 ${scheme.cardBg} ${onClick ? 'cursor-pointer hover:border-[#009688]' : ''}`}
+      className={`p-3.5 sm:p-4.5 rounded-2xl sm:rounded-3xl border border-[#B2DFDB] dark:border-slate-800 shadow-xs hover:shadow-md transition-all duration-200 ${scheme.cardBg} ${onClick ? 'cursor-pointer hover:border-[#009688]' : ''}`}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold text-[#607D8B] dark:text-slate-400 tracking-wide truncate">{title}</p>
-          <h3 className="text-2xl font-black text-[#263238] dark:text-slate-100 mt-1.5 font-heading tracking-tight truncate">
+          <p className="text-[10px] sm:text-xs font-extrabold text-[#607D8B] dark:text-slate-400 tracking-wider uppercase leading-tight whitespace-normal">
+            {title}
+          </p>
+          <h3 className="text-lg sm:text-2xl font-black text-[#263238] dark:text-slate-100 mt-1 font-heading tracking-tight truncate">
             {prefix}{typeof value === 'number' ? value.toLocaleString('en-IN') : value}{suffix}
           </h3>
         </div>
         {Icon && (
-          <div className={`p-3 rounded-2xl shrink-0 ${scheme.iconBg}`}>
-            <Icon className="w-5 h-5" />
+          <div className={`p-2 sm:p-2.5 rounded-xl sm:rounded-2xl shrink-0 ${scheme.iconBg}`}>
+            <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
         )}
       </div>
 
       {change !== undefined && (
-        <div className="mt-2.5 sm:mt-3 flex items-center gap-1.5 text-[11px] sm:text-xs">
+        <div className="mt-2 flex items-center gap-1.5 text-[11px]">
           <span className={`inline-flex items-center font-bold px-1.5 py-0.5 rounded-md ${
             isPositive ? 'text-[#00695C] bg-[#E0F2F1]' : 'text-[#E53935] bg-[#FFEBEE]'
           }`}>

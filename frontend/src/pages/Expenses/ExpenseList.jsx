@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
@@ -25,7 +25,11 @@ import {
   Calculator,
   FileText,
   CheckCircle2,
-  ArrowLeft
+  ArrowLeft,
+  LayoutGrid,
+  List,
+  Filter,
+  ShieldCheck
 } from 'lucide-react';
 import { 
   PieChart, 
@@ -48,8 +52,12 @@ export const ExpenseList = () => {
   const [categories, setCategories] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // Filters & Layout Controls State
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [viewMode, setViewMode] = useState('grid');
+  const [activeTab, setActiveTab] = useState('expenses'); // 'expenses' | 'analytics' | 'logistics'
 
   // Orders & PO meta for Delivery & Transport linking
   const [orders, setOrders] = useState([]);
@@ -148,7 +156,7 @@ export const ExpenseList = () => {
   };
 
   const handleCreateExpense = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     try {
       setSubmitting(true);
       await expensesApi.createExpense({
@@ -176,32 +184,42 @@ export const ExpenseList = () => {
     }
   };
 
-  const chartData = (summary?.category_breakdown || [])
-    .filter(c => parseFloat(c.total || c.amount || 0) > 0)
-    .map(c => ({
-      name: c.category || c.category_name || c.category__name || 'General Overheads',
-      value: parseFloat(c.total || c.amount || 0)
-    }));
+  const chartData = useMemo(() => {
+    return (summary?.category_breakdown || [])
+      .filter(c => parseFloat(c.total || c.amount || 0) > 0)
+      .map(c => ({
+        name: c.category || c.category_name || c.category__name || 'General Overheads',
+        value: parseFloat(c.total || c.amount || 0)
+      }));
+  }, [summary]);
+
+  // Filtered Expenses List
+  const filteredExpenses = useMemo(() => {
+    let list = Array.isArray(expenses) ? expenses : [];
+    if (selectedCategory) {
+      list = list.filter(e => String(e.category?.id || e.category) === String(selectedCategory));
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(e => 
+        (e.title && e.title.toLowerCase().includes(q)) ||
+        (e.paid_to && e.paid_to.toLowerCase().includes(q)) ||
+        (e.notes && e.notes.toLowerCase().includes(q)) ||
+        (e.payment_method && e.payment_method.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }, [expenses, selectedCategory, search]);
 
   return (
     <div className="space-y-6 font-sans text-slate-800 dark:text-slate-100 selection:bg-[#80cbc4] selection:text-[#004d40]">
       {/* 📱 Mobile & Tablet Top App Header - Pastel Mint Theme */}
       <div className="lg:hidden sticky top-0 z-30 bg-[#E3F6F4] dark:bg-slate-900 text-slate-900 dark:text-white px-3.5 py-2.5 sm:px-5 sm:py-3.5 rounded-b-[18px] shadow-xs border-b border-teal-200/50 dark:border-slate-800 relative overflow-hidden min-h-[72px] sm:min-h-[82px] flex items-center -mx-3 -mt-3 sm:-mx-5 sm:-mt-5 mb-3">
-        {/* SVG Decorative Bottom-Left Wave */}
+        {/* SVG Decorative Waves */}
         <svg className="absolute bottom-0 left-0 w-36 sm:w-52 h-auto pointer-events-none text-[#C4EFE9]/70 dark:text-teal-950/40" viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M0 40C50 60 120 70 200 45V80H0V40Z" fill="currentColor" />
         </svg>
 
-        {/* SVG Decorative Bottom-Right Mound Curve */}
-        <svg className="absolute bottom-0 right-0 w-28 sm:w-40 h-auto pointer-events-none text-[#B5ECE5]/80 dark:text-teal-900/40" viewBox="0 0 160 90" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M20 90C40 40 100 20 160 30V90H20Z" fill="currentColor" />
-        </svg>
-
-        {/* Decorative Floating Mint Dots */}
-        <div className="absolute top-2 right-6 w-1.5 h-1.5 rounded-full bg-[#83D9CC] opacity-60 pointer-events-none" />
-        <div className="absolute bottom-4 right-20 w-2 h-2 rounded-full bg-[#83D9CC] opacity-50 pointer-events-none" />
-
-        {/* Header Content */}
         <div className="w-full max-w-3xl mx-auto flex items-center justify-between gap-2.5 relative z-10">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <button
@@ -218,21 +236,30 @@ export const ExpenseList = () => {
                 Store <span className="text-[#00695C] dark:text-[#4DB6AC]">Expenses</span>
               </h1>
               <p className="text-[11px] sm:text-xs font-semibold text-[#267B70] dark:text-slate-300 truncate mt-0.5">
-                Track store overheads, rent, utilities & payouts
+                Track operational store overheads
               </p>
             </div>
           </div>
+
+          <button
+            onClick={() => {
+              setFormData({ ...formData, category: categories[0]?.id || '' });
+              setIsModalOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-3 py-2 bg-[#00796b] hover:bg-[#004d40] text-white text-xs font-extrabold rounded-xl shadow-xs transition-all cursor-pointer shrink-0 active:scale-95"
+          >
+            <Plus className="w-4 h-4 text-white" />
+            <span>Record</span>
+          </button>
         </div>
       </div>
 
-      {/* 🌟 Tulsi Mart POS Top Header Banner - Full Width Edge-to-Edge Background (Desktop Only) */}
-      <div className="hidden lg:block -mx-8 -mt-8 mb-6 bg-gradient-to-r from-teal-50/90 via-emerald-50/60 to-teal-50/90 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 text-slate-800 dark:text-white p-3.5 sm:p-5 lg:px-8 border-b border-teal-200/70 dark:border-slate-800 relative overflow-hidden shadow-2xs">
-        {/* Subtle Decorative Background Glow */}
+      {/* 🌟 Tulsi Mart POS Top Header Banner (Desktop Only) - Matching Supplier Header */}
+      <div className="hidden lg:block -mx-8 -mt-8 mb-6 bg-gradient-to-r from-teal-50/90 via-emerald-50/60 to-teal-50/90 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 text-slate-800 dark:text-white p-5 lg:px-8 border-b border-teal-200/70 dark:border-slate-800 relative overflow-hidden shadow-2xs">
         <div className="absolute -top-12 -left-12 w-40 h-40 bg-teal-300/20 dark:bg-teal-900/10 rounded-full blur-2xl pointer-events-none" />
         
-        {/* Banner Grid Layout */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
-          {/* Left: Receipt Icon & Title with Status Badge */}
+          {/* Left: Receipt Icon & Title */}
           <div className="flex items-center gap-3 sm:gap-4 min-w-0">
             <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-[#00796b] to-[#004d40] text-white p-2.5 sm:p-3 border border-[#004d40]/20 flex items-center justify-center shrink-0 shadow-md shadow-teal-900/10">
               <Receipt className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
@@ -254,47 +281,44 @@ export const ExpenseList = () => {
             </div>
           </div>
 
-          {/* Right: Quick Stat Cards & Record Expense Button */}
-          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0 w-full lg:w-auto">
-            <div className="grid grid-cols-2 gap-2.5 flex-1 sm:flex-initial">
-              {/* Stat Card 1: Today's Outflow */}
-              <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-xs border border-teal-100 dark:border-slate-700/80 rounded-2xl p-2 sm:px-3 sm:py-2 shadow-2xs flex items-center gap-2">
+          {/* Right: Quick Stat Badges & Record Button */}
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-xs border border-teal-100 dark:border-slate-700/80 rounded-2xl px-3 py-2 shadow-2xs flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-teal-100/80 dark:bg-teal-950/80 text-[#00796b] dark:text-[#80cbc4] flex items-center justify-center shrink-0">
                   <Receipt className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block leading-none mb-1 whitespace-nowrap">
+                  <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block leading-none mb-1">
                     TODAY'S OUTFLOW
                   </span>
-                  <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100 font-heading leading-none block whitespace-nowrap">
-                    ₹{Number(summary?.today_expenses || 0).toFixed(2)}
+                  <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100 font-heading leading-none block">
+                    ₹{Number(summary?.today_expenses || 0).toLocaleString('en-IN')}
                   </span>
                 </div>
               </div>
 
-              {/* Stat Card 2: This Month's Expenses */}
-              <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-xs border border-teal-100 dark:border-slate-700/80 rounded-2xl p-2 sm:px-3 sm:py-2 shadow-2xs flex items-center gap-2">
+              <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-xs border border-teal-100 dark:border-slate-700/80 rounded-2xl px-3 py-2 shadow-2xs flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-emerald-100/80 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0">
                   <Calculator className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block leading-none mb-1 whitespace-nowrap">
+                  <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block leading-none mb-1">
                     THIS MONTH
                   </span>
-                  <span className="text-xs sm:text-sm font-black text-[#00796b] dark:text-[#80cbc4] leading-none block whitespace-nowrap">
-                    ₹{Number(summary?.monthly_expenses || 0).toFixed(2)}
+                  <span className="text-xs sm:text-sm font-black text-[#00796b] dark:text-[#80cbc4] leading-none block">
+                    ₹{Number(summary?.monthly_expenses || 0).toLocaleString('en-IN')}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Record Expense Action Button */}
             <button
               onClick={() => {
                 setFormData({ ...formData, category: categories[0]?.id || '' });
                 setIsModalOpen(true);
               }}
-              className="w-full sm:w-auto px-4 py-2.5 bg-[#00796b] hover:bg-[#004d40] text-white font-bold rounded-2xl shadow-md border border-[#004d40]/20 flex items-center justify-center gap-2 text-xs sm:text-sm transition-all cursor-pointer shrink-0 whitespace-nowrap active:scale-[0.99]"
+              className="px-4 py-2.5 bg-gradient-to-r from-[#00796b] to-[#004d40] hover:from-[#00695c] hover:to-[#00382e] text-white font-extrabold rounded-2xl shadow-sm shadow-teal-900/20 border border-[#004d40]/20 flex items-center justify-center gap-2 text-xs sm:text-sm transition-all cursor-pointer shrink-0 active:scale-95"
             >
               <Plus className="w-4 h-4 text-white" />
               <span>Record Expense</span>
@@ -303,53 +327,67 @@ export const ExpenseList = () => {
         </div>
       </div>
 
-      {/* 3 Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-        <StatCard
-          title="Today's Operational Outflow"
-          value={summary?.today_expenses || 0}
-          prefix="₹"
-          icon={Receipt}
-          color="emerald"
-        />
-        <StatCard
-          title="This Month's Total Expenses"
-          value={summary?.monthly_expenses || 0}
-          prefix="₹"
-          icon={Receipt}
-          color="teal"
-        />
-        <StatCard
-          title="All-Time Recorded Expenses"
-          value={summary?.total_expenses || 0}
-          prefix="₹"
-          icon={Receipt}
-          color="amber"
-        />
+      {/* 🌟 Segmented Main Tab Navigation Bar */}
+      <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs p-1.5 rounded-2xl border border-teal-100 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+          <button
+            onClick={() => setActiveTab('expenses')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all shrink-0 cursor-pointer ${
+              activeTab === 'expenses'
+                ? 'bg-[#00796b] text-white shadow-sm shadow-teal-900/20'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-teal-50/70 dark:hover:bg-slate-800'
+            }`}
+          >
+            <Receipt className="w-4 h-4" />
+            <span>Store Overheads ({filteredExpenses.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('analytics')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all shrink-0 cursor-pointer ${
+              activeTab === 'analytics'
+                ? 'bg-[#00796b] text-white shadow-sm shadow-teal-900/20'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-teal-50/70 dark:hover:bg-slate-800'
+            }`}
+          >
+            <PieIcon className="w-4 h-4" />
+            <span>Cost Breakdown ({chartData.length} Categories)</span>
+          </button>
+        </div>
+
+        <button
+          onClick={() => {
+            setFormData({ ...formData, category: categories[0]?.id || '' });
+            setIsModalOpen(true);
+          }}
+          className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-[#00796b] text-white hover:bg-[#004d40] text-xs font-bold rounded-xl transition-all cursor-pointer"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          <span>Record Expense</span>
+        </button>
       </div>
 
-      {/* Grid: Expense Breakdown Donut & Expenses Table */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
-        {/* Category Breakdown Donut (4 cols) */}
-        <div className="lg:col-span-4">
-          <Card title="Monthly Expense Categories" subtitle="Cost allocation across operations">
-            {chartData.length === 0 ? (
-              <div className="h-56 w-full flex flex-col items-center justify-center text-center p-4 text-slate-400 dark:text-slate-500">
-                <PieIcon className="w-10 h-10 mb-2 opacity-40 text-[#88BDF2]" />
-                <p className="text-xs font-bold text-slate-600 dark:text-slate-300">No monthly expenses recorded</p>
-                <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Click "Record New Expense" to log overheads</p>
-              </div>
-            ) : (
-              <>
-                <div className="h-56 w-full flex items-center justify-center">
+      {/* 🌟 ANALYTICS COST BREAKDOWN TAB CONTENT */}
+      {activeTab === 'analytics' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
+          <div className="lg:col-span-5">
+            <Card title="Monthly Expense Breakdown" subtitle="Cost allocation across operational categories">
+              {chartData.length === 0 ? (
+                <div className="h-64 w-full flex flex-col items-center justify-center text-center p-4 text-slate-400">
+                  <PieIcon className="w-10 h-10 mb-2 opacity-40 text-[#80cbc4]" />
+                  <p className="text-xs font-bold text-slate-600 dark:text-slate-300">No monthly expenses recorded</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Record store expenses to see visual breakdown.</p>
+                </div>
+              ) : (
+                <div className="h-64 w-full flex items-center justify-center">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
                         data={chartData}
                         cx="50%"
                         cy="50%"
-                        innerRadius={50}
-                        outerRadius={75}
+                        innerRadius={55}
+                        outerRadius={80}
                         paddingAngle={4}
                         dataKey="value"
                       >
@@ -369,137 +407,76 @@ export const ExpenseList = () => {
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
+              )}
+            </Card>
+          </div>
 
-                <div className="mt-2 space-y-1.5 max-h-40 overflow-y-auto pr-1 touch-pan">
+          <div className="lg:col-span-7 space-y-3">
+            <Card title="Category Spend Details" subtitle="Full summary of expenses by category">
+              {chartData.length === 0 ? (
+                <p className="text-xs text-slate-400 italic">No breakdown available</p>
+              ) : (
+                <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
                   {chartData.map((item, i) => (
-                    <div key={i} className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2 truncate">
+                    <div key={i} className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700 flex items-center justify-between">
+                      <div className="flex items-center gap-2.5 min-w-0">
                         <span
-                          className="w-2.5 h-2.5 rounded-full shrink-0"
+                          className="w-3 h-3 rounded-full shrink-0"
                           style={{ backgroundColor: PALETTE_COLORS[i % PALETTE_COLORS.length] }}
                         />
-                        <span className="truncate text-slate-700 dark:text-slate-300 font-medium">{item.name}</span>
+                        <span className="font-extrabold text-slate-900 dark:text-slate-100 text-xs truncate">
+                          {item.name}
+                        </span>
                       </div>
-                      <span className="font-extrabold text-[#384959] dark:text-[#88BDF2] shrink-0">₹{item.value.toFixed(2)}</span>
+                      <span className="font-black text-[#00796b] dark:text-[#80cbc4] text-sm font-heading shrink-0">
+                        ₹{item.value.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </span>
                     </div>
                   ))}
                 </div>
-              </>
-            )}
-          </Card>
+              )}
+            </Card>
+          </div>
         </div>
+      )}
 
-        {/* Expenses List Table (8 cols) */}
-        <div className="lg:col-span-8 space-y-4">
-          {/* Responsive View: Mobile Cards (block md:hidden) & Desktop Table (hidden md:block) */}
-          <div className="md:hidden space-y-3">
-            {/* Category Pipeline Tabs for Mobile */}
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar touch-pan pb-1 text-xs">
-              <button
-                onClick={() => setSelectedCategory('')}
-                className={`px-3 py-1.5 rounded-xl font-bold shrink-0 transition-all cursor-pointer ${
-                  selectedCategory === ''
-                    ? 'bg-[#00796b] text-white shadow-xs font-extrabold'
-                    : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
-                }`}
-              >
-                All ({expenses.length})
-              </button>
-              {categories.map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => setSelectedCategory(String(c.id))}
-                  className={`px-3 py-1.5 rounded-xl font-bold shrink-0 transition-all cursor-pointer ${
-                    String(selectedCategory) === String(c.id)
-                      ? 'bg-[#00796b] text-white shadow-xs font-extrabold'
-                      : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
-                  }`}
-                >
-                  {c.name}
-                </button>
-              ))}
+      {/* 🌟 STORE OVERHEADS TAB CONTENT */}
+      {activeTab === 'expenses' && (
+        <div className="space-y-4">
+          {/* Filter, Search & Layout Controls Bar */}
+          <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs p-3 sm:p-3.5 rounded-2xl border border-teal-100 dark:border-slate-800 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+            {/* Search Bar */}
+            <div className="w-full md:w-72 lg:w-80 shrink-0">
+              <SearchInput
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onClear={() => setSearch('')}
+                placeholder="Search expenses by payee, title or notes..."
+              />
             </div>
 
-            {expenses.length === 0 ? (
-              <EmptyState
-                icon={Receipt}
-                title="No Expense Records"
-                description="No expenses match your search or category filter."
-              />
-            ) : (
-              expenses.map((e) => (
-                <div
-                  key={e.id}
-                  className="bg-white dark:bg-slate-900 rounded-2xl border border-[#B2DFDB] dark:border-slate-800 p-3.5 space-y-2.5 shadow-xs"
-                >
-                  {/* Top Row: Title & Amount */}
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 leading-snug">
-                      {e.title}
-                    </span>
-                    <span className="text-sm font-black text-[#00695C] dark:text-[#4DB6AC] font-heading shrink-0">
-                      ₹{Number(e.amount).toFixed(2)}
-                    </span>
-                  </div>
-
-                  {/* Middle Row: Category Pill & Payment Method + Date */}
-                  <div className="flex items-center justify-between text-xs pt-2 border-t border-[#E0F2F1] dark:border-slate-800 gap-2">
-                    <div className="space-y-0.5">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E0F2F1] text-[#00695C] dark:bg-teal-950/80 dark:text-teal-300 border border-[#B2DFDB] dark:border-teal-800/60 whitespace-nowrap">
-                        {e.category?.name || e.category_name || 'General'}
-                      </span>
-                      {e.paid_to && e.paid_to !== '-' && (
-                        <p className="text-[10px] text-slate-500 font-medium">Paid to: {e.paid_to}</p>
-                      )}
-                    </div>
-
-                    <div className="text-right space-y-0.5 shrink-0">
-                      <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-[#E0F2F1] text-[#00695C] dark:bg-teal-950/80 dark:text-teal-300 border border-[#B2DFDB] uppercase">
-                        {e.payment_method}
-                      </span>
-                      <span className="block text-[10px] text-slate-400 font-mono">{e.date}</span>
-                    </div>
-                  </div>
-
-                  {/* Bottom Row: Record ID & Action Button */}
-                  <div className="flex items-center justify-between pt-1.5 border-t border-[#E0F2F1] dark:border-slate-800 text-xs">
-                    <span className="text-[10px] text-slate-400 font-mono">ID #{e.id}</span>
-                    <button
-                      onClick={() => handleDeleteExpense(e.id)}
-                      className="px-2.5 py-1 text-rose-600 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-950/40 font-bold text-[11px] rounded-lg transition-colors cursor-pointer flex items-center gap-1"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 text-rose-500" /> Delete
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* Desktop Table View (hidden md:block) */}
-          <Card className="p-0 overflow-hidden hidden md:block">
-            {/* Filter & Category Pipeline Bar */}
-            <div className="p-3.5 sm:p-4 border-b border-[#B2DFDB]/60 dark:border-slate-800 bg-[#F0FAF9]/80 dark:bg-slate-900 space-y-3">
-              {/* Category Pipeline Tabs like Bill Management */}
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar touch-pan pb-1 text-xs">
+            {/* Right Controls: Category Filter Tabs + Layout Toggle */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between md:justify-end gap-2.5 sm:gap-3 w-full md:w-auto">
+              {/* Category Filter Pills */}
+              <div className="bg-slate-100/90 dark:bg-slate-800/90 p-1 rounded-xl flex items-center gap-1 overflow-x-auto no-scrollbar">
                 <button
                   onClick={() => setSelectedCategory('')}
-                  className={`px-3 py-1.5 rounded-xl font-bold shrink-0 transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
                     selectedCategory === ''
-                      ? 'bg-[#00796b] text-white shadow-xs font-extrabold'
-                      : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 border border-[#B2DFDB] dark:border-slate-700'
+                      ? 'bg-white dark:bg-slate-700 text-[#00796b] dark:text-[#80cbc4] shadow-2xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
-                  All Categories ({expenses.length})
+                  All ({expenses.length})
                 </button>
                 {categories.map((c) => (
                   <button
                     key={c.id}
                     onClick={() => setSelectedCategory(String(c.id))}
-                    className={`px-3 py-1.5 rounded-xl font-bold shrink-0 transition-all cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
                       String(selectedCategory) === String(c.id)
-                        ? 'bg-[#00796b] text-white shadow-xs font-extrabold'
-                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 border border-[#B2DFDB] dark:border-slate-700'
+                        ? 'bg-white dark:bg-slate-700 text-[#00796b] dark:text-[#80cbc4] shadow-2xs'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     {c.name}
@@ -507,90 +484,186 @@ export const ExpenseList = () => {
                 ))}
               </div>
 
-              {/* Search Bar */}
-              <div className="pt-2 border-t border-[#B2DFDB]/50 dark:border-slate-800 flex items-center gap-3">
-                <div className="flex-1">
-                  <SearchInput
-                    value={search}
-                    onChange={setSearch}
-                    placeholder="Search expenses by description, payee or notes..."
-                  />
-                </div>
+              {/* View Mode Toggle: Table vs Cards */}
+              <div className="bg-slate-100/90 dark:bg-slate-800/90 p-1 rounded-xl flex items-center gap-1 shrink-0 self-start sm:self-auto">
+                <button
+                  onClick={() => setViewMode('table')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    viewMode === 'table'
+                      ? 'bg-white dark:bg-slate-700 text-[#00695C] dark:text-[#4DB6AC] shadow-2xs'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <List className="w-3.5 h-3.5" />
+                  <span>Table</span>
+                </button>
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    viewMode === 'grid'
+                      ? 'bg-white dark:bg-slate-700 text-[#00695C] dark:text-[#4DB6AC] shadow-2xs'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span>Cards</span>
+                </button>
               </div>
             </div>
+          </div>
 
-            <div className="overflow-x-auto max-h-[640px] overflow-y-auto custom-scrollbar touch-pan">
-              <table className="w-full min-w-[650px] text-left text-xs border-collapse">
-                <thead className="sticky top-0 z-10 bg-[#F0FAF9] dark:bg-slate-800 shadow-xs">
-                  <tr className="bg-[#F0FAF9] dark:bg-slate-800 border-b border-[#B2DFDB] dark:border-slate-800 text-[#607D8B] dark:text-slate-400 font-bold uppercase tracking-wider text-[11px]">
-                    <th className="py-3 px-4">Expense Title & Method</th>
-                    <th className="py-3 px-4">Category</th>
-                    <th className="py-3 px-4">Paid To</th>
-                    <th className="py-3 px-4">Date</th>
-                    <th className="py-3 px-4 text-right">Amount (₹)</th>
-                    <th className="py-3 px-4 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-                  {expenses.length === 0 ? (
-                    <EmptyState
-                      variant="table"
-                      colSpan={6}
-                      icon={Receipt}
-                      title="No Expense Records"
-                      description={
-                        search || selectedCategory
-                          ? 'No overhead expenses match your search or category filter.'
-                          : 'No expenses have been recorded yet for the store.'
-                      }
-                      actionLabel="Record Expense"
-                      onAction={() => setIsModalOpen(true)}
-                      actionIcon={Plus}
-                      secondaryActionLabel={search || selectedCategory ? 'Reset Filters' : undefined}
-                      onSecondaryAction={() => {
-                        setSearch('');
-                        setSelectedCategory('');
-                      }}
-                    />
-                  ) : (
-                    expenses.map((e) => (
-                      <tr key={e.id} className="hover:bg-[#E0F2F1]/50 dark:hover:bg-slate-800/60 transition-colors">
-                        <td className="py-3 px-4">
-                          <p className="font-bold text-slate-900 dark:text-slate-100">{e.title}</p>
-                          <p className="text-[10px] text-[#00695C] dark:text-[#4DB6AC] font-mono font-semibold">
+          {/* List Display: Empty State vs Cards vs Table */}
+          {filteredExpenses.length === 0 ? (
+            <EmptyState
+              icon={Receipt}
+              title="No Expense Records Found"
+              description="There are currently no store operational expenses matching your search or category filter."
+              variant="card"
+              actionLabel="Record Expense"
+              onAction={() => setIsModalOpen(true)}
+              actionIcon={Plus}
+            />
+          ) : viewMode === 'table' ? (
+            /* RICH EXPENSES DATA TABLE VIEW */
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-lg overflow-hidden">
+              <div className="p-4 bg-slate-50 dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <h3 className="text-sm font-black text-[#263238] dark:text-slate-100 uppercase tracking-wider">
+                    Store Expenses Table ({filteredExpenses.length} Records)
+                  </h3>
+                </div>
+                <span className="text-xs text-slate-400 font-mono">Managed in `core_expense` database table</span>
+              </div>
+
+              <div className="overflow-x-auto custom-scrollbar">
+                <table className="w-full text-left text-xs min-w-[760px] border-collapse">
+                  <thead className="bg-slate-100/90 dark:bg-slate-800/90 backdrop-blur-xs text-[#00796b] dark:text-[#80cbc4] uppercase tracking-wider font-black border-b border-teal-100 dark:border-slate-700/80 text-[11px] whitespace-nowrap">
+                    <tr>
+                      <th className="px-4 py-3 whitespace-nowrap">Title & Method</th>
+                      <th className="px-4 py-3 whitespace-nowrap">Category</th>
+                      <th className="px-4 py-3 whitespace-nowrap">Paid To / Payee</th>
+                      <th className="px-4 py-3 whitespace-nowrap">Date</th>
+                      <th className="px-4 py-3 text-right whitespace-nowrap">Amount (₹)</th>
+                      <th className="px-4 py-3 text-right whitespace-nowrap">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-teal-50 dark:divide-slate-800/80 font-medium">
+                    {filteredExpenses.map((e) => (
+                      <tr key={e.id} className="hover:bg-teal-50/40 dark:hover:bg-slate-800/50 transition-colors">
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <p className="font-extrabold text-slate-900 dark:text-slate-100 text-xs">{e.title}</p>
+                          <span className="text-[10px] text-[#00695C] dark:text-[#4DB6AC] font-mono font-bold uppercase">
                             Paid via {e.payment_method}
-                          </p>
+                          </span>
                         </td>
-                        <td className="py-3 px-4 whitespace-nowrap">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#E0F2F1] text-[#00695C] dark:bg-teal-950/80 dark:text-teal-300 border border-[#B2DFDB] dark:border-teal-800/60 whitespace-nowrap">
+
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-teal-50 text-[#00695C] dark:bg-teal-950 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
                             {e.category?.name || e.category_name || 'General'}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-slate-700 dark:text-slate-300 font-medium">{e.paid_to || '-'}</td>
-                        <td className="py-3 px-4 text-slate-500 dark:text-slate-400 font-mono">{e.date}</td>
-                        <td className="py-3 px-4 text-right font-black text-[#00695C] dark:text-[#4DB6AC] text-sm font-heading">
-                          ₹{Number(e.amount || 0).toFixed(2)}
+
+                        <td className="px-4 py-3.5 text-slate-700 dark:text-slate-300 font-bold whitespace-nowrap">
+                          {e.paid_to || '-'}
                         </td>
-                        <td className="py-3 px-4 text-right">
+
+                        <td className="px-4 py-3.5 text-slate-500 font-mono text-[11px] whitespace-nowrap">
+                          {e.date}
+                        </td>
+
+                        <td className="px-4 py-3.5 text-right font-black text-[#00695C] dark:text-[#4DB6AC] text-sm font-heading whitespace-nowrap">
+                          ₹{Number(e.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </td>
+
+                        <td className="px-4 py-3.5 text-right whitespace-nowrap">
                           <button
                             onClick={() => handleDeleteExpense(e.id)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-colors cursor-pointer"
-                            title="Delete Expense"
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+                            title="Delete Expense Record"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </Card>
-        </div>
-      </div>
+          ) : (
+            /* RICH EXPENSES CARDS VIEW - MATCHING SUPPLIER CARD UI */
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+              {filteredExpenses.map((e) => (
+                <div
+                  key={e.id}
+                  className="bg-white dark:bg-slate-900 rounded-3xl border border-teal-100/80 dark:border-slate-800 p-5 shadow-sm hover:shadow-xl hover:border-teal-400/50 transition-all duration-300 flex flex-col justify-between group relative overflow-hidden"
+                >
+                  {/* Top Accent Gradient Bar */}
+                  <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#00695C] via-[#009688] to-[#4DB6AC] rounded-t-3xl" />
 
-      {/* Add Expense Modal */}
+                  <div>
+                    {/* Header Row: Category Badge + Amount */}
+                    <div className="flex items-start justify-between gap-3 mt-1">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#00695C] to-[#009688] text-white flex items-center justify-center shrink-0 shadow-md border border-white/20 group-hover:scale-105 transition-transform">
+                          <Receipt className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-0.5 rounded-lg bg-teal-100 dark:bg-teal-950 text-[#00695c] dark:text-teal-300 border border-teal-200 dark:border-teal-800">
+                            {e.category?.name || e.category_name || 'General'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <span className="text-base sm:text-lg font-black text-[#00695C] dark:text-[#4DB6AC] font-heading shrink-0">
+                        ₹{Number(e.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+
+                    {/* Expense Title */}
+                    <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-slate-100 mt-3.5 leading-snug">
+                      {e.title}
+                    </h3>
+
+                    {/* Payee Info & Method Pill */}
+                    <div className="mt-3.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-xs space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500 dark:text-slate-400 font-bold text-[11px]">Paid To:</span>
+                        <span className="font-extrabold text-slate-900 dark:text-slate-100 truncate ml-2">
+                          {e.paid_to || 'N/A'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500 dark:text-slate-400 font-bold text-[11px]">Method:</span>
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-mono font-bold text-[10px] uppercase">
+                          {e.payment_method}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card Footer */}
+                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+                    <span className="font-mono font-bold text-slate-400">
+                      📅 {e.date}
+                    </span>
+                    <button
+                      onClick={() => handleDeleteExpense(e.id)}
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+                      title="Delete Expense Record"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 🌟 RECORD OPERATING EXPENSE MODAL */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -617,27 +690,27 @@ export const ExpenseList = () => {
           </div>
         }
       >
-        <form onSubmit={handleCreateExpense} className="space-y-3 text-xs max-h-[75vh] overflow-y-auto pr-1">
+        <form onSubmit={handleCreateExpense} className="space-y-3.5 text-xs max-h-[75vh] overflow-y-auto pr-1 font-sans">
           <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">Expense Title / Description *</label>
+            <label className="block font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Expense Title / Description *</label>
             <input
               type="text"
               required
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               placeholder="e.g. Electric AC Bill / Packaging Bags"
-              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#88BDF2] outline-hidden text-[#384959] dark:text-slate-100 placeholder:text-slate-400"
+              className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-[#00796b] focus:ring-2 focus:ring-[#00796b]/20 outline-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">Category *</label>
+              <label className="block font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Category *</label>
               <select
                 required
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[#384959] dark:text-slate-100"
+                className="w-full px-3 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 focus:border-[#00796b] outline-none"
               >
                 <option value="">Select Category</option>
                 {categories.map((c) => (
@@ -647,7 +720,7 @@ export const ExpenseList = () => {
             </div>
 
             <div>
-              <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">Amount (₹) *</label>
+              <label className="block font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Amount (₹) *</label>
               <input
                 type="number"
                 step="0.01"
@@ -655,29 +728,29 @@ export const ExpenseList = () => {
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                 placeholder="2500.00"
-                className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-[#384959] dark:text-slate-100"
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono font-bold text-slate-900 dark:text-slate-100 focus:border-[#00796b] outline-none"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">Date *</label>
+              <label className="block font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Date *</label>
               <input
                 type="date"
                 required
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[#384959] dark:text-slate-100"
+                className="w-full px-3 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 focus:border-[#00796b] outline-none"
               />
             </div>
 
             <div>
-              <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">Payment Method</label>
+              <label className="block font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Payment Method</label>
               <select
                 value={formData.payment_method}
                 onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
-                className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[#384959] dark:text-slate-100"
+                className="w-full px-3 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 focus:border-[#00796b] outline-none"
               >
                 <option value="UPI">UPI Payment</option>
                 <option value="CASH">Cash</option>
@@ -727,7 +800,7 @@ export const ExpenseList = () => {
                         placeholder="0"
                         value={cnt}
                         onChange={(e) => handleNoteCountChange(denom, e.target.value)}
-                        className="w-12 px-1.5 py-0.5 text-center font-mono font-bold bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg outline-hidden focus:border-emerald-500 text-[#384959] dark:text-slate-100"
+                        className="w-12 px-1.5 py-0.5 text-center font-mono font-bold bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg outline-none focus:border-emerald-500 text-slate-900 dark:text-slate-100"
                       />
                       <span className="w-14 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
                         = ₹{sub}
@@ -743,8 +816,8 @@ export const ExpenseList = () => {
           {isDeliveryCategory && (
             <div className="p-3 bg-sky-50/80 dark:bg-sky-950/40 rounded-2xl border border-sky-200/80 dark:border-sky-800/60 space-y-2 text-xs">
               <div className="flex items-center justify-between">
-                <span className="font-extrabold text-[#384959] dark:text-[#88BDF2] flex items-center gap-1.5">
-                  <Truck className="w-3.5 h-3.5 text-[#88BDF2]" />
+                <span className="font-extrabold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                  <Truck className="w-3.5 h-3.5 text-sky-600" />
                   Link Delivery & Transport to Order / PO
                 </span>
               </div>
@@ -755,7 +828,7 @@ export const ExpenseList = () => {
                   onClick={() => { setLinkType('ORDER'); setSelectedPO(''); }}
                   className={`py-1.5 px-3 rounded-xl border font-bold text-center transition-all cursor-pointer ${
                     linkType === 'ORDER'
-                      ? 'bg-[#384959] text-white border-[#384959]'
+                      ? 'bg-[#00796b] text-white border-[#00796b]'
                       : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
                   }`}
                 >
@@ -767,7 +840,7 @@ export const ExpenseList = () => {
                   onClick={() => { setLinkType('PO'); setSelectedOrder(''); }}
                   className={`py-1.5 px-3 rounded-xl border font-bold text-center transition-all cursor-pointer ${
                     linkType === 'PO'
-                      ? 'bg-[#384959] text-white border-[#384959]'
+                      ? 'bg-[#00796b] text-white border-[#00796b]'
                       : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
                   }`}
                 >
@@ -838,24 +911,24 @@ export const ExpenseList = () => {
           )}
 
           <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">Paid To / Recipient Firm</label>
+            <label className="block font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Paid To / Recipient Firm</label>
             <input
               type="text"
               value={formData.paid_to}
               onChange={(e) => setFormData({ ...formData, paid_to: e.target.value })}
               placeholder="e.g. Adani Electricity Mumbai Ltd / Porter Logistics"
-              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[#384959] dark:text-slate-100"
+              className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:border-[#00796b] outline-none"
             />
           </div>
 
           <div>
-            <label className="block font-bold text-[#384959] dark:text-slate-200 uppercase tracking-wider mb-1">Remarks / Notes</label>
+            <label className="block font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Remarks / Notes</label>
             <textarea
               rows="2"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="Optional remarks or linked reference details"
-              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[#384959] dark:text-slate-100"
+              className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:border-[#00796b] outline-none resize-none"
             />
           </div>
         </form>
