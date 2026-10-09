@@ -184,5 +184,11 @@ class OrderService:
         self.db.flush()
         return self.get_order(order_id)
 
+    def delete_order(self, order_id: int) -> bool:
+        deleted = self.repo.delete_order(order_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Order not found")
+        return True
+
     def list_payments(self, page: int = 1, limit: int = 20) -> Tuple[List[PaymentTransaction], int]:
         return self.repo.list_payments(page=page, limit=limit)

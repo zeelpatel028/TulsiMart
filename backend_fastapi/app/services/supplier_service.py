@@ -55,6 +55,12 @@ class SupplierService:
         self.db.flush()
         return self.get_supplier(supplier_id)
 
+    def delete_supplier(self, supplier_id: int) -> bool:
+        deleted = self.repo.delete_supplier(supplier_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Supplier not found")
+        return True
+
     # Purchase Orders
     def list_purchase_orders(self, supplier_id: Optional[int] = None, page: int = 1, limit: int = 20):
         return self.repo.list_purchase_orders(supplier_id=supplier_id, page=page, limit=limit)

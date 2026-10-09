@@ -84,6 +84,18 @@ def toggle_payment_status(
     return success_response(data=OrderResponse.model_validate(order).model_dump(), message="Payment status updated")
 
 
+@router.delete("/orders/orders/{order_id}/")
+@router.delete("/orders/{order_id}/")
+def delete_order(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user: LoginAccount = Depends(get_current_user)
+):
+    service = OrderService(db)
+    service.delete_order(order_id)
+    return success_response(message="Order deleted successfully")
+
+
 @router.get("/orders/orders/{order_id}/invoice_details/")
 def get_invoice_details(order_id: int, db: Session = Depends(get_db)):
     service = OrderService(db)

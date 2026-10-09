@@ -71,7 +71,10 @@ class Settings(BaseSettings):
         if v and isinstance(v, str) and v.strip() and v.strip().startswith("sqlite"):
             return v.strip()
 
-        return "sqlite:///./tulsimart.db"
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        db_file_path = os.path.join(base_dir, "tulsimart.db").replace("\\", "/")
+        return f"sqlite:///{db_file_path}"
+
 
     # Production-Safe Connection Pool Settings
     DB_POOL_SIZE: int = 10

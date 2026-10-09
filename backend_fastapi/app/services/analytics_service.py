@@ -1,6 +1,6 @@
 from typing import Dict, Any, List, Optional
 from datetime import date, datetime, timedelta
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, case, or_
 
 from app.models.user import LoginAccount
@@ -184,7 +184,7 @@ class AnalyticsService:
             "total_customers": total_customers
         }
 
-    def get_sales_trends(self, days: Optional[int] = None, period: Optional[str] = "month") -> Dict[str, Any]:
+    def get_sales_trends(self, days: Optional[int] = None, period: Optional[str] = "month", customer_type: Optional[str] = None) -> Dict[str, Any]:
         if days:
             num_days = days
         else:
@@ -200,60 +200,190 @@ class AnalyticsService:
 
         start_date = datetime.now() - timedelta(days=num_days)
 
-        # 1. Orders grouped by date
-        orders_query = (
-            self.db.query(
-                func.date(Order.created_at).label("order_date"),
-                func.count(Order.id).label("order_count"),
-                func.coalesce(func.sum(Order.total_amount), 0).label("total_sales")
-            )
+        # 1. Fetch Orders with Items & Product for exact profit & payment mode calculation
+        from app.models.order import OrderItem
+        from app.models.product import Product
+        
+        query = (
+            self.db.query(Order)
+            .options(joinedload(Order.items).joinedload(OrderItem.product), joinedload(Order.created_by))
             .filter(Order.created_at >= start_date)
-            .group_by(func.date(Order.created_at))
-            .order_by(func.date(Order.created_at).asc())
-            .all()
         )
 
-        # 2. Expenses grouped by date
+        if customer_type:
+            ct = customer_type.lower().strip()
+            if ct in ["walkin", "walk_in", "walk-in", "hoking"]:
+                query = query.filter(or_(Order.customer_id == None, Order.customer_name == "Walk-in Customer", Order.customer_name == None))
+            elif ct in ["registered", "member"]:
+                query = query.filter(and_(Order.customer_id != None, Order.customer_name != "Walk-in Customer"))
+
+        orders = query.order_by(Order.created_at.asc()).all()
+
+        date_dict: Dict[str, Dict[str, Any]] = {}
+
+        # Pre-fill continuous dates for smooth charts
+        if num_days <= 31:
+            for i in range(num_days - 1, -1, -1):
+                d_str = str((date.today() - timedelta(days=i)))
+                date_dict[d_str] = {
+                    "date": d_str,
+                    "label": d_str,
+                    "total_bills": 0,
+                    "cash_bills": 0,
+                    "upi_bills": 0,
+                    "card_bills": 0,
+                    "cash_non_tax": 0.0,
+                    "upi_non_tax": 0.0,
+                    "card_non_tax": 0.0,
+                    "cash_tax": 0.0,
+                    "upi_tax": 0.0,
+                    "card_tax": 0.0,
+                    "total_rev_cash": 0.0,
+                    "total_rev_upi": 0.0,
+                    "total_rev_card": 0.0,
+                    "total_rev_combined": 0.0,
+                    "profit_cash": 0.0,
+                    "profit_upi": 0.0,
+                    "profit_card": 0.0,
+                    "profit_combined": 0.0,
+                    "expenses": 0.0,
+                    "net_profit": 0.0,
+                    "margin_pct": 0.0,
+                    "revenue": 0.0,
+                    "profit": 0.0,
+                    "orders": 0
+                }
+
+        for o in orders:
+            d_str = o.created_at.strftime("%Y-%m-%d") if o.created_at else str(date.today())
+            method = (o.payment_method or "CASH").upper()
+
+            tax = float(o.tax_amount or 0.0)
+            tot = float(o.total_amount or 0.0)
+            non_tax = float(o.subtotal or (tot - tax))
+            if non_tax < 0:
+                non_tax = max(0.0, tot - tax)
+
+            # Profit calculation: Selling Price - Purchase Price (Cost Price)
+            order_selling_total = 0.0
+            order_cost_total = 0.0
+            if o.items:
+                for item in o.items:
+                    qty = float(item.quantity or 1.0)
+                    sp = float(item.unit_price or 0.0)
+                    order_selling_total += (sp * qty)
+                    if item.product and item.product.cost_price is not None and float(item.product.cost_price) > 0:
+                        cp = float(item.product.cost_price)
+                    else:
+                        cp = sp * 0.7  # Fallback 30% margin standard
+                    order_cost_total += (cp * qty)
+            else:
+                order_selling_total = tot
+                order_cost_total = tot * 0.7
+
+            profit = round(max(0.0, order_selling_total - order_cost_total), 2)
+
+            if d_str not in date_dict:
+                date_dict[d_str] = {
+                    "date": d_str,
+                    "label": d_str,
+                    "total_bills": 0,
+                    "cash_bills": 0,
+                    "upi_bills": 0,
+                    "card_bills": 0,
+                    "cash_non_tax": 0.0,
+                    "upi_non_tax": 0.0,
+                    "card_non_tax": 0.0,
+                    "cash_tax": 0.0,
+                    "upi_tax": 0.0,
+                    "card_tax": 0.0,
+                    "total_rev_cash": 0.0,
+                    "total_rev_upi": 0.0,
+                    "total_rev_card": 0.0,
+                    "total_rev_combined": 0.0,
+                    "profit_cash": 0.0,
+                    "profit_upi": 0.0,
+                    "profit_card": 0.0,
+                    "profit_combined": 0.0,
+                    "expenses": 0.0,
+                    "net_profit": 0.0,
+                    "margin_pct": 0.0,
+                    "revenue": 0.0,
+                    "profit": 0.0,
+                    "orders": 0
+                }
+
+            entry = date_dict[d_str]
+            entry["total_bills"] += 1
+            entry["orders"] += 1
+
+            if method == "CASH":
+                entry["cash_bills"] += 1
+                entry["cash_non_tax"] += non_tax
+                entry["cash_tax"] += tax
+                entry["total_rev_cash"] += tot
+                entry["profit_cash"] += profit
+            elif method in ["UPI", "ONLINE", "GPAY", "PHONEPE"]:
+                entry["upi_bills"] += 1
+                entry["upi_non_tax"] += non_tax
+                entry["upi_tax"] += tax
+                entry["total_rev_upi"] += tot
+                entry["profit_upi"] += profit
+            else:
+                entry["card_bills"] += 1
+                entry["card_non_tax"] += non_tax
+                entry["card_tax"] += tax
+                entry["total_rev_card"] += tot
+                entry["profit_card"] += profit
+
+            entry["total_rev_combined"] += tot
+            entry["profit_combined"] += profit
+
+        # 2. Fetch Expenses grouped by date
         from app.models.expense import Expense
-        expenses_query = (
-            self.db.query(
-                func.date(Expense.date).label("exp_date"),
-                func.coalesce(func.sum(Expense.amount), 0).label("total_expense")
-            )
+        expenses = (
+            self.db.query(Expense)
+            .options(joinedload(Expense.category))
             .filter(Expense.date >= start_date.date())
-            .group_by(func.date(Expense.date))
             .all()
         )
-        expense_map = {str(row[0]): float(row[1]) for row in expenses_query}
 
+        for exp in expenses:
+            d_str = str(exp.date)
+            amt = float(exp.amount or 0.0)
+            if d_str in date_dict:
+                date_dict[d_str]["expenses"] += amt
+
+        # Format comparison_data list
         comparison_data = []
-        for row in orders_query:
-            d_str = str(row[0])
-            rev = float(row[2])
-            exp = expense_map.get(d_str, 0.0)
-            profit = max(0.0, rev - exp)
-            margin = round((profit / rev * 100), 1) if rev > 0 else 0.0
-            comparison_data.append({
-                "label": d_str,
-                "date": d_str,
-                "revenue": rev,
-                "expenses": exp,
-                "profit": profit,
-                "orders": int(row[1]),
-                "margin_pct": margin
-            })
+        for d_str, entry in sorted(date_dict.items()):
+            tot_rev = round(entry["total_rev_combined"], 2)
+            tot_profit = round(entry["profit_combined"], 2)
+            exp_amt = round(entry["expenses"], 2)
+            net_prof = round(tot_profit - exp_amt, 2)
+            margin = round((net_prof / tot_rev * 100), 1) if tot_rev > 0 else 0.0
 
-        if not comparison_data:
-            today_str = str(date.today())
-            comparison_data.append({
-                "label": today_str,
-                "date": today_str,
-                "revenue": 0.0,
-                "expenses": 0.0,
-                "profit": 0.0,
-                "orders": 0,
-                "margin_pct": 0.0
-            })
+            entry["cash_non_tax"] = round(entry["cash_non_tax"], 2)
+            entry["upi_non_tax"] = round(entry["upi_non_tax"], 2)
+            entry["card_non_tax"] = round(entry["card_non_tax"], 2)
+            entry["cash_tax"] = round(entry["cash_tax"], 2)
+            entry["upi_tax"] = round(entry["upi_tax"], 2)
+            entry["card_tax"] = round(entry["card_tax"], 2)
+            entry["total_rev_cash"] = round(entry["total_rev_cash"], 2)
+            entry["total_rev_upi"] = round(entry["total_rev_upi"], 2)
+            entry["total_rev_card"] = round(entry["total_rev_card"], 2)
+            entry["total_rev_combined"] = tot_rev
+            entry["profit_cash"] = round(entry["profit_cash"], 2)
+            entry["profit_upi"] = round(entry["profit_upi"], 2)
+            entry["profit_card"] = round(entry["profit_card"], 2)
+            entry["profit_combined"] = tot_profit
+            entry["expenses"] = exp_amt
+            entry["net_profit"] = net_prof
+            entry["margin_pct"] = margin
+            entry["revenue"] = tot_rev
+            entry["profit"] = net_prof
+
+            comparison_data.append(entry)
 
         # 3. Payment methods breakdown
         pm_rows = (
@@ -269,7 +399,7 @@ class AnalyticsService:
         payment_methods = [
             {
                 "method": row[0] or "CASH",
-                "amount": float(row[1]),
+                "amount": round(float(row[1]), 2),
                 "count": int(row[2])
             }
             for row in pm_rows
@@ -282,8 +412,7 @@ class AnalyticsService:
             ]
 
         # 4. Category performance
-        from app.models.product import Category, Product
-        from app.models.order import OrderItem
+        from app.models.product import Category
         cat_rows = (
             self.db.query(
                 Category.name,
@@ -297,18 +426,158 @@ class AnalyticsService:
             .all()
         )
         category_performance = [
-            {"category": row[0], "revenue": float(row[1])} for row in cat_rows if row[0]
+            {"category": row[0], "revenue": round(float(row[1]), 2)} for row in cat_rows if row[0]
         ]
         if not category_performance:
             all_cats = self.db.query(Category.name).all()
             category_performance = [{"category": c[0], "revenue": 0.0} for c in all_cats if c[0]]
+
+        # 5. Purchase Orders Breakdown
+        from app.models.supplier import PurchaseOrder
+        pos = (
+            self.db.query(PurchaseOrder)
+            .options(joinedload(PurchaseOrder.supplier))
+            .filter(or_(PurchaseOrder.order_date >= start_date.date(), PurchaseOrder.created_at >= start_date))
+            .order_by(PurchaseOrder.id.desc())
+            .all()
+        )
+        po_list = [
+            {
+                "id": po.id,
+                "po_number": po.po_number,
+                "supplier_name": (po.supplier.company_name or po.supplier.name) if po.supplier else "N/A",
+                "order_date": str(po.order_date) if po.order_date else "",
+                "total_amount": round(float(po.total_amount or 0), 2),
+                "paid_amount": round(float(po.paid_amount or 0), 2),
+                "status": po.status
+            }
+            for po in pos
+        ]
+        tot_po_val = sum(p["total_amount"] for p in po_list)
+        tot_po_paid = sum(p["paid_amount"] for p in po_list)
+        purchase_orders_summary = {
+            "total_pos": len(po_list),
+            "total_po_amount": round(tot_po_val, 2),
+            "total_paid_amount": round(tot_po_paid, 2),
+            "list": po_list
+        }
+
+        # 6. Customer Billing Breakdown
+        cust_map = {}
+        for o in orders:
+            c_name = o.customer_name or "Walk-in Customer"
+            c_phone = o.customer_phone or "N/A"
+            tot = float(o.total_amount or 0.0)
+            method = (o.payment_method or "CASH").upper()
+
+            if c_name not in cust_map:
+                cust_map[c_name] = {
+                    "customer_name": c_name,
+                    "phone": c_phone,
+                    "bill_count": 0,
+                    "total_amount": 0.0,
+                    "cash_amount": 0.0,
+                    "upi_amount": 0.0,
+                    "is_registered": o.customer_id is not None
+                }
+            cust = cust_map[c_name]
+            cust["bill_count"] += 1
+            cust["total_amount"] = round(cust["total_amount"] + tot, 2)
+            if method == "CASH":
+                cust["cash_amount"] = round(cust["cash_amount"] + tot, 2)
+            elif method in ["UPI", "ONLINE", "GPAY", "PHONEPE"]:
+                cust["upi_amount"] = round(cust["upi_amount"] + tot, 2)
+
+        cust_list = list(cust_map.values())
+        reg_rev = sum(c["total_amount"] for c in cust_list if c["is_registered"])
+        walkin_rev = sum(c["total_amount"] for c in cust_list if not c["is_registered"])
+        customer_billing_summary = {
+            "total_customer_bills": len(orders),
+            "registered_customers_revenue": round(reg_rev, 2),
+            "walkin_customers_revenue": round(walkin_rev, 2),
+            "list": cust_list[:25]
+        }
+
+        # 7. Staff Sales Breakdown
+        staff_map = {}
+        for o in orders:
+            s_name = (o.created_by.full_name or o.created_by.username) if (o.created_by and (getattr(o.created_by, "full_name", None) or getattr(o.created_by, "username", None))) else ("Admin" if o.created_by_id == 1 else "Walk-in Cashier")
+            s_role = getattr(o.created_by, "role", "Cashier") if o.created_by else "Cashier"
+            tot = float(o.total_amount or 0.0)
+            method = (o.payment_method or "CASH").upper()
+
+            if s_name not in staff_map:
+                staff_map[s_name] = {
+                    "staff_name": s_name,
+                    "role": s_role,
+                    "bill_count": 0,
+                    "cash_revenue": 0.0,
+                    "upi_revenue": 0.0,
+                    "card_revenue": 0.0,
+                    "total_revenue": 0.0
+                }
+            st = staff_map[s_name]
+            st["bill_count"] += 1
+            st["total_revenue"] = round(st["total_revenue"] + tot, 2)
+            if method == "CASH":
+                st["cash_revenue"] = round(st["cash_revenue"] + tot, 2)
+            elif method in ["UPI", "ONLINE", "GPAY", "PHONEPE"]:
+                st["upi_revenue"] = round(st["upi_revenue"] + tot, 2)
+            else:
+                st["card_revenue"] = round(st["card_revenue"] + tot, 2)
+
+        staff_sales_summary = {
+            "total_staff": len(staff_map),
+            "list": list(staff_map.values())
+        }
+
+        # 8. Expenses Summary Breakdown
+        exp_cat_map = {}
+        exp_items = []
+        tot_exp_cash = 0.0
+        tot_exp_upi = 0.0
+
+        for e in expenses:
+            amt = float(e.amount or 0.0)
+            method = (e.payment_method or "UPI").upper()
+            cat_name = e.category.name if e.category else "General"
+            if method == "CASH":
+                tot_exp_cash += amt
+            else:
+                tot_exp_upi += amt
+
+            if cat_name not in exp_cat_map:
+                exp_cat_map[cat_name] = {"category": cat_name, "amount": 0.0, "count": 0}
+            exp_cat_map[cat_name]["amount"] = round(exp_cat_map[cat_name]["amount"] + amt, 2)
+            exp_cat_map[cat_name]["count"] += 1
+
+            exp_items.append({
+                "id": e.id,
+                "title": e.title,
+                "category": cat_name,
+                "date": str(e.date) if e.date else "",
+                "payment_method": method,
+                "amount": round(amt, 2)
+            })
+
+        expenses_summary = {
+            "total_expenses": round(tot_exp_cash + tot_exp_upi, 2),
+            "cash_expenses": round(tot_exp_cash, 2),
+            "upi_expenses": round(tot_exp_upi, 2),
+            "categories": list(exp_cat_map.values()),
+            "list": exp_items[:25]
+        }
 
         return {
             "comparison_data": comparison_data,
             "monthly_comparison": comparison_data,
             "payment_methods": payment_methods,
             "category_performance": category_performance,
-            "daily_trends": comparison_data
+            "daily_trends": comparison_data,
+            "purchase_orders_summary": purchase_orders_summary,
+            "customer_billing_summary": customer_billing_summary,
+            "staff_sales_summary": staff_sales_summary,
+            "expenses_summary": expenses_summary
         }
 
     def get_reports(
@@ -361,7 +630,7 @@ class AnalyticsService:
 
         # 2. Bill GST Bill (Sales Bills GST)
         elif rtype in ["gst", "sales_gst", "bill_gst"]:
-            query = self.db.query(Order)
+            query = self.db.query(Order).filter(Order.tax_amount > 0)
             if date_from:
                 try:
                     query = query.filter(Order.created_at >= datetime.fromisoformat(date_from))
@@ -388,6 +657,7 @@ class AnalyticsService:
                     "total_amount": float(o.total_amount)
                 }
                 for o in orders
+                if float(o.tax_amount or 0) > 0
             ]
             taxable_tot = sum(d["taxable_amount"] for d in data)
             gst_tot = sum(d["gst_tax_amount"] for d in data)
@@ -548,17 +818,18 @@ class AnalyticsService:
                 tot = float(po.total_amount or 0)
                 taxable = round(tot / 1.18, 2)
                 gst_amt = round(tot - taxable, 2)
-                data.append({
-                    "po_number": po.po_number,
-                    "order_date": po.order_date.strftime("%Y-%m-%d") if po.order_date else (po.created_at.strftime("%Y-%m-%d") if po.created_at else ""),
-                    "supplier_name": (po.supplier.company_name or po.supplier.name) if po.supplier else "N/A",
-                    "supplier_gstin": po.supplier.gstin if po.supplier and po.supplier.gstin else "URP",
-                    "gst_mode": po.gst_mode or "EXCLUSIVE",
-                    "taxable_amount": taxable,
-                    "gst_tax_amount": gst_amt,
-                    "total_amount": tot,
-                    "status": po.status
-                })
+                if gst_amt > 0:
+                    data.append({
+                        "po_number": po.po_number,
+                        "order_date": po.order_date.strftime("%Y-%m-%d") if po.order_date else (po.created_at.strftime("%Y-%m-%d") if po.created_at else ""),
+                        "supplier_name": (po.supplier.company_name or po.supplier.name) if po.supplier else "N/A",
+                        "supplier_gstin": po.supplier.gstin if po.supplier and po.supplier.gstin else "URP",
+                        "gst_mode": po.gst_mode or "EXCLUSIVE",
+                        "taxable_amount": taxable,
+                        "gst_tax_amount": gst_amt,
+                        "total_amount": tot,
+                        "status": po.status
+                    })
             tot_taxable = sum(d["taxable_amount"] for d in data)
             tot_gst = sum(d["gst_tax_amount"] for d in data)
             tot_val = sum(d["total_amount"] for d in data)

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Modal } from '../../../components/common/Modal';
 import { Button } from '../../../components/common/Button';
+import { QuickEditProductModal } from '../../../components/common/QuickEditProductModal';
 import { 
   Plus, 
   Trash2, 
@@ -16,7 +17,9 @@ import {
   ChevronDown,
   Minus,
   PackageOpen,
-  Receipt
+  Receipt,
+  Edit3,
+  IndianRupee
 } from 'lucide-react';
 
 // Custom Searchable Dropdown Component
@@ -111,22 +114,31 @@ const SearchableSelect = ({
       )}
 
       {isOpen && (
-        <div className="absolute z-50 left-0 right-0 mt-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 max-h-64 flex flex-col">
-          <div className="p-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50">
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+        <div className="absolute z-[9999] left-0 min-w-full sm:min-w-[340px] md:min-w-[380px] mt-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 max-h-72 flex flex-col">
+          <div className="p-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-800/60">
+            <div className="relative flex items-center">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 text-slate-400 pointer-events-none" />
               <input
                 type="text"
                 autoFocus
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Type to filter..."
-                className="w-full pl-8 pr-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-[#00796b]/30 text-slate-900 dark:text-white"
+                placeholder="Type to filter options..."
+                className="w-full pl-8 pr-7 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-[#00796b]/30 text-slate-900 dark:text-white"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold p-0.5 cursor-pointer"
+                >
+                  ✕
+                </button>
+              )}
             </div>
           </div>
 
-          <div className="overflow-y-auto flex-1 p-1 space-y-0.5">
+          <div className="overflow-y-auto flex-1 p-1 space-y-1 custom-scrollbar">
             {filteredOptions.length === 0 ? (
               <div className="p-4 text-center text-xs text-slate-400 dark:text-slate-500 font-medium">
                 {emptyMessage}
@@ -141,20 +153,24 @@ const SearchableSelect = ({
                     setIsOpen(false);
                     setSearchQuery('');
                   }}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-colors flex items-center justify-between gap-2 ${
+                  className={`w-full text-left px-3 py-2 rounded-xl text-xs transition-all flex items-start justify-between gap-2.5 cursor-pointer ${
                     String(opt.value) === String(value)
-                      ? 'bg-teal-50 dark:bg-teal-950/60 text-[#00796b] dark:text-teal-300 font-bold border border-teal-100 dark:border-teal-900/40'
-                      : 'hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-800 dark:text-slate-200'
+                      ? 'bg-teal-50 dark:bg-teal-950/80 text-[#00796b] dark:text-teal-300 font-bold border border-teal-200/80 dark:border-teal-800/80 shadow-2xs'
+                      : 'hover:bg-slate-100/90 dark:hover:bg-slate-800/80 text-slate-800 dark:text-slate-200'
                   }`}
                 >
-                  <div className="min-w-0">
-                    <div className="truncate font-semibold">{opt.label}</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-bold text-slate-900 dark:text-white leading-snug break-words">
+                      {opt.label}
+                    </div>
                     {opt.sublabel && (
-                      <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{opt.sublabel}</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5 leading-tight">
+                        {opt.sublabel}
+                      </div>
                     )}
                   </div>
                   {opt.badge && (
-                    <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700">
+                    <span className="shrink-0 text-[10px] font-extrabold px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
                       {opt.badge}
                     </span>
                   )}
@@ -180,6 +196,28 @@ export const PurchaseOrderModal = ({
 }) => {
   const [showAllProductsOverride, setShowAllProductsOverride] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [isQuickEditOpen, setIsQuickEditOpen] = useState(false);
+
+  const handleOpenQuickEditProduct = (prod) => {
+    setEditingProduct(prod);
+    setIsQuickEditOpen(true);
+  };
+
+  const handleProductUpdated = (updatedProd) => {
+    if (!updatedProd) return;
+    const updatedItems = poForm.items.map(it => {
+      if (String(it.product) === String(updatedProd.id)) {
+        return {
+          ...it,
+          product_name: updatedProd.name,
+          unit_cost: updatedProd.cost_price || updatedProd.purchase_final_price || it.unit_cost
+        };
+      }
+      return it;
+    });
+    setPoForm(prev => ({ ...prev, items: updatedItems }));
+  };
 
   // Selected supplier details
   const selectedSupplier = useMemo(() => {
@@ -212,7 +250,7 @@ export const PurchaseOrderModal = ({
       }
       // 3. Wholesale category match
       if (suppCategory && p.category) {
-        const catName = typeof p.category === 'object' ? p.category.name : p.category;
+        const catName = (p.category && typeof p.category === 'object') ? p.category.name : p.category;
         if (typeof catName === 'string' && (
           catName.toLowerCase() === suppCategory ||
           catName.toLowerCase().includes(suppCategory) ||
@@ -250,7 +288,7 @@ export const PurchaseOrderModal = ({
       value: p.id,
       label: p.name,
       sublabel: `Stock: ${p.stock_quantity || 0} ${p.unit?.short_name || 'unit'} | Cost: ₹${p.cost_price || p.purchase_final_price || 0}`,
-      badge: p.sku ? `SKU: ${p.sku}` : (typeof p.category === 'object' ? p.category?.name : p.category)
+      badge: p.sku ? `SKU: ${p.sku}` : (p.category?.name || (typeof p.category === 'string' ? p.category : 'General'))
     }));
   }, [availableProducts]);
 
@@ -549,7 +587,7 @@ export const PurchaseOrderModal = ({
               </Button>
             </div>
           ) : (
-            <div className="space-y-3 max-h-[340px] overflow-y-auto pr-1">
+            <div className="space-y-3 p-1">
               {poForm.items.map((item, idx) => {
                 const selectedProd = products.find(p => String(p.id) === String(item.product));
                 const lineTotal = (parseFloat(item.quantity || 0)) * (parseFloat(item.unit_cost || 0));
@@ -557,7 +595,8 @@ export const PurchaseOrderModal = ({
                 return (
                   <div
                     key={idx}
-                    className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs space-y-3 hover:border-teal-300 dark:hover:border-teal-700/60 transition-all"
+                    style={{ zIndex: 100 - idx }}
+                    className="relative p-3.5 sm:p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs space-y-2.5 hover:border-teal-300 dark:hover:border-teal-700/60 transition-all"
                   >
                     {/* Horizontal layout on desktop, stacked on mobile */}
                     <div className="flex flex-col md:flex-row md:items-center gap-3">
@@ -659,17 +698,59 @@ export const PurchaseOrderModal = ({
                       </div>
                     </div>
 
-                    {/* Selected Product Specs Tag */}
-                    {selectedProd && (
-                      <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 bg-teal-50/60 dark:bg-teal-950/30 rounded-xl text-[11px] font-medium text-slate-600 dark:text-slate-300 border border-teal-100/50 dark:border-teal-900/30">
-                        <span className="truncate">
-                          Category: <strong className="text-slate-800 dark:text-slate-100">{typeof selectedProd.category === 'object' ? selectedProd.category.name : selectedProd.category || 'General'}</strong>
-                        </span>
-                        <span className="font-mono text-slate-500 shrink-0">
-                          SKU: {selectedProd.sku || 'N/A'} | Stock: <strong className="text-[#00796b] dark:text-teal-300">{selectedProd.stock_quantity || 0}</strong> {selectedProd.unit?.short_name || ''}
-                        </span>
-                      </div>
-                    )}
+                    {/* Compact Selected Product Specs & Quick Update Bar */}
+                    {selectedProd && (() => {
+                      const stock = parseFloat(selectedProd.stock_quantity || 0);
+                      const minStock = parseFloat(selectedProd.min_stock_alert ?? 10);
+                      const costP = parseFloat(selectedProd.cost_price || selectedProd.purchase_final_price || item.unit_cost || 0);
+                      const sellP = parseFloat(selectedProd.selling_price || 0);
+                      const marginP = sellP > 0 ? (((sellP - costP) / sellP) * 100).toFixed(1) : 0;
+                      const unitName = selectedProd.unit?.short_name || selectedProd.unit_name || 'unit';
+
+                      const stockBadgeClass = stock <= 0
+                        ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border-rose-200'
+                        : stock <= minStock
+                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-200'
+                        : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-200';
+
+                      const stockStatusText = stock <= 0 ? 'Out of Stock' : stock <= minStock ? 'Low Stock' : 'In Stock';
+
+                      return (
+                        <div className="mt-2 px-3 py-1.5 bg-slate-50/90 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                          <div className="flex items-center gap-2 flex-wrap min-w-0">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-extrabold text-[10px] border ${stockBadgeClass}`}>
+                              <Package className="w-3 h-3" />
+                              <span>{stockStatusText}: {stock} {unitName}</span>
+                            </span>
+
+                            <span className="font-semibold text-slate-600 dark:text-slate-300 truncate">
+                              Cat: <strong className="text-slate-900 dark:text-white font-bold">{selectedProd.category?.name || (typeof selectedProd.category === 'string' ? selectedProd.category : 'General')}</strong>
+                            </span>
+
+                            {marginP > 0 && (
+                              <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 font-extrabold text-[10px]">
+                                {marginP}% Margin
+                              </span>
+                            )}
+
+                            {selectedProd.sku && (
+                              <span className="font-mono text-slate-400 text-[10px] hidden sm:inline">
+                                SKU: {selectedProd.sku}
+                              </span>
+                            )}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleOpenQuickEditProduct(selectedProd)}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-slate-900 hover:bg-teal-50 dark:hover:bg-slate-800 text-[#00796b] dark:text-teal-300 font-extrabold text-[11px] rounded-lg border border-teal-200 dark:border-teal-800 shadow-2xs transition-all cursor-pointer shrink-0 active:scale-95"
+                          >
+                            <Edit3 className="w-3 h-3 text-[#00796b]" />
+                            <span>Edit Product</span>
+                          </button>
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })}
@@ -714,6 +795,14 @@ export const PurchaseOrderModal = ({
         </div>
 
       </form>
+
+      {/* QUICK EDIT PRODUCT MODAL */}
+      <QuickEditProductModal
+        isOpen={isQuickEditOpen}
+        onClose={() => setIsQuickEditOpen(false)}
+        product={editingProduct}
+        onProductUpdated={handleProductUpdated}
+      />
     </Modal>
   );
 };

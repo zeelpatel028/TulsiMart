@@ -77,6 +77,7 @@ export const InventoryList = () => {
   const [submittingEdit, setSubmittingEdit] = useState(false);
 
   useEffect(() => {
+    loadMetaOptions();
     if (activeTab === 'stock' || activeTab === 'near_expiry') {
       loadProducts();
     } else if (activeTab === 'movements') {
@@ -194,13 +195,30 @@ export const InventoryList = () => {
     }
   };
 
+  const getMetaId = (field, idField, p) => {
+    if (p[idField] !== undefined && p[idField] !== null && p[idField] !== '') {
+      return String(p[idField]);
+    }
+    if (p[field] && typeof p[field] === 'object' && p[field].id !== undefined && p[field].id !== null) {
+      return String(p[field].id);
+    }
+    if (p[field] && typeof p[field] !== 'object') {
+      return String(p[field]);
+    }
+    return '';
+  };
+
   const handleOpenEdit = (p) => {
     setEditingProduct(p);
+    const catId = getMetaId('category', 'category_id', p);
+    const unitId = getMetaId('unit', 'unit_id', p);
+    const suppId = getMetaId('supplier', 'supplier_id', p);
+
     setEditForm({
       name: p.name || '',
-      category: p.category || p.category_id || '',
-      unit: p.unit || p.unit_id || '',
-      supplier: p.supplier || p.supplier_id || '',
+      category: catId,
+      unit: unitId,
+      supplier: suppId,
       selling_price: p.selling_price || '',
       mrp: p.mrp || '',
       stock_quantity: p.stock_quantity !== undefined ? String(p.stock_quantity) : '',
@@ -224,9 +242,12 @@ export const InventoryList = () => {
       setSubmittingEdit(true);
       const payload = {
         name: editForm.name.trim(),
-        category: editForm.category || undefined,
-        unit: editForm.unit || undefined,
-        supplier: editForm.supplier || undefined,
+        category_id: editForm.category ? parseInt(editForm.category) : null,
+        unit_id: editForm.unit ? parseInt(editForm.unit) : null,
+        supplier_id: editForm.supplier ? parseInt(editForm.supplier) : null,
+        category: editForm.category ? parseInt(editForm.category) : null,
+        unit: editForm.unit ? parseInt(editForm.unit) : null,
+        supplier: editForm.supplier ? parseInt(editForm.supplier) : null,
         selling_price: parseFloat(editForm.selling_price) || 0,
         mrp: parseFloat(editForm.mrp) || parseFloat(editForm.selling_price) || 0,
         stock_quantity: parseFloat(editForm.stock_quantity) || 0,
@@ -1224,13 +1245,13 @@ export const InventoryList = () => {
                   Category
                 </label>
                 <select
-                  value={editForm.category}
+                  value={String(editForm.category || '')}
                   onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
                   className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 font-medium"
                 >
                   <option value="">Select Category</option>
                   {categories.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
+                    <option key={c.id} value={String(c.id)}>{c.name}</option>
                   ))}
                 </select>
               </div>
@@ -1240,13 +1261,13 @@ export const InventoryList = () => {
                   Supplier
                 </label>
                 <select
-                  value={editForm.supplier}
+                  value={String(editForm.supplier || '')}
                   onChange={(e) => setEditForm({ ...editForm, supplier: e.target.value })}
                   className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 font-medium"
                 >
                   <option value="">Select Supplier</option>
                   {suppliers.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name} ({s.company_name || 'Vendor'})</option>
+                    <option key={s.id} value={String(s.id)}>{s.name} ({s.company_name || 'Vendor'})</option>
                   ))}
                 </select>
               </div>
@@ -1258,13 +1279,13 @@ export const InventoryList = () => {
                 Product Unit
               </label>
               <select
-                value={editForm.unit}
+                value={String(editForm.unit || '')}
                 onChange={(e) => setEditForm({ ...editForm, unit: e.target.value })}
                 className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 font-medium"
               >
                 <option value="">Select Product Unit</option>
                 {units.map((u) => (
-                  <option key={u.id} value={u.id}>{u.name} ({u.short_name})</option>
+                  <option key={u.id} value={String(u.id)}>{u.name} ({u.short_name})</option>
                 ))}
               </select>
             </div>

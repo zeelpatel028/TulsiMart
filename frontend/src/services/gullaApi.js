@@ -22,9 +22,9 @@ export const gullaApi = {
     return await apiClient.post('/core/gulla/eod-sweep/', data, config);
   },
 
-  toggleAutoSweep: async (data, config = {}) => {
+  deleteGullaEntry: async (id, config = {}) => {
     clearApiCache('/core/gulla');
-    return await apiClient.post('/core/gulla/toggle-auto-sweep/', data, config);
+    return await apiClient.delete(`/core/gulla/entry/${id}/`, config);
   },
 };
 

@@ -50,7 +50,6 @@ class StoreSetting(Base):
     security_require_otp: Mapped[bool] = mapped_column(Boolean, default=False)
     security_session_timeout: Mapped[int] = mapped_column(Integer, default=30)
     home_cash_amount: Mapped[float] = mapped_column(Numeric(12, 2), default=0.00)
-    auto_1130_sweep_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now, server_default=func.now(), onupdate=datetime.now)

@@ -47,6 +47,14 @@ class StoreRepository:
         self.db.refresh(entry)
         return entry
 
+    def delete_gulla_entry(self, entry_id: int) -> bool:
+        entry = self.db.query(CashRegisterEntry).filter(CashRegisterEntry.id == entry_id).first()
+        if entry:
+            self.db.delete(entry)
+            self.db.commit()
+            return True
+        return False
+
     def list_gulla_entries(self, target_date: Optional[date] = None) -> List[CashRegisterEntry]:
         query = self.db.query(CashRegisterEntry)
         if target_date:

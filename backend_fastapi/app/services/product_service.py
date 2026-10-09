@@ -119,16 +119,41 @@ class ProductService:
         product = self.get_product(product_id)
 
         update_dict = data.model_dump(exclude_unset=True)
-        for key, value in update_dict.items():
-            setattr(product, key, value)
 
-        self.db.flush()
+        if "sku" in update_dict and update_dict["sku"]:
+            new_sku = update_dict["sku"]
+            existing = self.repo.get_by_sku_or_barcode(new_sku)
+            if existing and existing.id != product_id:
+                raise HTTPException(status_code=400, detail=f"SKU/Product code '{new_sku}' is already in use by another product")
+
+        if "barcode" in update_dict and update_dict["barcode"]:
+            new_barcode = update_dict["barcode"]
+            existing = self.repo.get_by_sku_or_barcode(new_barcode)
+            if existing and existing.id != product_id:
+                raise HTTPException(status_code=400, detail=f"Barcode '{new_barcode}' is already in use by another product")
+
+        if "sku" in update_dict and "product_code" not in update_dict:
+            update_dict["product_code"] = update_dict["sku"]
+
+        for key, value in update_dict.items():
+            if hasattr(product, key):
+                setattr(product, key, value)
+
+        self.db.commit()
+        self.db.refresh(product)
         return self.get_product(product_id)
 
     def delete_product(self, product_id: int) -> None:
+        from app.models.order import OrderItem
+        from app.models.supplier import PurchaseOrderItem
         product = self.get_product(product_id)
+
+        self.db.query(OrderItem).filter(OrderItem.product_id == product_id).update({OrderItem.product_id: None}, synchronize_session=False)
+        self.db.query(PurchaseOrderItem).filter(PurchaseOrderItem.product_id == product_id).update({PurchaseOrderItem.product_id: None}, synchronize_session=False)
+
         self.db.delete(product)
-        self.db.flush()
+        self.db.commit()
+
 
     def adjust_stock(self, product_id: int, data: StockAdjustmentRequest, user_id: Optional[int] = None) -> Product:
         product = self.get_product(product_id)

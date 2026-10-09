@@ -1,6 +1,6 @@
 from typing import Optional, List, Tuple, Dict, Any
 from datetime import date, datetime
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, status, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -200,6 +200,28 @@ def create_gulla_entry(
     return success_response(data=CashEntryResponse.model_validate(created_entry).model_dump(), message="Cash entry recorded", status_code=201)
 
 
+@router.delete("/core/gulla/entry/{entry_id}/")
+@router.delete("/core/gulla/{entry_id}/")
+def delete_gulla_entry(
+    entry_id: str,
+    db: Session = Depends(get_db),
+    current_user: LoginAccount = Depends(get_current_user)
+):
+    repo = StoreRepository(db)
+    clean_id = entry_id
+    if str(clean_id).startswith("G-"):
+        clean_id = str(clean_id).replace("G-", "")
+    
+    try:
+        numeric_id = int(clean_id)
+        deleted = repo.delete_gulla_entry(numeric_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Cash entry not found")
+        return success_response(data={"deleted": True, "id": entry_id}, message="Cash entry deleted successfully")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid entry ID format")
+
+
 @router.post("/core/gulla/calculate-notes/")
 def calculate_notes(payload: dict):
     counts = payload.get("counts", {})
@@ -211,15 +233,6 @@ def calculate_notes(payload: dict):
 @router.post("/core/gulla/eod-sweep/")
 def eod_sweep(payload: dict, db: Session = Depends(get_db), current_user: LoginAccount = Depends(require_admin)):
     return success_response(data={"swept": True, "amount": payload.get("amount", 0)}, message="EOD sweep complete")
-
-
-@router.post("/core/gulla/toggle-auto-sweep/")
-def toggle_auto_sweep(payload: dict, db: Session = Depends(get_db), current_user: LoginAccount = Depends(require_admin)):
-    repo = StoreRepository(db)
-    settings_obj = repo.get_settings()
-    settings_obj.auto_1130_sweep_enabled = payload.get("enabled", True)
-    repo.update_settings(settings_obj)
-    return success_response(data={"enabled": settings_obj.auto_1130_sweep_enabled}, message="Auto sweep updated")
 
 
 # --- BANK TRANSACTIONS ---

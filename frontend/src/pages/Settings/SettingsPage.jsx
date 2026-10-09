@@ -66,7 +66,6 @@ export const SettingsPage = () => {
     currency_symbol: '₹',
     tax_rate: 0,
     invoice_footer: '',
-    auto_1130_sweep_enabled: true,
   });
 
   // Login Accounts State
@@ -129,7 +128,6 @@ export const SettingsPage = () => {
         currency_symbol: data.currency_symbol || '₹',
         tax_rate: data.tax_rate || 5.0,
         invoice_footer: data.invoice_footer || 'Thank you for shopping with Tulsi Mart! Visit Again.',
-        auto_1130_sweep_enabled: data.auto_1130_sweep_enabled ?? true,
       });
 
       if (setStoreSettings) setStoreSettings(data);
@@ -748,25 +746,6 @@ export const SettingsPage = () => {
                   className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-800 border border-teal-200/80 dark:border-slate-700 rounded-xl focus:border-[#00796b] outline-none font-medium text-slate-800 dark:text-slate-200"
                 />
               </div>
-            </Card>
-
-            <Card className="p-4 sm:p-5 border border-teal-200/80 dark:border-slate-800 rounded-2xl shadow-2xs space-y-3 bg-teal-50/50 dark:bg-slate-850">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-[#00796b]" />
-                <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">Auto Nightly Sweep Rule</h4>
-              </div>
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-                Automatically sweep counter cash drawer entries to the Home Safe Vault at 11:30 PM.
-              </p>
-              <label className="flex items-center gap-2 pt-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.auto_1130_sweep_enabled}
-                  onChange={(e) => setFormData({ ...formData, auto_1130_sweep_enabled: e.target.checked })}
-                  className="w-4 h-4 text-[#00796b] rounded focus:ring-[#00796b]"
-                />
-                <span className="text-xs font-black text-slate-800 dark:text-slate-200">Enable 11:30 PM Auto Sweep</span>
-              </label>
             </Card>
           </div>
         </div>

@@ -35,7 +35,8 @@ import {
   Search,
   Filter,
   UserCheck,
-  ArrowLeft
+  ArrowLeft,
+  Trash2
 } from 'lucide-react';
 import { gullaApi, suppliersApi, expensesApi, customersApi, ordersApi, authApi, homeCashApi, bankApi } from '../../api';
 import { extractList } from '../../utils/apiHelpers';
@@ -114,8 +115,6 @@ export const GullaManagement = () => {
   const [eodKeepFloat, setEodKeepFloat] = useState('5000');
   const [eodCustomAmount, setEodCustomAmount] = useState('');
   const [homeCashAmount, setHomeCashAmount] = useState(0);
-  const [auto1130SweepEnabled, setAuto1130SweepEnabled] = useState(true);
-  const [togglingAutoSweep, setTogglingAutoSweep] = useState(false);
   const [bankBalance, setBankBalance] = useState(0);
   const [homeVaultNotes, setHomeVaultNotes] = useState({ 500: 0, 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 2: 0, 1: 0 });
   const [isHomeVaultModalOpen, setIsHomeVaultModalOpen] = useState(false);
@@ -181,14 +180,28 @@ export const GullaManagement = () => {
         cash_tender_logs: data.cash_tender_logs || [],
         notes_and_coins_summary: data.notes_and_coins_summary || {}
       });
-      if (data.auto_1130_sweep_enabled !== undefined) {
-        setAuto1130SweepEnabled(data.auto_1130_sweep_enabled);
-      }
     } catch (err) {
       console.error('Failed to load Gulla summary', err);
       showToast('Could not fetch Gulla summary data', 'error');
     } finally {
       setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const handleDeleteGullaEntry = async (entryId, entryTitle) => {
+    if (!window.confirm(`Are you sure you want to delete this cash register entry ("${entryTitle || entryId}")?`)) {
+      return;
+    }
+    try {
+      setRefreshing(true);
+      await gullaApi.deleteGullaEntry(entryId);
+      showToast('Cash register entry deleted successfully!', 'success');
+      fetchGullaData(selectedDate);
+    } catch (err) {
+      console.error('Failed to delete cash entry', err);
+      showToast(err.response?.data?.message || err.response?.data?.detail || 'Failed to delete cash entry', 'error');
+    } finally {
       setRefreshing(false);
     }
   };
@@ -409,9 +422,6 @@ export const GullaManagement = () => {
       setHomeVaultHistory(resData.history || extractList(res) || []);
       if (resData.home_cash_amount !== undefined) {
         setHomeCashAmount(resData.home_cash_amount);
-      }
-      if (resData.auto_1130_sweep_enabled !== undefined) {
-        setAuto1130SweepEnabled(resData.auto_1130_sweep_enabled);
       }
       if (resData.denominations_breakdown) {
         setHomeVaultNotes(resData.denominations_breakdown);
@@ -1263,9 +1273,19 @@ export const GullaManagement = () => {
                       <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide border shadow-2xs ${getBadgeColor(e.entry_type)}`}>
                         {e.entry_type_label || e.entry_type.replace(/_/g, ' ')}
                       </span>
-                      <span className={`font-black text-sm sm:text-base tracking-tight ${isPositive ? 'text-[#00796b] dark:text-[#80cbc4]' : 'text-rose-600 dark:text-rose-400'}`}>
-                        {isPositive ? `+₹${parseFloat(e.amount).toFixed(2)}` : `-₹${parseFloat(e.amount).toFixed(2)}`}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`font-black text-sm sm:text-base tracking-tight ${isPositive ? 'text-[#00796b] dark:text-[#80cbc4]' : 'text-rose-600 dark:text-rose-400'}`}>
+                          {isPositive ? `+₹${parseFloat(e.amount).toFixed(2)}` : `-₹${parseFloat(e.amount).toFixed(2)}`}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteGullaEntry(e.id, e.notes || e.reference_id || e.entry_type)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/60 transition-colors cursor-pointer"
+                          title="Delete Cash Entry"
+                        >
+                          <Trash2 className="w-4 h-4 text-rose-500" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Transaction Notes / Title */}
@@ -1325,6 +1345,7 @@ export const GullaManagement = () => {
                     <th className="py-3.5 px-4 whitespace-nowrap">Received Notes</th>
                     <th className="py-3.5 px-4 whitespace-nowrap">Change Returned</th>
                     <th className="py-3.5 px-6 text-right whitespace-nowrap min-w-[130px]">Cash Amount</th>
+                    <th className="py-3.5 px-4 text-center whitespace-nowrap">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -1418,6 +1439,16 @@ export const GullaManagement = () => {
                           isPositive ? 'text-[#00695C] dark:text-[#4DB6AC]' : 'text-[#E53935] dark:text-rose-400'
                         }`}>
                           {isPositive ? `+₹${parseFloat(e.amount).toFixed(2)}` : `-₹${parseFloat(e.amount).toFixed(2)}`}
+                        </td>
+                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteGullaEntry(e.id, e.notes || e.reference_id || e.entry_type)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/60 transition-colors cursor-pointer"
+                            title="Delete Cash Entry"
+                          >
+                            <Trash2 className="w-4 h-4 text-rose-500" />
+                          </button>
                         </td>
                       </tr>
                     );
@@ -1600,13 +1631,6 @@ export const GullaManagement = () => {
 
                 <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                   <span className="text-[10px] font-bold text-slate-500 uppercase block">Quick Presets:</span>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickSelectNote('HIGH_NOTES')}
-                    className="px-2 py-1 rounded-lg bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200 text-[10px] font-black border border-amber-300 dark:border-amber-800 cursor-pointer"
-                  >
-                    ✨ 11:30 PM Rule (500, 200, 100, 50)
-                  </button>
                   {[500, 200, 100, 50, 20, 10, 5, 2, 1].map((d) => (
                     <button
                       key={d}
@@ -1863,12 +1887,12 @@ export const GullaManagement = () => {
         </form>
       </Modal>
 
-      {/* ================= MODAL 2: DAY-END HOME CASH SWEEP MODAL (EMBEDS HOME SAFE VAULT & 11:30 PM AUTO-WITHDRAW) ================= */}
+      {/* ================= MODAL 2: DAY-END HOME CASH SWEEP MODAL ================= */}
       <Modal
         isOpen={isEodModalOpen}
         onClose={() => setIsEodModalOpen(false)}
         title="Day-End Cash Sweep & Home Safe Vault"
-        subtitle={`Current Home Vault Balance: ₹${homeCashAmount.toFixed(2)} • 11:30 PM Auto-Withdraw Rule`}
+        subtitle={`Current Home Vault Balance: ₹${homeCashAmount.toFixed(2)}`}
         maxWidth="max-w-2xl w-full"
         footer={
           <div className="flex items-center justify-end w-full">
@@ -1887,17 +1911,11 @@ export const GullaManagement = () => {
                   <Lock className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-sm sm:text-base font-bold text-[#384959] dark:text-slate-100">
-                      Home Safe Cash Vault
-                    </h3>
-                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border flex items-center gap-1 ${auto1130SweepEnabled ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800' : 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800'}`}>
-                      <Clock className={`w-2.5 h-2.5 ${auto1130SweepEnabled ? 'text-emerald-600 dark:text-emerald-400 animate-pulse' : 'text-rose-500'}`} />
-                      {auto1130SweepEnabled ? '11:30 PM Auto-Withdraw ON' : '11:30 PM Auto-Withdraw OFF'}
-                    </span>
-                  </div>
+                  <h3 className="text-sm sm:text-base font-bold text-[#384959] dark:text-slate-100">
+                    Home Safe Cash Vault
+                  </h3>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                    Daily automatic & manual cash vault transfer system
+                    Manual cash vault transfer system
                   </p>
                 </div>
               </div>
@@ -1925,53 +1943,6 @@ export const GullaManagement = () => {
                   <FileText className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                   <span>History</span>
                 </Button>
-              </div>
-            </div>
-
-            {/* 11:30 PM Auto-Withdraw Rule Feature Banner */}
-            <div className="p-3.5 bg-white dark:bg-slate-900/90 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-start gap-2.5">
-                  <div className={`p-2 rounded-xl shrink-0 ${auto1130SweepEnabled ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700'}`}>
-                    <Sparkles className="w-4 h-4" />
-                  </div>
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-[#384959] dark:text-[#88BDF2] text-xs sm:text-sm tracking-tight block">
-                        ⏰ 11:30 PM Automatic Money Withdraw System:
-                      </span>
-                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold tracking-wider uppercase border ${auto1130SweepEnabled ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-700'}`}>
-                        {auto1130SweepEnabled ? '🟢 ON (ACTIVE)' : '🔴 OFF (PAUSED)'}
-                      </span>
-                    </div>
-                    <p className="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed font-medium">
-                      If Admin does not manually withdraw all money from today's collection by <strong>11:30 PM</strong>, 
-                      the system automatically sweeps remaining cash in notes of <strong>₹500, ₹200, ₹100, and ₹50</strong> into Home Safe Vault. 
-                      Coins & small change stay in register float.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Interactive Auto Toggle Switch (ON / OFF) */}
-                <div className="flex items-center gap-2.5 shrink-0 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 justify-between sm:justify-end">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    Auto Withdraw:
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleToggleAutoSweep()}
-                    disabled={togglingAutoSweep}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${auto1130SweepEnabled ? 'bg-emerald-500' : 'bg-slate-400 dark:bg-slate-600'}`}
-                    title={auto1130SweepEnabled ? 'Click to TURN OFF 11:30 PM Auto-Withdraw' : 'Click to TURN ON 11:30 PM Auto-Withdraw'}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${auto1130SweepEnabled ? 'translate-x-5' : 'translate-x-0'}`}
-                    />
-                  </button>
-                  <span className={`text-xs font-black min-w-[28px] ${auto1130SweepEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
-                    {auto1130SweepEnabled ? 'ON' : 'OFF'}
-                  </span>
-                </div>
               </div>
             </div>
           </div>
@@ -2050,7 +2021,7 @@ export const GullaManagement = () => {
               <EmptyState
                 icon={Lock}
                 title="No Vault Transactions Found"
-                description="Home Safe cash deposits, withdrawals, and 11:30 PM auto-sweeps will appear here."
+                description="Home Safe cash deposits, withdrawals, and manual sweeps will appear here."
               />
             ) : (
               homeVaultHistory.map((tx) => {

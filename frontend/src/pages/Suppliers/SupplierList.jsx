@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/common/Button';
+import { Modal } from '../../components/common/Modal';
 import { useNotification } from '../../context/NotificationContext';
 
 // Icons
@@ -16,7 +17,9 @@ import {
   ShoppingCart,
   PackageCheck,
   Calendar,
-  Filter
+  Filter,
+  AlertTriangle,
+  Trash2
 } from 'lucide-react';
 
 import { SearchInput } from '../../components/common/UiHelpers';
@@ -90,6 +93,11 @@ export const SupplierList = () => {
   const [isPoModalOpen, setIsPoModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [payingSupplier, setPayingSupplier] = useState(null);
+
+  // Delete Supplier Modal State
+  const [isDeleteSupplierModalOpen, setIsDeleteSupplierModalOpen] = useState(false);
+  const [deletingSupplier, setDeletingSupplier] = useState(null);
+  const [deletingSupplierLoading, setDeletingSupplierLoading] = useState(false);
 
   // Forms state
   const [supplierForm, setSupplierForm] = useState({
@@ -907,16 +915,9 @@ export const SupplierList = () => {
             setSupplierForm(s);
             setIsSupplierModalOpen(true);
           }}
-          onDeleteSupplier={async (id, name) => {
-            if (window.confirm(`Are you sure you want to delete supplier "${name}"?`)) {
-              try {
-                await suppliersApi.deleteSupplier(id);
-                showToast(`Supplier ${name} deleted!`);
-                fetchProcurementData();
-              } catch (err) {
-                showToast('Failed to delete supplier', 'error');
-              }
-            }
+          onDeleteSupplier={(id, name) => {
+            setDeletingSupplier({ id, name });
+            setIsDeleteSupplierModalOpen(true);
           }}
           onViewProfile={(s) => setViewingSupplierProfile(s)}
           onPaySupplier={(s) => {
@@ -999,6 +1000,65 @@ export const SupplierList = () => {
         calculateDenominationTotal={calculateDenominationTotal}
         onSavePayment={handleSavePayment}
       />
+
+      {/* Delete Supplier Confirmation Modal */}
+      <Modal
+        isOpen={isDeleteSupplierModalOpen}
+        onClose={() => setIsDeleteSupplierModalOpen(false)}
+        title="Delete Supplier Confirmation"
+        maxWidth="max-w-md w-full"
+        footer={
+          <div className="flex items-center justify-end gap-2.5 w-full">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsDeleteSupplierModalOpen(false)}
+              disabled={deletingSupplierLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={async () => {
+                if (!deletingSupplier) return;
+                try {
+                  setDeletingSupplierLoading(true);
+                  await suppliersApi.deleteSupplier(deletingSupplier.id);
+                  showToast(`Supplier "${deletingSupplier.name}" deleted successfully!`, 'success');
+                  setIsDeleteSupplierModalOpen(false);
+                  setDeletingSupplier(null);
+                  fetchProcurementData();
+                } catch (err) {
+                  console.error('Failed to delete supplier', err);
+                  showToast(err.response?.data?.message || 'Failed to delete supplier', 'error');
+                } finally {
+                  setDeletingSupplierLoading(false);
+                }
+              }}
+              loading={deletingSupplierLoading}
+              className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-4 cursor-pointer"
+            >
+              <Trash2 className="w-4 h-4 mr-1" />
+              Delete Supplier
+            </Button>
+          </div>
+        }
+      >
+        <div className="flex items-start gap-3 p-1">
+          <div className="w-10 h-10 rounded-2xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 p-2 flex items-center justify-center shrink-0 border border-rose-200 dark:border-rose-800">
+            <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+          </div>
+          <div className="space-y-1">
+            <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+              Are you sure you want to delete supplier "{deletingSupplier?.name}"?
+            </h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+              This action will remove the supplier record from your active catalog.
+            </p>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

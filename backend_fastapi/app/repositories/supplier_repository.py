@@ -58,6 +58,37 @@ class SupplierRepository:
         self.db.refresh(supplier)
         return supplier
 
+    def delete_supplier(self, supplier_id: int) -> bool:
+        from app.models.product import Product
+        supplier = self.db.query(Supplier).filter(Supplier.id == supplier_id).first()
+        if not supplier:
+            return False
+
+        # Unlink referencing products
+        self.db.query(Product).filter(Product.supplier_id == supplier_id).update({Product.supplier_id: None}, synchronize_session=False)
+
+        # Delete related child records explicitly to avoid constraint errors
+        po_ids = [po.id for po in supplier.purchase_orders]
+        if po_ids:
+            self.db.query(GoodsReceiptNote).filter(
+                or_(GoodsReceiptNote.supplier_id == supplier_id, GoodsReceiptNote.purchase_order_id.in_(po_ids))
+            ).delete(synchronize_session=False)
+            self.db.query(PurchaseOrderItem).filter(PurchaseOrderItem.purchase_order_id.in_(po_ids)).delete(synchronize_session=False)
+            self.db.query(SupplierPayment).filter(
+                or_(SupplierPayment.supplier_id == supplier_id, SupplierPayment.purchase_order_id.in_(po_ids))
+            ).delete(synchronize_session=False)
+            self.db.query(PurchaseOrder).filter(PurchaseOrder.supplier_id == supplier_id).delete(synchronize_session=False)
+        else:
+            self.db.query(GoodsReceiptNote).filter(GoodsReceiptNote.supplier_id == supplier_id).delete(synchronize_session=False)
+            self.db.query(SupplierPayment).filter(SupplierPayment.supplier_id == supplier_id).delete(synchronize_session=False)
+
+        self.db.expire_all()
+        supplier = self.db.query(Supplier).filter(Supplier.id == supplier_id).first()
+        if supplier:
+            self.db.delete(supplier)
+            self.db.commit()
+        return True
+
     def list_purchase_orders(self, supplier_id: Optional[int] = None, page: int = 1, limit: int = 20) -> Tuple[List[PurchaseOrder], int]:
         offset = (page - 1) * limit
         query = self.db.query(PurchaseOrder).options(selectinload(PurchaseOrder.items), selectinload(PurchaseOrder.supplier))

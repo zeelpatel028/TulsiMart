@@ -28,11 +28,12 @@ def get_sales_trends(
     days: Optional[int] = Query(None, ge=1, le=365),
     period: Optional[str] = Query(None),
     timeframe: Optional[str] = Query(None),
+    customer_type: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
     service = AnalyticsService(db)
     p = period or timeframe or "month"
-    trends = service.get_sales_trends(days=days, period=p)
+    trends = service.get_sales_trends(days=days, period=p, customer_type=customer_type)
     return success_response(data=trends, message="Sales trends fetched")
 
 

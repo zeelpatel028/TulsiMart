@@ -51,7 +51,7 @@ export const Modal = ({
         </div>
 
         {/* Content Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1 touch-pan text-[#263238] dark:text-slate-200">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 touch-pan text-[#263238] dark:text-slate-200 custom-scrollbar">
           {children}
         </div>
 

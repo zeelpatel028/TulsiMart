@@ -141,7 +141,10 @@ export const ReportsPage = () => {
         ? payload.summary 
         : (typeof res.data?.summary === 'object' && res.data?.summary !== null ? res.data.summary : {});
       const rawRows = payload.data || payload.results || payload.records || (Array.isArray(payload) ? payload : []);
-      const rows = extractList(rawRows);
+      let rows = extractList(rawRows);
+      if (['gst', 'purchase', 'sales_gst', 'po_gst'].includes(reportType)) {
+        rows = rows.filter(r => r.gst_tax_amount === undefined || parseFloat(r.gst_tax_amount) > 0);
+      }
       setReportData({ summary, data: rows });
     } catch (err) {
       console.error(err);

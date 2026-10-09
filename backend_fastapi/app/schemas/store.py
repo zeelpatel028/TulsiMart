@@ -37,7 +37,6 @@ class StoreSettingUpdate(BaseModel):
     security_require_otp: Optional[bool] = None
     security_session_timeout: Optional[int] = None
     home_cash_amount: Optional[float] = None
-    auto_1130_sweep_enabled: Optional[bool] = None
 
     @field_validator("email", mode="before")
     @classmethod
@@ -84,7 +83,6 @@ class StoreSettingResponse(BaseModel):
     security_require_otp: bool
     security_session_timeout: int
     home_cash_amount: float
-    auto_1130_sweep_enabled: bool
     created_at: datetime
     updated_at: datetime
 

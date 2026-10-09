@@ -57,6 +57,19 @@ class UnitResponse(BaseModel):
     conversion_factor: float
 
 
+def parse_id(val: Any) -> Optional[int]:
+    if val is None or val == "" or val == "null":
+        return None
+    if isinstance(val, dict):
+        val = val.get("id")
+    try:
+        if val is not None and val != "" and val != "null":
+            return int(val)
+    except (ValueError, TypeError):
+        pass
+    return None
+
+
 class ProductCreate(BaseModel):
     name: str
     sku: Optional[str] = None
@@ -99,37 +112,22 @@ class ProductCreate(BaseModel):
     @classmethod
     def clean_payload(cls, data: Any) -> Any:
         if isinstance(data, dict):
-            # Map category -> category_id if missing
-            if "category_id" not in data or data.get("category_id") is None or data.get("category_id") == "":
-                data["category_id"] = data.get("category")
-            # Map unit -> unit_id if missing
-            if "unit_id" not in data or data.get("unit_id") is None or data.get("unit_id") == "":
-                data["unit_id"] = data.get("unit")
-            # Map supplier -> supplier_id if missing
-            if "supplier_id" not in data or data.get("supplier_id") is None or data.get("supplier_id") == "":
-                data["supplier_id"] = data.get("supplier")
-            # Map brand -> brand_id if missing
-            if "brand_id" not in data or data.get("brand_id") is None or data.get("brand_id") == "":
-                data["brand_id"] = data.get("brand")
+            cat_val = data.get("category_id") if "category_id" in data else data.get("category")
+            data["category_id"] = parse_id(cat_val)
 
-            # Clean integer ID fields
-            for id_field in ["category_id", "unit_id", "supplier_id", "brand_id"]:
-                val = data.get(id_field)
-                if val == "" or val is None:
-                    data[id_field] = None
-                else:
-                    try:
-                        data[id_field] = int(val)
-                    except (ValueError, TypeError):
-                        data[id_field] = None
+            unit_val = data.get("unit_id") if "unit_id" in data else data.get("unit")
+            data["unit_id"] = parse_id(unit_val)
 
-            # Clean date fields
+            supp_val = data.get("supplier_id") if "supplier_id" in data else data.get("supplier")
+            data["supplier_id"] = parse_id(supp_val)
+
+            brand_val = data.get("brand_id") if "brand_id" in data else data.get("brand")
+            data["brand_id"] = parse_id(brand_val)
+
             for date_field in ["manufacturing_date", "expiry_date"]:
-                val = data.get(date_field)
-                if val == "" or val is None:
+                if data.get(date_field) in ("", "null", None):
                     data[date_field] = None
 
-            # Clean barcode
             if data.get("barcode") == "":
                 data["barcode"] = None
 
@@ -178,34 +176,26 @@ class ProductUpdate(BaseModel):
     @classmethod
     def clean_payload(cls, data: Any) -> Any:
         if isinstance(data, dict):
-            if "category_id" not in data or data.get("category_id") is None or data.get("category_id") == "":
-                data["category_id"] = data.get("category")
-            if "unit_id" not in data or data.get("unit_id") is None or data.get("unit_id") == "":
-                data["unit_id"] = data.get("unit")
-            if "supplier_id" not in data or data.get("supplier_id") is None or data.get("supplier_id") == "":
-                data["supplier_id"] = data.get("supplier")
-            if "brand_id" not in data or data.get("brand_id") is None or data.get("brand_id") == "":
-                data["brand_id"] = data.get("brand")
-
-            for id_field in ["category_id", "unit_id", "supplier_id", "brand_id"]:
-                val = data.get(id_field)
-                if val == "" or val is None:
-                    data[id_field] = None
-                else:
-                    try:
-                        data[id_field] = int(val)
-                    except (ValueError, TypeError):
-                        data[id_field] = None
+            mappings = [
+                ("category_id", "category"),
+                ("unit_id", "unit"),
+                ("supplier_id", "supplier"),
+                ("brand_id", "brand")
+            ]
+            for id_field, alias in mappings:
+                if id_field in data or alias in data:
+                    val = data.get(id_field) if id_field in data else data.get(alias)
+                    data[id_field] = parse_id(val)
 
             for date_field in ["manufacturing_date", "expiry_date"]:
-                val = data.get(date_field)
-                if val == "" or val is None:
+                if date_field in data and data.get(date_field) in ("", "null", None):
                     data[date_field] = None
 
-            if data.get("barcode") == "":
+            if "barcode" in data and data.get("barcode") == "":
                 data["barcode"] = None
 
         return data
+
 
 
 class ProductResponse(BaseModel):

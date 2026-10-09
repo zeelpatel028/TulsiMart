@@ -62,6 +62,18 @@ def update_supplier(
     return success_response(data=SupplierResponse.model_validate(supplier).model_dump(), message="Supplier updated")
 
 
+@router.delete("/suppliers/suppliers/{supplier_id}/")
+@router.delete("/suppliers/{supplier_id}/")
+def delete_supplier(
+    supplier_id: int,
+    db: Session = Depends(get_db),
+    current_user: LoginAccount = Depends(get_current_user)
+):
+    service = SupplierService(db)
+    service.delete_supplier(supplier_id)
+    return success_response(message="Supplier deleted successfully")
+
+
 # --- PURCHASE ORDERS ---
 
 @router.get("/suppliers/purchase-orders/")

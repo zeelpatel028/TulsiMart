@@ -29,8 +29,8 @@ class Supplier(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now, server_default=func.now())
 
-    purchase_orders: Mapped[List[PurchaseOrder]] = relationship("PurchaseOrder", back_populates="supplier")
-    payments: Mapped[List[SupplierPayment]] = relationship("SupplierPayment", back_populates="supplier")
+    purchase_orders: Mapped[List[PurchaseOrder]] = relationship("PurchaseOrder", back_populates="supplier", cascade="all, delete-orphan")
+    payments: Mapped[List[SupplierPayment]] = relationship("SupplierPayment", back_populates="supplier", cascade="all, delete-orphan")
 
     @property
     def total_purchases(self) -> float:
@@ -75,7 +75,7 @@ class PurchaseOrder(Base):
 
     supplier: Mapped[Supplier] = relationship("Supplier", back_populates="purchase_orders")
     items: Mapped[List[PurchaseOrderItem]] = relationship("PurchaseOrderItem", back_populates="purchase_order", cascade="all, delete-orphan")
-    grns: Mapped[List[GoodsReceiptNote]] = relationship("GoodsReceiptNote", back_populates="purchase_order")
+    grns: Mapped[List[GoodsReceiptNote]] = relationship("GoodsReceiptNote", back_populates="purchase_order", cascade="all, delete-orphan")
 
 
 class PurchaseOrderItem(Base):

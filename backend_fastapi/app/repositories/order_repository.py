@@ -16,6 +16,14 @@ class OrderRepository:
         self.db.refresh(order)
         return order
 
+    def delete_order(self, order_id: int) -> bool:
+        order = self.db.query(Order).filter(Order.id == order_id).first()
+        if order:
+            self.db.delete(order)
+            self.db.commit()
+            return True
+        return False
+
     def get_by_id(self, order_id: int) -> Optional[Order]:
         return (
             self.db.query(Order)

@@ -327,122 +327,8 @@ export const ExpenseList = () => {
         </div>
       </div>
 
-      {/* 🌟 Segmented Main Tab Navigation Bar */}
-      <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs p-1.5 rounded-2xl border border-teal-100 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
-          <button
-            onClick={() => setActiveTab('expenses')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all shrink-0 cursor-pointer ${
-              activeTab === 'expenses'
-                ? 'bg-[#00796b] text-white shadow-sm shadow-teal-900/20'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-teal-50/70 dark:hover:bg-slate-800'
-            }`}
-          >
-            <Receipt className="w-4 h-4" />
-            <span>Store Overheads ({filteredExpenses.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all shrink-0 cursor-pointer ${
-              activeTab === 'analytics'
-                ? 'bg-[#00796b] text-white shadow-sm shadow-teal-900/20'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-teal-50/70 dark:hover:bg-slate-800'
-            }`}
-          >
-            <PieIcon className="w-4 h-4" />
-            <span>Cost Breakdown ({chartData.length} Categories)</span>
-          </button>
-        </div>
-
-        <button
-          onClick={() => {
-            setFormData({ ...formData, category: categories[0]?.id || '' });
-            setIsModalOpen(true);
-          }}
-          className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-[#00796b] text-white hover:bg-[#004d40] text-xs font-bold rounded-xl transition-all cursor-pointer"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>Record Expense</span>
-        </button>
-      </div>
-
-      {/* 🌟 ANALYTICS COST BREAKDOWN TAB CONTENT */}
-      {activeTab === 'analytics' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
-          <div className="lg:col-span-5">
-            <Card title="Monthly Expense Breakdown" subtitle="Cost allocation across operational categories">
-              {chartData.length === 0 ? (
-                <div className="h-64 w-full flex flex-col items-center justify-center text-center p-4 text-slate-400">
-                  <PieIcon className="w-10 h-10 mb-2 opacity-40 text-[#80cbc4]" />
-                  <p className="text-xs font-bold text-slate-600 dark:text-slate-300">No monthly expenses recorded</p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Record store expenses to see visual breakdown.</p>
-                </div>
-              ) : (
-                <div className="h-64 w-full flex items-center justify-center">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={chartData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={55}
-                        outerRadius={80}
-                        paddingAngle={4}
-                        dataKey="value"
-                      >
-                        {chartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={PALETTE_COLORS[index % PALETTE_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(val) => [`₹${Number(val || 0).toLocaleString('en-IN')}`, 'Total']}
-                        contentStyle={{ 
-                          backgroundColor: isDark ? '#1e293b' : '#ffffff', 
-                          borderRadius: '12px', 
-                          border: isDark ? '1px solid #334155' : '1px solid #E2E8F0',
-                          color: isDark ? '#f8fafc' : '#1e293b'
-                        }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </Card>
-          </div>
-
-          <div className="lg:col-span-7 space-y-3">
-            <Card title="Category Spend Details" subtitle="Full summary of expenses by category">
-              {chartData.length === 0 ? (
-                <p className="text-xs text-slate-400 italic">No breakdown available</p>
-              ) : (
-                <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-                  {chartData.map((item, i) => (
-                    <div key={i} className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700 flex items-center justify-between">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span
-                          className="w-3 h-3 rounded-full shrink-0"
-                          style={{ backgroundColor: PALETTE_COLORS[i % PALETTE_COLORS.length] }}
-                        />
-                        <span className="font-extrabold text-slate-900 dark:text-slate-100 text-xs truncate">
-                          {item.name}
-                        </span>
-                      </div>
-                      <span className="font-black text-[#00796b] dark:text-[#80cbc4] text-sm font-heading shrink-0">
-                        ₹{item.value.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Card>
-          </div>
-        </div>
-      )}
-
-      {/* 🌟 STORE OVERHEADS TAB CONTENT */}
-      {activeTab === 'expenses' && (
-        <div className="space-y-4">
+      {/* 🌟 STORE OVERHEADS CONTENT */}
+      <div className="space-y-4">
           {/* Filter, Search & Layout Controls Bar */}
           <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs p-3 sm:p-3.5 rounded-2xl border border-teal-100 dark:border-slate-800 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
             {/* Search Bar */}
@@ -661,7 +547,6 @@ export const ExpenseList = () => {
             </div>
           )}
         </div>
-      )}
 
       {/* 🌟 RECORD OPERATING EXPENSE MODAL */}
       <Modal
